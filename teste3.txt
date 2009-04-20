@@ -12,4 +12,3 @@
 12 - leo
 function nova01-1
 function nova01-2
-function nova01-3
