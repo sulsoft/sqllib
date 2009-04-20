@@ -12,3 +12,5 @@
 12 - leo
 function nova01-1
 function nova01-2
+<<<<<<< .minefunction nova01-3
+function nova01-4=======>>>>>>> .theirs
