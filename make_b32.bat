@@ -33,14 +33,17 @@ if exist %HRB_PATH%\lib\vm.lib goto BUILD_XHB
 :ERRO_1
    @echo.
    @echo.
-   @echo Atenção, copie a seguinte DLL para dentro dessa pasta: LIBPQ.DLL
-   @echo Essa DLL pode ser encontrada dentro da pasta de instalação do POSTGRESQL EX: C:\PGSQL\LIB
+   @echo Atencao, copie a seguinte DLL para dentro dessa pasta: LIBPQ.DLL
+   @echo Essa DLL pode ser encontrada dentro da pasta de instalação do POSTGRESQL
+   @echo EX: C:\Arquivos de Programas\PostgreSql\LIB
    @echo.
+   Pause
    goto EXIT
 
 :CLEAN
    del /s *.bak
    del /s *.tds
    del /s *.map
-   del make_b32.log
+   del /s *.log
+
 :EXIT
