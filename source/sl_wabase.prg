@@ -47,10 +47,6 @@
  */
 #include "sqllibrdd.ch"
 
-#IfnDef __XHARBOUR__
-   #include "hbcompat.ch"
-#endif
-
 static aSystemDrivers  := NIL
 
 FUNCTION SQLRegisterDrv( nSysID, cRddName )
