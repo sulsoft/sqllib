@@ -22,8 +22,8 @@ if exist %HRB_PATH%\lib\vm.lib goto BUILD_XHB
 
 :BUILD_OK
    implib -a lib\libpq.lib libpq.dll
-   copy lib\sqllib.lib %HB_PATH%\lib\sqllib.lib
-   copy lib\libpq.lib %HB_PATH%\lib\libpq.lib
+   rem copy lib\sqllib.lib %HB_PATH%\lib\sqllib.lib
+   rem copy lib\libpq.lib %HB_PATH%\lib\libpq.lib
    goto EXIT
 
 :BUILD_ERR
