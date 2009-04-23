@@ -46,11 +46,11 @@
  * If you do not wish that, delete this exception notice.
  */
 
-#IfnDef __XHARBOUR__
-   #include "hbusrrdd.ch"
-#else
-   #include "usrrdd.ch"
-#endif
+*#IfnDef __XHARBOUR__
+*   #include "hbusrrdd.ch"
+*#else
+*   #include "usrrdd.ch"
+*#endif
 
 //#ifndef _HB_USR_RDD_CH
 //   #define _HB_USR_RDD_CH
