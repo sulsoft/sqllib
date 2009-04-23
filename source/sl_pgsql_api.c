@@ -64,7 +64,7 @@
 #include <hbapifs.h>
 #include <hbapiitm.h>
 #include <hbstack.h>
-#include "libpq-fe.h"
+#include <libpq-fe.h>
 #include "sqllibconsts.ch"
 
 #include "sqldebug.h"
@@ -491,7 +491,7 @@ HB_FUNC( PQGETVALUEEX )
    if ( PQresultStatus( res ) != PGRES_TUPLES_OK )
       return;
    
-   //nWA    = hb_parni(1);  DESABILITADO PQ NUNCA É USADO LEONARDO MACHADO
+   nWA    = hb_parni(1);
    nRow   = hb_parni(3) -1;
    nField = hb_parni(4) -1;
    aFieldInfo = hb_param(5, HB_IT_ARRAY );
