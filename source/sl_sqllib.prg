@@ -60,16 +60,27 @@ static s_aMyLocks      := {}     && Rossine 30/10/08
 /* Controle de Conexoes */
 static nConnCount      := 0      /* between 1 and MAX_CONN_COUNT */  
 
-THREAD static s_nPacketSize := 50
-THREAD static s_cSysSchema  := ''
-THREAD static s_cSchema     := 'public'
-THREAD static s_cQuery      := ''
-THREAD static s_nConn      
-THREAD static s_cHost       := ""
-THREAD static s_cUser       := ""
-THREAD static s_cPwd        := ""
-THREAD static s_cDriverName := ""
-
+#IfnDef __XHARBOUR__
+ THREAD static s_nPacketSize := 50
+ THREAD static s_cSysSchema  := ''
+ THREAD static s_cSchema     := 'public'
+ THREAD static s_cQuery      := ''
+ THREAD static s_nConn
+ THREAD static s_cHost       := ""
+ THREAD static s_cUser       := ""
+ THREAD static s_cPwd        := ""
+ THREAD static s_cDriverName := ""
+#else
+ static s_nPacketSize := 50
+ static s_cSysSchema  := ''
+ static s_cSchema     := 'public'
+ static s_cQuery      := ''
+ static s_nConn
+ static s_cHost       := ""
+ static s_cUser       := ""
+ static s_cPwd        := ""
+ static s_cDriverName := ""
+#endif
 /*
  * Efetua uma conexao … um banco de dados, retorna zero em caso de erro ou o 
  * numero da conexao efetuada com o servidor SQL. Em caso afirmativo armazena-o  
