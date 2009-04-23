@@ -1,4 +1,7 @@
 #include "sqllibrdd.ch"
+#IfnDef __XHARBOUR__
+   #include "hbcompat.ch"
+#endif
 
 /*
  * Rotina para importar DBF para o Banco de dados
@@ -42,12 +45,19 @@ for each cFile in aFiles
        nCtd++
 
        if nCtd >= nEvery
-          BEGIN SEQUENCE WITH {|oErr| Break( oErr )}        
+          #IfnDef __XHARBOUR__
+          BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
              Eval( bBlock )
-             
           RECOVER
-          
+
           End
+          #else
+          TRY
+             Eval( bBlock )
+          catch e
+             ? e:description
+          End
+          #endif
           nCtd := 0
        endif
     endif
@@ -135,14 +145,20 @@ for each cFile in aFiles
     if valtype( bBlock ) = "B"
        nCtd++
        if nCtd >= nEvery
-          
-          BEGIN SEQUENCE WITH {|oErr| Break( oErr )}        
+          #IfnDef __XHARBOUR__
+          BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
              Eval( bBlock )
-             
           RECOVER
-             *
+
           End
-          
+          #else
+          TRY
+             Eval( bBlock )
+          catch e
+             ? e:description
+          End
+          #endif
+
           nCtd := 0
        endif
     endif
