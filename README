@@ -18,14 +18,33 @@ Harbour            >= 1.0.0
 
 NOTAS IMPORTANTE:
 -----------------
-Para compilação com xHarbour comecial é nescessario a configuração do seguinte PATH: 'set XHB_PATH=c:\xhb' que se encontra
-em make_xhb.bat
+Para compilação com xHarbour comecial é nescessario a configuração do seguinte PATH: 'set XHB_PATH=c:\xhb\bin' que se encontra
+em make_xhb.bat e deve alterar também o arquivo 'sqllib.lib.xbp' direcionando a pasta correta do INCLUDE da instalação do PostgreSql.
+
+
+Abaixo um exemplo de Variaveis de ambiente para xHarbour Free >= 1.1.0 + BCC 5.5.1:
+-----------------------------------------------------------------------------------
+SET PATH=%PATH%;C:\BCC55\BIN;C:\BCC55\LIB;C:\BCC55\LIB\PSDK;C:\BCC55\INCLUDE;C:\xharbour;C:\xharbour\bin;C:\xharbour\lib;C:\xharbour\include
+SET INCLUDE=%INCLUDE%;C:\Bcc55\include;C:\xHarbour\include
+SET LIB=%LIB%;C:\Bcc55\lib;C:\xHarbour\lib
+SET HB_PATH=D:\XHARBOUR
+SET HB_INC_PGSQL=C:\pgsql\include
+
+Abaixo um exemplo de Variaveis de ambiente para Harbour Free >= 1.0.1 + BCC 5.5.1:
+----------------------------------------------------------------------------------
+SET PATH=%PATH%;C:\BCC55\BIN;C:\BCC55\LIB;C:\BCC55\LIB\PSDK;C:\BCC55\INCLUDE;C:\hb-bcc\bin;C:\hb-bcc\lib;C:\hb-bcc\include
+SET INCLUDE=%INCLUDE%;C:\Bcc55\include;C:\hb-bcc\include
+SET LIB=%LIB%;C:\Bcc55\lib;C:\hb-bcc\lib;C:\BCC55\LIB\PSDK
+SET HB_PATH=C:\hb-bcc
+SET HB_INC_PGSQL=C:\pgsql\include
+
 
 Arquivos do Projeto:
 --------------------
 >SQLLIB
    README - Esse arquivo
    TODO   - Arquivo com pendencias, futuras implementações, e correções de bug's
+   make_vc.bat  - script de compilação para xHarbour e Harbour (Free) usando compilador MSVC
    make_b32.bat - script de compilação para xHarbour e Harbour (Free) usando compilador Bcc 5.5.1
    make_xhb.bat - script de compilação para xHarbour Comercial
    >SOURCE
