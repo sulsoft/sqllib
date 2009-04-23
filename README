@@ -1,7 +1,5 @@
 README 22/04/2009 - Lib SQLIIB para acesso a Banco de dados Postgresql
 
-IMPORTANTE
-----------
 Aqui temos que definir as configurações minimas para compilação da LIB.
 Ex:
 
@@ -14,10 +12,14 @@ Pelles C (com xHarbour Comercial) (for Windows)
 
 Possiveis Compiladores x[H]arbour:
 ----------------------------------
-xHarbour >= 1.0.0
-Harbour  >= 1.0.0
+xHarbour Free      >= 1.0.0
+xHarbour Comercial >= 1.0.0
+Harbour            >= 1.0.0
 
-
+NOTAS IMPORTANTE:
+-----------------
+Para compilação com xHarbour comecial é nescessario a configuração do seguinte PATH: 'set XHB_PATH=c:\xhb' que se encontra
+em make_xhb.bat
 
 Arquivos do Projeto:
 --------------------
@@ -25,6 +27,7 @@ Arquivos do Projeto:
    README - Esse arquivo
    TODO   - Arquivo com pendencias, futuras implementações, e correções de bug's
    make_b32.bat - script de compilação para xHarbour e Harbour (Free) usando compilador Bcc 5.5.1
+   make_xhb.bat - script de compilação para xHarbour Comercial
    >SOURCE
       >sl_array.prg
       >sl_arraytext.prg
