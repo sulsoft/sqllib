@@ -53,7 +53,11 @@
 #include "common.ch"
 #include "hbclass.ch"
 #include "postgres.ch"
-#include "hbusrrdd.ch"
+#IfnDef __XHARBOUR__
+   #include "hbusrrdd.ch"
+else
+   #include "usrrdd.ch"
+#endif
 
 CLASS TPQServer
 
