@@ -1,0 +1,67 @@
+README 22/04/2009 - Lib SQLIIB para acesso a Banco de dados Postgresql
+
+IMPORTANTE
+----------
+Aqui temos que definir as configurações minimas para compilação da LIB.
+Ex:
+
+Versão do PostgreSql tem que ser >= 7.0
+
+Possiveis Compiladores C compativies:
+-------------------------------------
+Borland BCC-5.5.1 (for Windows)
+Pelles C (com xHarbour Comercial) (for Windows)
+
+Possiveis Compiladores x[H]arbour:
+----------------------------------
+xHarbour >= 1.0.0
+Harbour  >= 1.0.0
+
+
+
+Arquivos do Projeto:
+--------------------
+>SQLLIB
+   README - Esse arquivo
+   TODO   - Arquivo com pendencias, futuras implementações, e correções de bug's
+   make_b32.bat - script de compilação para xHarbour e Harbour (Free) usando compilador Bcc 5.5.1
+   >SOURCE
+      >sl_array.prg
+      >sl_arraytext.prg
+      >sl_buffer.prg
+      >sl_classes.prg
+      >sl_debug.c
+      >sl_error.prg
+      >sl_exports.prg
+      >sl_itemapi.c
+      >sl_params.c
+      >sl_pgsql.prg
+      >sl_pgsql_api.c
+      >sl_sqllib.prg
+      >sl_sysfuncs.c
+      >sl_tostring.prg
+      >sl_utils.prg
+      >sl_wabase.prg
+      >sl_wafile.prg
+      >sqllib.hbp
+      >TPostgres.prg
+   >INCLUDE
+      >postgres.ch
+      >sql_itemapi.h
+      >sql_sysfuncs.h
+      >sqldebug.h
+      >sqllib.ch
+      >sqllibconsts.ch
+      >sqllibex.ch
+      >sqllibrdd.ch
+   >SAMPLES
+      >
+
+
+
+
+
+
+
+
+
