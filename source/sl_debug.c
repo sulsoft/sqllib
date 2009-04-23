@@ -57,8 +57,10 @@
 #include "hb_io.h"
 #include "hbtrace.h"
 #include "sqllibconsts.ch"
-#include "hbapicls.h"
-                                                            #include "windows.h"
+#ifndef HB_IS_OBJECT   // #ifdef __XPP__
+ #include "hbapicls.h"
+#endif
+#include "windows.h"
 
 const char *sql_tr_file_ = "";
 int         sql_tr_line_ = 0;
