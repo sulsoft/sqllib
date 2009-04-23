@@ -98,16 +98,21 @@
                      iif( <uVar1> == nil, <uVar1> := <uVal1>, ) ;;
                    [ iif( <uVarN> == nil, <uVarN> := <uValN>, ); ]
 
-   #IfnDef __XHARBOUR__
-      #include "hbusrrdd.ch"
-   #else
-      #include "usrrdd.ch"
-   #endif
 
 //   #ifndef _HB_USR_RDD_CH
 //      #define _HB_USR_RDD_CH
 //      #include "hbusrrdd.ch"
 //   #endif
+
+   #xcommand TRY  => BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
+   #xcommand CATCH [<!oErr!>] => RECOVER [USING <oErr>] <-oErr->
+   #xcommand FINALLY => ALWAYS
+
+   #IfnDef __XHARBOUR__
+      #include "hbusrrdd.ch"
+   #else
+      #include "usrrdd.ch"
+   #endif
 
    /* Comandos para DEBUG */
    #ifdef SQL_DEBUG
