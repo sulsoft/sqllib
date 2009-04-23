@@ -1425,8 +1425,4 @@ Static Function ValueToString( xField )
                result := xField                                
         end 
                
-return result           
-
-**-------------------**
-** Final de Programa **
-**-------------------**
+return result
