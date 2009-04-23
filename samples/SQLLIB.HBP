@@ -1,0 +1,6 @@
+gt=gtwin
+prgflags=-I..\include
+prgflags=-P
+libpaths=..
+run=yes
+libs=sl_sqllib.lib libpq.lib
