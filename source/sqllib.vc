@@ -1,0 +1,58 @@
+#MSVC
+HB_PGSQL = $(HB_INC_PGSQL)
+
+!ifndef CC_DIR
+CC_DIR = $(MAKE_DIR)
+!endif
+
+!ifndef HB_DIR
+HB_DIR = $(HARBOUR_DIR)
+!endif
+ 
+OBJ = obj 
+PROJECT = sqllib.lib $(PR)
+OBJFILES = $(OBJ)\TPostgres.obj $(OBJ)\sl_array.obj $(OBJ)\sl_arraytext.obj $(OBJ)\sl_buffer.obj $(OBJ)\sl_classes.obj $(OBJ)\sl_error.obj $(OBJ)\sl_exports.obj $(OBJ)\sl_pgsql.obj $(OBJ)\sl_sqllib.obj $(OBJ)\sl_tostring.obj //
+ $(OBJ)\sl_utils.obj $(OBJ)\sl_wabase.obj $(OBJ)\sl_wafile.obj $(OB) 
+PRGFILES = TPostgres.prg sl_array.prg sl_arraytext.prg sl_buffer.prg sl_classes.prg sl_error.prg sl_exports.prg sl_pgsql.prg sl_sqllib.prg sl_tostring.prg //
+ sl_utils.prg sl_wabase.prg sl_wafile.prg $(PS) 
+OBJCFILES = $(OBJ)\sl_debug.obj $(OBJ)\sl_itemapi.obj $(OBJ)\sl_params.obj $(OBJ)\sl_pgsql_api.obj $(OBJ)\sl_sysfuncs.obj $(OBC) 
+CFILES = sl_debug.c sl_itemapi.c sl_params.c sl_pgsql_api.c sl_sysfuncs.c $(CF) 
+RESFILES =
+RESDEPEN = $(RESFILES)
+DEFFILE = 
+HARBOURFLAGS =  -I.\..\include
+INSTALLLIB = NO
+USERDEFINE = 
+USERINCLUDE = .\..\include
+EDITOR = notepad
+CFLAG1 =  -I$(INCLUDE_DIR) -TP -W3 -nologo $(C_USR) $(SHELL) $(CFLAGS)
+CFLAG2 =  -I$(HB_PGSQL) -c -I.\..\include
+RFLAGS = 
+LFLAGS = 
+IFLAGS = 
+LINKER = lib $(PROJECT)
+ 
+ALLOBJ = $(OBJFILES) $(OBJCFILES) 
+ALLRES = $(RESDEPEN)
+ALLLIB = 
+ 
+#COMMANDS
+.cpp.obj:
+$(CC_DIR)\bin\cl $(CFLAG1) $(CFLAG2) -Fo$* $**
+ 
+.c.obj:
+$(CC_DIR)\bin\cl -I$(HB_DIR)\include $(CFLAG1) $(CFLAG2) -Fo$* $**
+ 
+.prg.obj:
+$(HB_DIR)\bin\harbour -go -n -I$(HB_DIR)\include $(HARBOURFLAGS) -I$(C4W)\include -o$* $**
+ 
+.rc.res:
+$(CC_DIR)\BIN\rc $(RFLAGS) $<
+ 
+#BUILD
+ 
+$(PROJECT): $(CFILES) $(OBJFILES)
+    $(CC_DIR)\BIN\$(LINKER) @&&!
+    $(PROJECT)
+    $(ALLOBJ)
+!
