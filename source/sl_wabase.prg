@@ -47,7 +47,11 @@
  */
 #include "sqllibrdd.ch"
 
-static aSystemDrivers  := NIL		
+#IfnDef __XHARBOUR__
+   #include "hbcompat.ch"
+#endif
+
+static aSystemDrivers  := NIL
 
 FUNCTION SQLRegisterDrv( nSysID, cRddName )
    LOCAL n, aFuncs
@@ -1905,14 +1909,23 @@ static function SL_FIELDNAME( nWA, nField, cFieldName ) && XBASE - FIELDNAME()
    local s_aStruct := aWAData[ WA_STRUCT ]
    local nResult   := SUCCESS
 
-   BEGIN SEQUENCE WITH {|oErr| Break( oErr )}        
+   #IfnDef __XHARBOUR__
+   BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
       cFieldName := s_aStruct[ nField ][ DBS_NAME ]
-      
+
    RECOVER
       cFieldName := ""
       nResult    := FAILURE
-      
    End
+   #else
+   TRY
+      cFieldName := s_aStruct[ nField ][ DBS_NAME ]
+   catch e
+      ? e:description
+      cFieldName := ""
+      nResult    := FAILURE
+   End
+   #endif
 
 return nResult
 
