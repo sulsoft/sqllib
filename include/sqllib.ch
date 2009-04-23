@@ -48,7 +48,7 @@
 
 #IfnDef __XHARBOUR__
    #include "hbusrrdd.ch"
-else
+#else
    #include "usrrdd.ch"
 #endif
 
