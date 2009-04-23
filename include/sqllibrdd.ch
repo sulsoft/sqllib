@@ -104,12 +104,11 @@
 //      #include "hbusrrdd.ch"
 //   #endif
 
-   #xcommand TRY  => BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
-   #xcommand CATCH [<!oErr!>] => RECOVER [USING <oErr>] <-oErr->
-   #xcommand FINALLY => ALWAYS
-
    #IfnDef __XHARBOUR__
       #include "hbusrrdd.ch"
+      #xcommand TRY  => BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
+      #xcommand CATCH [<!oErr!>] => RECOVER [USING <oErr>] <-oErr->
+      #xcommand FINALLY => ALWAYS
    #else
       #include "usrrdd.ch"
    #endif
