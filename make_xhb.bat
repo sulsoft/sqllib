@@ -15,7 +15,7 @@ if not exist libpq.dll goto ERRO_1
    @echo.
    @echo.
    @echo Atencao, copie a seguinte DLL para dentro dessa pasta: LIBPQ.DLL
-   @echo Essa DLL pode ser encontrada dentro da pasta de instalação do POSTGRESQL
+   @echo Essa DLL pode ser encontrada dentro da pasta de instalacao do POSTGRESQL
    @echo EX: C:\Arquivos de Programas\PostgreSql\LIB
    @echo.
    Pause
