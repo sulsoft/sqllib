@@ -1,14 +1,15 @@
 @echo off
 
-set HRB_DIR=%HB_PATH%
+if not exist libpq.dll goto ERRO_1
+if "%HB_INC_PGSQL%" == "" goto ERRO_2
+
+if "%HB_DIR%" == "" SET HRB_DIR=%HB_PATH%
 
 if "%1" == "clean" goto CLEAN
 if "%1" == "CLEAN" goto CLEAN
 if not exist lib md lib
 
-if not exist libpq.dll goto ERRO_1
-
-if exist %HRB_PATH%\lib\hbvm.lib goto BUILD_HB
+if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
 
 :BUILD_HB
    cd source
@@ -24,12 +25,14 @@ if exist %HRB_PATH%\lib\hbvm.lib goto BUILD_HB
    
 :BUILD_OK
    copy sqllib.lib .\..\lib\sqllib.lib
+   del sqllib.lib
    cd..
    implib -a lib\libpq.lib libpq.dll
-   goto EXIT
+   goto CLEAN
 
 :BUILD_ERR
    notepad source\make_b32.log
+   cd..
    goto EXIT
 
 :ERRO_1
@@ -42,11 +45,21 @@ if exist %HRB_PATH%\lib\hbvm.lib goto BUILD_HB
    Pause
    goto EXIT
 
+:ERRO_2
+   @echo.
+   @echo.
+   @echo Atencao, voce deve definir o caminho correto da variavel de ambiente:
+   @echo SET HB_INC_PGSQL , abaixo um exemplo:
+   @echo SET HB_INC_PGSQL = C:\Arquivos de Programas\PostgreSql\include
+   @echo.
+   Pause
+   goto EXIT
+
 :CLEAN
    del /s source\*.ppo
-   del /s *.bak
-   del /s *.tds
+   del /s source\*.log
    del /s *.map
    del /s *.log
-
+   goto EXIT
+   
 :EXIT
