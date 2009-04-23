@@ -1,0 +1,15 @@
+libs=libpq
+prgflags=-I.\INCLUDE
+prgflags=-P
+prgflags=-GC3
+prgflags=-W3
+prgflags=-es2
+prgflags=-DSL_DEBUG
+
+cflags=-I.\INCLUDE
+cflags=-I%HB_INC_PGSQL%
+cflags=-DSL_DEBUG
+cflags=-DHB_TR_LEVEL_ALWAYS
+
+#cflags=/P
+#cflags=-DHB_TR_LEVEL=HB_TR_ALWAYS
