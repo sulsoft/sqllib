@@ -1,7 +1,4 @@
 #include "sqllibrdd.ch"
-#IfnDef __XHARBOUR__
-   #include "hbcompat.ch"
-#endif
 
 /*
  * Rotina para importar DBF para o Banco de dados
