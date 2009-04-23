@@ -1,0 +1,65 @@
+=======================================================================
+
+                  PROJETO SQLLIB - LISTA DE TAREFAS
+
+=======================================================================
+
+- Temos que fixar um nome para as Geração das LIB, independente do compilador EX: 
+SQLLIB.LIB (Conforme falado com Vailton poderia fixar esse nome).
+
+- Montar um exemplo de postgresql em console que rode em qualquer ambiente
+
+- Montar os .BAT e .SH para compilar em abientes diferentes
+
+- Montar um manual das funções já existentes
+
+- Documentar e padronizar os nomes de funçoes, classes e etc... Pelo que pude
+notar já estão usando tudo com inicio SL_ então podemos fixar isso e já documentar
+
+
+
+
+Pendencias para a versão 0.01 (24/03/09)
+========================================
+
+- Dbcreate - passar os parametros para criar com campos:
+             - Primary Key
+             - Unique
+             - Not Null
+
+- Rever os comandos: SQL CREATE DATABASE e SQL DELETE DATABASE
+
+- Rever as funções: dbseek() com chave multipla e campos CAR + NUM + DAT
+
+- Montar samples.
+
+
+Vailton quero trocar umas ideias com voce para ver como iremos tratar as situacoes abaixo:
+
+SQL CONNECT ON "localhost" ;
+          USER "postgres" ;
+      PASSWORD "postgres" ;
+      DATABASE "rossine" ;
+           LIB "PGSQL" ;
+        SCHEMA "public" ;
+          INTO nConn1
+
+SQL CONNECT ON "localhost" ;
+          USER "postgres" ;
+      PASSWORD "postgres" ;
+      DATABASE "vailton" ;
+           LIB "PGSQL" ;
+        SCHEMA "public" ;
+          INTO nConn2
+
+USE clientes ALIAS temp VIA "SQLRUN" DATABASE "rossine" SCHEMA "a001" NEW shared
+USE produtos ALIAS temp VIA "SQLRUN" DATABASE "rossine" SCHEMA "a002" NEW shared
+
+USE clientes ALIAS temp VIA "SQLRUN" DATABASE "vailton" SCHEMA "a001" NEW shared
+
+veja que quero usar 2 databases: "rossine" e "vailton"
+e Dentro do database "rossine" quero abrir a tabela "clientes" no schema "a001" e
+"produtos" no schema "a002"
+
+Acho que dentro do SQL_OPEN teriamos que atualizar estas variaveis
+aWAData[ WA_SCHEMA ]
