@@ -24,7 +24,7 @@ REQUEST HB_LANG_PT
 
 REQUEST DBFCDX
 
-#define  RDD    "DBFCDX"
+#define RDD    "DBFCDX"
 #define RDD    "SQLLIB"
 
 *#define CRIAR_DADOS

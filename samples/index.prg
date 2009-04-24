@@ -1,9 +1,11 @@
-*#include "FiveWin.ch"
-
-#include "SQLLIB.ch"
-#include "postgres.ch"
-#include "hbusrrdd.ch"
+#include "./../include/sqllib.ch"
+#include "./../postgres.ch"
 #include "dbinfo.ch"
+#IfnDef __XHARBOUR__
+   #include "hbusrrdd.ch"
+#else
+   #include "usrrdd.ch"
+#endif
 
 REQUEST SQLLIB
 REQUEST PGSQL
@@ -122,10 +124,9 @@ End
 wait
 quit
  
-*********************
+*******************************
 function GetErrorInfo( oError )
-********************* 
-
+*******************************
    local cInfo := "", n
 
    cInfo += "Description: " + oError:Description + Chr( 13 ) + Chr( 10 )
