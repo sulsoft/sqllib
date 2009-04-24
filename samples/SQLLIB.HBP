@@ -1,6 +1,6 @@
 gt=gtwin
-prgflags=-I..\include
+prgflags=-I.\..\include\
 prgflags=-P
-libpaths=..
+libpaths=.\..\lib\
 run=yes
-libs=sl_sqllib.lib libpq.lib
+libs=sqllib libpq
