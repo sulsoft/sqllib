@@ -31,7 +31,7 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto CLEAN
 
 :BUILD_ERR
-   notepad source\make_b32.log
+   notepad make_b32.log
    cd..
    goto EXIT
 
