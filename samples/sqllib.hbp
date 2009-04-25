@@ -1,6 +1,7 @@
-gt=gtwin
+{win}gt=gtwin
 prgflags=-I.\..\include\
 prgflags=-P
+prgflags=-DSL_DEBUG
 libpaths=.\..\lib\
 run=yes
 libs=sqllib libpq
