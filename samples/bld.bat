@@ -2,7 +2,7 @@
 if "%1" == "" goto ERRO_1
 if exist %1.EXE del %1.EXE
 
-hbmk2 -trace %1.prg -DHB_TR_LEVEL=HB_TR_ALWAYS > bld.log
+hbmk2 -trace %1.prg > bld.log
 if errorlevel 1 goto BUILD_ERR
 goto EXIT
 
