@@ -1,14 +1,15 @@
 @echo off
-
-if not exist libpq.dll goto ERRO_1
-if "%HB_INC_PGSQL%" == "" goto ERRO_2
-
-if "%HB_DIR%" == "" SET HRB_DIR=%HB_PATH%
+:INICIO
+if "%HB_INC_PGSQL%" == ""  goto ERRO_2
+if not exist libpq.dll 		goto ERRO_1
+                         
+if "%HRB_DIR%" == "" if not "%HB_INSTALL_PREFIX%" == "" 	SET HRB_DIR=%HB_INSTALL_PREFIX%
+if "%HRB_DIR%" == "" if not "%HB_PATH%"  == "" 				SET HRB_DIR=%HB_PATH%
 
 if "%1" == "clean" goto CLEAN
 if "%1" == "CLEAN" goto CLEAN
-if not exist lib md lib
 
+if not exist lib md lib
 if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
 
 :BUILD_HB
@@ -24,14 +25,14 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto BUILD_OK
    
 :BUILD_OK
-   copy sqllib.lib .\..\lib\sqllib.lib
+   copy /y sqllib.lib .\..\lib\sqllib.lib
    del sqllib.lib
    cd..
    implib -a lib\libpq.lib libpq.dll
    goto CLEAN
 
 :BUILD_ERR
-   notepad make_b32.log
+	if exist make_b32.log notepad make_b32.log
    cd..
    goto EXIT
 
@@ -43,6 +44,8 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    @echo EX: C:\Arquivos de Programas\PostgreSql\LIB
    @echo.
    Pause
+
+	if exist %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL goto COPIA_DLL
    goto EXIT
 
 :ERRO_2
@@ -54,12 +57,24 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    @echo.
    Pause
    goto EXIT
+   
+:COPIA_DLL
+
+	@echo.
+	@echo Encontramos a DLL necessaria localizada na seguinte pasta:
+	@echo %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL
+	@echo deseja copia-la para esta pasta?
+	choice
+	if errorlevel 2 goto EXIT	
+	copy %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL 
+   goto INICIO
 
 :CLEAN
-   del /s source\*.ppo
-   del /s source\*.log
-   del /s *.map
-   del /s *.log
+   if exist source\*.ppo 	del /s source\*.ppo
+   if exist source\*.log	del /s source\*.log
+   if exist *.map				del /s *.map
+   if exist *.tds				del /s *.tds
+   if exist *.log				del /s *.log
    goto EXIT
    
 :EXIT
