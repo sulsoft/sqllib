@@ -26,6 +26,7 @@ Pendencias para a versão 0.01 (24/03/09)
              - Primary Key
              - Unique
              - Not Null
+             - Default values
 
 - Rever os comandos: SQL CREATE DATABASE e SQL DELETE DATABASE
 
