@@ -71,21 +71,22 @@
    #define WA_ENGINE               2    // System ID for this alias as string for quick access, eg ( "MYSQL", "PGSQL", etc...)
    #define WA_CONNECTION           3    // Current Connection object
    #define WA_POINTER              3    // Single Alias for RDDs what works with pointers
-   #define WA_RESULT               4    // Last fetched result-set
-   #define WA_RESULT_DIRECTION     5    // Last direction for result-set
+   #define WA_VERSION              4    // Current server version as numeric value (ex: 080205 for PostgreSQL 8.2.5)
+   #define WA_RESULT               5    // Last fetched result-set
+   #define WA_RESULT_DIRECTION     6    // Last direction for result-set
                                  
-   #define WA_TABLETYPE            6    // TS_SINGLE_SQL / TS_COMPLEX_SQL
-   #define WA_PACKET_SIZE          7    // Number os records to fetch 
-   #define WA_TRANSCOUNTER         8    // Transaction counter
-   #define WA_TEMP                 9    // Temporary item to use with DBCreate() and others
-                                 
-   #define WA_FLD_RECNO           10    // sl_rowid   position into WA_REAL_STRUCT
-   #define WA_FLD_DELETED         11    // sl_deleted position into WA_REAL_STRUCT
+   #define WA_TABLETYPE            7    // TS_SINGLE_SQL / TS_COMPLEX_SQL
+   #define WA_PACKET_SIZE          8    // Number os records to fetch 
+   #define WA_TRANSCOUNTER         9    // Transaction counter
+   #define WA_TEMP                10    // Temporary item to use with DBCreate() and others
+                                                                                  
+   #define WA_FLD_RECNO           11    // sl_rowid   position into WA_REAL_STRUCT
+   #define WA_FLD_DELETED         12    // sl_deleted position into WA_REAL_STRUCT
 
    /* Quick access only */
-   #define WA_SCHEMA              12    // For quick access only to prefer other data access: WA_CONNECTION
-   #define WA_DATABASE            13    // For quick access only to prefer other data access: WA_CONNECTION
-   #define WA_TABLENAME           14    // For quick access only to prefer other data access: WA_CONNECTION
+   #define WA_SCHEMA              13    // For quick access only to prefer other data access: WA_CONNECTION
+   #define WA_DATABASE            14    // For quick access only to prefer other data access: WA_CONNECTION
+   #define WA_TABLENAME           15    // For quick access only to prefer other data access: WA_CONNECTION
 
    /* Another operations and misc values */
    #define WA_BUFFER_INFO_BASE    WA_TABLENAME          +  1    /* Anterior + 1 */
@@ -138,7 +139,8 @@
    #define SL_CONN_POINTER      10
    #define SL_CONN_SCHEMA       11 
    #define SL_CONN_CHARSET      12
-   #define SL_CONN_COUNT        12
+   #define SL_CONN_VERSION		  13
+   #define SL_CONN_COUNT        13
       
    /*
     * SQLGetDBInfo constants

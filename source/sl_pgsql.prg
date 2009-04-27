@@ -343,11 +343,12 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
 *           def := "'" + SL_NULLDATE + "'"
 
        CASE ( typ == "L" )
-           typ := "BOOLEAN"
+           typ := "BOOLEAN" 
+           def := 'FALSE'
 
        /*
         * Aqui aceitamos campos com valores não-padrão, desde que estejam
-        * devidamente indicados - precedidos por '@'
+        * devidamente indicados - precedidos por '@' ex: bytearray, etc..
         */
        CASE ( typ == '@' )
            typ := Substr( fld[ DBS_TYPE ], 2 )
@@ -827,8 +828,15 @@ return SL_ExecQuery( aWAData, cSql )
 ****************************
 function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSizes )
 ****************************
-   local aValues, cSql, cIdx, cBag, cTag, lDesc, n
-   local pSQL := aWAData[ WA_POINTER ]:pDB
+   LOCAL aValues
+	LOCAL cSql
+	LOCAL cIdx
+	LOCAL cBag
+	LOCAL cTag
+	LOCAL lDesc
+	LOCAL n
+   local pSQL 		:= aWAData[ WA_POINTER ]:pDB
+   local nVersion := aWAData[ WA_VERSION  ]
    local oError   
    
    // Add ID_PREFIX to void conflit with reserved words (vailton - 15/01/2009 - 22:08:54)
@@ -868,7 +876,19 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    
    /* Montamos o comando SQL */      
    for n = 1 to len(aFields)
-       cSql += '"' + lower( aFields[n] ) + '"' + iif( lDesc, " DESC ", " ASC " ) + "NULLS FIRST" + iif( n < len(aFields), ",", "" )
+       cSql += '"' + lower( aFields[n] ) + '"' 
+		 
+		 IF lDesc
+		 	 cSql += " DESC "
+  		 ELSEIF nVersion > 080300
+			 cSql += " ASC "
+		 End
+
+  		 IF nVersion > 080300
+		 	cSql += " NULLS FIRST" + iif( n < len(aFields), ",", "" )
+		 ELSE
+		 	cSql += iif( n < len(aFields), ",", "" )
+		 End
    next                                                                                  
    
    cSql += " )"
@@ -877,6 +897,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
       cSql += " WHERE "
       cSql += lower( SQLTranslate( aOrderCreateInfo [UR_ORCR_CONDINFO,DBOI_EXPRESSION] ) )
    endif   
+   
    PGSQL_QUERY_LOG( pSQL, cSql,, True, True )
    
    cSql := 'INSERT INTO "\?"."\?" '+;
@@ -885,7 +906,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 
    aValues := {}
    AADD( aValues, aWAData[ WA_SCHEMA ])                                         // Schema
-   AADD( aValues, SL_INDEX)                                                    // Table for insert
+   AADD( aValues, SL_INDEX)                                                     // Table for insert
    AADD( aValues, 'NOW()' )                                                     // IndexStamp: Current date & time 
    AADD( aValues, aWAData[ WA_TABLENAME ])                                      // IndexTable: Table with current table
    AADD( aValues, cIdx)                                                         // IndexFile:  Current new index name
@@ -1336,7 +1357,6 @@ function SL_PGSQL_SQLARRAY( pConn, cSQL, aFieldNames, lAssoc )
       End
 
 *      TRACE "SL_PGSQL_SQLARRAY( ", pConn, ", ", cSQL, ", ", aFieldNames, ", ", lAssoc, " )"
-
       IF ( aInfo == NIL ) THEN;
          RETURN aResult
 

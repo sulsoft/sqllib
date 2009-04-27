@@ -151,6 +151,7 @@ static function SL_NEW( nWA )
    aWAData[ WA_SYSTEMID ]        := oConn:SystemID
    aWAData[ WA_ENGINE ]          := oConn:RddName
    aWAData[ WA_SCHEMA ]          := oConn:Schema   && Rossine 03/01/09
+   aWAData[ WA_VERSION ]         := aConn[ SL_CONN_VERSION ] // Vailton - 27/04/2009 - 15:53:21
 
    SL_SetSchema( aWAData[ WA_SCHEMA ] )
 
@@ -231,8 +232,8 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
    FOR n := 1 TO nTotalFields
        aField := ARRAY( UR_FI_SIZE )
        aField[ UR_FI_NAME ]    := s_aStruct[ n, DBS_NAME ]
-**       aField[ UR_FI_TYPE ]    := s_aStruct[ n, DBS_FLD_TYPE ]
-**       aField[ UR_FI_TYPE ]    := SL_GETFIELDTYPE( s_aStruct[ n, 2 ] )
+**     aField[ UR_FI_TYPE ]    := s_aStruct[ n, DBS_FLD_TYPE ]
+**     aField[ UR_FI_TYPE ]    := SL_GETFIELDTYPE( s_aStruct[ n, 2 ] )
        aField[ UR_FI_TYPE ]    := HB_ExecFromArray( { FSL_GETFIELDTYPE( aWAData[ WA_SYSTEMID ] ), s_aStruct[ n, 2 ] } )
        aField[ UR_FI_TYPEEXT ] := s_aStruct[ n, DBS_TYPE ] &&  0   Rossine 22/10/08
        aField[ UR_FI_LEN ]     := SL_GETFIELDSIZE( aField[ UR_FI_TYPE ], s_aStruct[ n, DBS_LEN ] )  && Rossine 22/10/08

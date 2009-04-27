@@ -91,8 +91,10 @@ static nConnCount      := 0      /* between 1 and MAX_CONN_COUNT */
 FUNCTION SL_CONN( cHost, cPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema, cCharSet )
 ********************
 
-   LOCAL xPointer  := NIL 
-   LOCAL nResult, cRddFunc, nSysID
+   LOCAL xPointer  
+	LOCAL cRddFunc
+   LOCAL nResult
+	LOCAL nSysID
    
    DEFAULT cPort    TO "0"
    DEFAULT cSchema  TO "" 
@@ -161,8 +163,8 @@ msgstop( cPort    + CRLF + ;
       nConnCount := 1         
    End
    
-   nResult := nConnCount
-   nSysID  := SQLSYS_ID( cRddName )
+   nResult  := nConnCount
+   nSysID   := SQLSYS_ID( cRddName )
 
    DEBUG 'AADD( saConnections, { ', nResult, cRddName, cHost, cPort, cDb, cUser, cPwd, nFlags, SQLSYS_IDSTR( cRddName ), xPointer, cSchema, cCharSet, '} )'
 
@@ -177,8 +179,12 @@ msgstop( cPort    + CRLF + ;
                            nSysID,;  // SL_CONN_SYSTEMID
                          xPointer,;  // SL_CONN_POINTER    -- Pode ser um OBJ ou um POINTER 
                           cSchema,;  // SL_CONN_SCHEMA
-                         cCharSet }) // SL_CONN_CHARSET
+                         cCharSet,;  // SL_CONN_CHARSET
+                         		  0 ;  // SL_CONN_VERSION
+                      }) 
 
+	Atail(saConnections)[ SL_CONN_VERSION] :=	SL_GetNumVersion( Atail(saConnections), nSysID )	// 27/04/2009 - 15:27:44 - Vailton
+	
    snConnHandle := nResult
    saConnInfo   := aClone( Atail(saConnections) )
 
@@ -189,6 +195,28 @@ msgstop( cPort    + CRLF + ;
 
 RETURN nResult
 
+/*
+ * SL_GetNumVersion( pConn ) --> Server Version as numeric value
+ * 27/04/2009 - 15:26:53
+ */
+FUNCTION SL_GetNumVersion( pConn, nSysID )
+	LOCAL Temp
+
+	IF ( nSysID == ID_MYSQL ) .OR. ( nSysID == ID_POSTGRESQL )
+		Temp := SQLArray("select version()",, pConn,, nSysID)
+		IF ValType( Temp ) == "A" .AND. Len( Temp ) == 1
+		  Temp := Temp[1,1]
+		  Temp := Substr( Temp, At( " ", Temp ) + 1 )
+		  
+		  IF ( nSysID == ID_POSTGRESQL )
+		  		// Sample: PostgreSQL 8.2.5
+		  		Temp := Substr( Temp, 1, At( " ", Temp ) - 1 )
+		  End
+		  RETURN VAL( substr(Temp,1,1)+'0'+substr(Temp,3,1)+'0'+substr(Temp,5,1) )
+		End
+	End
+	RETURN 0
+	
 /*
  * Valida se para o RDD solicitado é um ALIAS e  
  * existe um nome correto a ser enviado.
@@ -460,16 +488,26 @@ return snConnHandle
  */   
 
 ***************************
-function SL_GETCURRCONN
+function SL_GETCONNBYALIAS( nAlias )
 ***************************
+   LOCAL aWAData
 
-   LOCAL aWAData := USRRDD_AREADATA( Select() )
+   IF VALTYPE( nAlias ) == 'U'
+   	nAlias := Select()
+  	End
+   IF VALTYPE( nAlias ) == 'C'
+   	nAlias := Select( nAlias )
+  	End
+  	IF VALTYPE( nAlias ) <> "N" .OR. ( nAlias == 00 )
+  	   RETURN 0
+  	End
+  	
+   aWAData := USRRDD_AREADATA( nAlias )
    
-      IF valtype( aWAData ) == 'A' 
-         return aWAData[ WA_CONNECTION ]
-      End
-      
-   return 0
+   IF valtype( aWAData ) == 'A' 
+      return aWAData[ WA_CONNECTION ]
+   End   
+   RETURN 0
    
 /*
  * Puxa informações sobre uma determinada conexão procurando pelo Handle
@@ -503,7 +541,6 @@ function SL_GETCONNINFO( nHandle )
 *******************************
 function SL_GETCONNINFOBYID( nDriverID )
 *******************************
-
    LOCAL c
    
    IF ( nDriverID == NIL) .OR. ( nDriverID == 0 )

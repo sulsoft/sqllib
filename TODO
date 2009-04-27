@@ -64,3 +64,7 @@ e Dentro do database "rossine" quero abrir a tabela "clientes" no schema "a001" 
 
 Acho que dentro do SQL_OPEN teriamos que atualizar estas variaveis
 aWAData[ WA_SCHEMA ]
+
+Pendencias para a versão 0.02
+========================================
+	Suporte para MT - ao add/del uma conexao, travar com MUTEX
