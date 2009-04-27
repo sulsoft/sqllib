@@ -57,8 +57,8 @@
 #include "hb_io.h"
 #include "hbtrace.h"
 #include "sqllibconsts.ch"
-#ifndef HB_IS_OBJECT   // #ifdef __XPP__
- #include "hbapicls.h"
+#if !defined( __XHARBOUR__ )
+  #include "hbapicls.h"
 #endif
 #include "windows.h"
 
