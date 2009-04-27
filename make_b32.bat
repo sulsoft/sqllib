@@ -70,11 +70,11 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto INICIO
 
 :CLEAN
-   if exist source\*.ppo 	del /s source\*.ppo
-   if exist source\*.log	del /s source\*.log
-   if exist *.map				del /s *.map
-   if exist *.tds				del /s *.tds
-   if exist *.log				del /s *.log
+   del /s source\*.ppo
+   del /s source\*.log
+   del /s *.map
+   del /s *.tds
+   del /s *.log
    goto EXIT
    
 :EXIT
