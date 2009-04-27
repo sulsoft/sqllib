@@ -75,6 +75,8 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    del /s *.map
    del /s *.tds
    del /s *.log
+   del /s *.exe
+   del /s *.ppo
    goto EXIT
    
 :EXIT
