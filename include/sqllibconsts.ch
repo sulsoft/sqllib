@@ -128,14 +128,14 @@
     * SL_GETCONNINFO() constants
     */                       
    #define SL_CONN_HANDLE        1
-   #define SL_CONN_RDD           2
+   #define SL_CONN_RDD           2     // ex: MySQL, PgSQL
    #define SL_CONN_HOST          3
    #define SL_CONN_PORT          4
    #define SL_CONN_DB            5
    #define SL_CONN_USER          6
    #define SL_CONN_PASSWORD      7
    #define SL_CONN_FLAGS         8
-   #define SL_CONN_SYSTEMID      9   
+   #define SL_CONN_SYSTEMID      9     // ID_MYSQL, ID_POSTGRESQL
    #define SL_CONN_POINTER      10
    #define SL_CONN_SCHEMA       11 
    #define SL_CONN_CHARSET      12
@@ -145,14 +145,14 @@
    /*
     * SQLGetDBInfo constants
     */
-   #define DBI_GETVERSION         0
+   #define DBI_GETVERSION         0 
    #define DBI_GETALLTABLES       1
    #define DBI_GETALLDBS          2
    #define DBI_GETALLINDEXES      3
    #define DBI_GETALLUSERS        4
    #define DBI_GETALLCONNUSERS    5
    #define DBI_GETSYSTEMID        6
-   #define DBI_GETSYSTEMIDSTR     7
+   #define DBI_GETSYSTEMIDSTR     7  
    
    // list the drivers currently supported or to be implemented.
    #define ID_NONE                0

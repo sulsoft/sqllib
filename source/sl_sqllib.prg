@@ -489,27 +489,32 @@ function SL_GETCONNBYALIAS( nAlias )
    
 /*
  * Puxa informações sobre uma determinada conexão procurando pelo Handle
- * NOTE que ele pega as conexões mais recentes primeiro.
  * 13/12/2008 - 00:22:26
  */
-
 ***************************
 function SL_GETCONNINFO( nHandle )
 ***************************
 
    LOCAL c
    
-   IF (nHandle == NIL) .OR. ( nHandle == 00 )
-      return saConnInfo                            
-   ELSE   
+   IF (nHandle == NIL) .OR. ( VALTYPE(nHandle) == "N" .and. nHandle == 00 )
+      RETURN saConnInfo                            
+   ELSEIF Valtype( nHandle ) == "A" .AND. Len( nHandle ) == SL_CONN_COUNT
+      * Usamos isto caso ele já esteja passando por engano um array com os dados
+      * de uma conexão aparentemente válida - 23/05/2009 - 23:11:01
+      IF ValType( nHandle[SL_CONN_HANDLE] ) $ "PO"
+         RETURN nHandle
+      End
+   ELSEIF VALTYPE( nHandle ) $ "PO"   
+      * NOTE que ele pega as conexões mais recentes primeiro para o caso dele
+      * estar procurando as ultimas ou mais recentes.
       FOR c := len( saConnections ) TO 1 STEP -1
           IF saConnections[c,SL_CONN_HANDLE] == nHandle
-             return aClone( saConnections[c] )
+             RETURN aClone( saConnections[c] )
           End
       End
    End 
-   
-   return nil         
+   RETURN nil         
 
 /*
  * Puxa informações sobre uma determinada conexão procurando pelo ID do Driver.
@@ -521,16 +526,16 @@ function SL_GETCONNINFOBYID( nDriverID )
 *******************************
    LOCAL c
    
-   IF ( nDriverID == NIL) .OR. ( nDriverID == 0 )
-      return saConnInfo                            
-   ELSE   
+   IF (nDriverID == NIL) .OR. ( VALTYPE(nDriverID) == "N" .and. nDriverID == 00 )
+      RETURN saConnInfo                            
+   ELSEIF VALTYPE( nDriverID ) == 'N'
       FOR c := len( saConnections ) TO 1 STEP -1
           IF saConnections[c,SL_CONN_SYSTEMID] == nDriverID
-             return aClone( saConnections[c] )
+             RETURN aClone( saConnections[c] )
           End
       End
    End 
-   return nil      
+   RETURN nil      
 
 /*
  * Altera o SCHEMA atual onde as TABELAS DE SISTEMA se encontram.
@@ -545,6 +550,8 @@ FUNCTION SL_SetSystemSchema( cSChema )  && Rossine 07/10/08
    RETURN cOld
    
 *************************
+* TODO: Isto tem que ser válido para cada CONEXÃO e sendo assim deve estar
+*       guardado dentro de saConnections[] - 23/05/2009 - 23:17:44
 FUNCTION SL_SetSchema( cSChema )  && Rossine 07/10/08
 *************************
    LOCAL cOld := s_cSchema    

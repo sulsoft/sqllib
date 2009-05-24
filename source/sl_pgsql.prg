@@ -838,6 +838,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    local pSQL 		:= aWAData[ WA_POINTER ]:pDB
    local nVersion := aWAData[ WA_VERSION  ]
    local oError   
+   local aOrderInfo
    
    // Add ID_PREFIX to void conflit with reserved words (vailton - 15/01/2009 - 22:08:54)
    cIdx := ID_PREFIX + lower(aOrderCreateInfo [UR_ORCR_BAGNAME]) // + iif( empty( aOrderCreateInfo [UR_ORCR_TAGNAME] ), "", "_" ) + lower(aOrderCreateInfo [UR_ORCR_TAGNAME])
@@ -922,7 +923,17 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 
    PGSQL_QUERY_LOG( pSQL, cSql,, True, True )
    PGSQL_QUERY_LOG( pSQL, "COMMIT",,, True )
-   return SUCCESS
+   
+   /*
+    * 12/01/2005 - Order ADD apos a criacao do novo INDEX.
+    * http://www.clipx.net/ng/53guide/ng8059c.php OR
+    * http://www.ousob.com/ng/53guide/ng8059c.php
+    */
+   aOrderInfo := Array(UR_ORI_SIZE)
+   aOrderInfo[UR_ORI_BAG] := Substr( cIdx, Len( ID_PREFIX ) +1 )
+   aOrderInfo[UR_ORI_TAG] := cTag
+   
+   RETURN SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo ) 
 
 *****************************
 function SL_ORDDESTROY_PGSQL( nWa, aWAData, aOrderInfo )

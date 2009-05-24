@@ -54,7 +54,12 @@
 FUNCTION SQLGetDBInfo( nDBInfo, pConn, cFiltro1, cFiltro2 )
       LOCAL Result, SQL, Conn, Schema, Tab, ID, Res
       LOCAL Block
+      
+      default nDBInfo to DBI_GETVERSION
+      default SQL     to ""
 
+      DEBUG "SQLGetDBInfo( ", nDBInfo,", ",pConn, ", ",cFiltro1, ", ",cFiltro2, " )"
+      
       if cFiltro1 == NIL
          cFiltro1 := ""
       else
@@ -71,17 +76,16 @@ FUNCTION SQLGetDBInfo( nDBInfo, pConn, cFiltro1, cFiltro2 )
       IF pConn == NIL
          Conn   := SL_GETCONNINFO()
          Schema := "public" // SQLSCHEMA()
-         Id     := SQLSYS_ID( Conn[SL_CONN_RDD] )
       ELSE
          Conn   := SL_GETCONNINFO( pConn )
          Schema := "public" // SQLSCHEMA()   
-         Id     := SQLSYS_ID( Conn[SL_CONN_RDD] )
+      End
+      
+      IF Valtype( Conn ) == NIL 
+         RETURN nil
       End
 
-      default nDBInfo to DBI_GETVERSION
-      default SQL     to ""
-
-      DEBUG "SQLGetDBInfo( ", nDBInfo,", ",pConn, ", ",cFiltro1, ", ",cFiltro2, " )"
+      Id := Conn[SL_CONN_SYSTEMID]
 
       /*
        * Montamos o comando SQL com base no driver atual
@@ -103,7 +107,7 @@ FUNCTION SQLGetDBInfo( nDBInfo, pConn, cFiltro1, cFiltro2 )
                                        aRecno[1] := iif( nPos == 00, aRecno[1], SUBSTR( aRecno[1], 01, nPos-1 )),;
                                        AADD( Result, Trim( aRecno[1]) )}
 
-            End
+            End          
 
       /*
        * Neste caso, ele quer os nomes de todas as tabelas
@@ -287,7 +291,17 @@ FUNCTION SQLGetConnectedUsers( pConn )
  */
 FUNCTION SQLServerVersionNum( pConn, nSysID )
 	LOCAL Temp
+	
+   IF pConn == NIL
+      pConn  := SL_GETCONNINFO()      
+   ELSE
+      pConn  := SL_GETCONNINFO( pConn )
+   End
 
+   IF nSysID == NIL 
+      nSysID := pConn[SL_CONN_SYSTEMID]
+   End
+   
 	IF ( nSysID == ID_MYSQL ) .OR. ( nSysID == ID_POSTGRESQL )
 		Temp := SQLArray("select version()",, pConn,, nSysID)
 		IF ValType( Temp ) == "A" .AND. Len( Temp ) == 1
