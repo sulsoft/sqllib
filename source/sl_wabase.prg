@@ -232,7 +232,7 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
    FOR n := 1 TO nTotalFields
        aField := ARRAY( UR_FI_SIZE )
        aField[ UR_FI_NAME ]    := s_aStruct[ n, DBS_NAME ]
-**     aField[ UR_FI_TYPE ]    := s_aStruct[ n, DBS_FLD_TYPE ]
+**     aField[ UR_FI_TYPE ]    := s_aStruct[ n, DBS_FIELD_TYPE ]
 **     aField[ UR_FI_TYPE ]    := SL_GETFIELDTYPE( s_aStruct[ n, 2 ] )
        aField[ UR_FI_TYPE ]    := HB_ExecFromArray( { FSL_GETFIELDTYPE( aWAData[ WA_SYSTEMID ] ), s_aStruct[ n, 2 ] } )
        aField[ UR_FI_TYPEEXT ] := s_aStruct[ n, DBS_TYPE ] &&  0   Rossine 22/10/08

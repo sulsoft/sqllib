@@ -280,10 +280,19 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
 
    /* We created the table now */
    cSql := 'CREATE TABLE "' + cSchema + '"."' + cTableName + '" (' +;
-                               aWAData[ WA_TEMP ]
+                               aWAData[ WA_TEMP, 1 ]
    
    cSql += ', "' + cFieldRecno + '"' + " NUMERIC(15,0) DEFAULT nextval('" +;
-                    cSequenceField + "'::regclass) UNIQUE NOT NULL)"
+                    cSequenceField + "'::regclass) UNIQUE NOT NULL"
+
+   IF !Empty( aWAData[ WA_TEMP,2 ] )
+      cSql += ', CONSTRAINT ' + cTableName + "_" +  SL_CONSTRAINT_PK  + ' PRIMARY KEY (' +  aWAData[ WA_TEMP,2 ] + ')'
+   End
+
+   cSql += ')'
+   
+msginfo( cSQL )
+   aWAData[ WA_TEMP ] := nil
 
    /* Aqui executamos o comando e deixamos a msg de erro aparecer ao usuario */
    PGSQL_QUERY_LOG( nConn, cSql, @lError, .T., .T. )
@@ -291,88 +300,100 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    IF !lError .AND. !lTemp 
       PQclear( PQexec( nConn, "COMMIT" ))
    End
-alert( lError )
    RETURN SUCCESS
 
 *****************************
 function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
 *****************************
 
-   LOCAL n, fld, typ, def, len, dec
+   LOCAL aField
+   LOCAL cType
+   LOCAL xDefault
+   LOCAL nLen, nDec
    LOCAL cSQL
+   LOCAL cConstraintPK := ''
+   LOCAL n
 
    HB_SYMBOL_UNUSED( nWA )
 
    AAdd( aStruct, { SL_COL_DELETED, "C",  1, 0 } ) // to emulate DBF deleted value
  
-   aWAData[ WA_TEMP ]      := cSQL := ""
+   cSQL := ""
+   aWAData[ WA_TEMP ]      := {'',''}
    aWAData[ WA_FCOUNT ]    := Len( aStruct ) + 1
    aWAData[ WA_REAL_STRUCT]:= {}
 
    FOR n := 1 TO Len( aStruct ) 
-       fld := aStruct[ n ]                                  // field info
-       typ := Upper( Left( alltrim( fld[ DBS_TYPE ] ), 1))  // fieldtype
-       len := fld[ DBS_LEN ]
-       dec := fld[ DBS_DEC ]          
-       def := ''
+       aField := aStruct[ n ]                                  // field info
+       cType  := Upper( Left( alltrim( aField[ DBS_TYPE ] ), 1))  // fieldtype
+       nLen   := aField[ DBS_LEN ]
+       nDec   := aField[ DBS_DEC ]          
+       xDefault := ''
        
        IF n > 1
           cSQL += ", "          
        End
  
-       IF ( Empty( fld[ DBS_NAME ] ) )
-          SL_ERROR( 1028, "PGSQL - Invalid field Name: '" +  fld[ DBS_NAME ] + "' at pos " + alltrim(str(n)) )
+       IF ( Empty( aField[ DBS_NAME ] ) )
+          SL_ERROR( 1028, "PGSQL - Invalid field Name: '" +  aField[ DBS_NAME ] + "' at pos " + alltrim(str(n)) )
           RETURN FAILURE
        End
 
        DO CASE
-       CASE ( typ == "C" )
-           typ := "VARCHAR"
-           def := "' '"
-
-       CASE ( typ == "N" )
-           typ := "NUMERIC"
-           def := "0"
-
-       CASE ( typ == "M" )
-         // Changed: Vailton REnato at 22/08/2005 : 17:58, new column type for memo fields
-           typ := "TEXT"
-
-       CASE ( typ == "D" )
-           typ := "DATE"
-*           def := "'" + SL_NULLDATE + "'"
-
-       CASE ( typ == "L" )
-           typ := "BOOLEAN" 
-           def := 'FALSE'
-
        /*
         * Aqui aceitamos campos com valores não-padrão, desde que estejam
         * devidamente indicados - precedidos por '@' ex: bytearray, etc..
         */
-       CASE ( typ == '@' )
-           typ := Substr( fld[ DBS_TYPE ], 2 )
+       CASE ( Left( cType, 1 ) == '@' )
+           cType := Substr( aField[ DBS_TYPE ], 2 )
+           
+       CASE Len( aField ) >= DBS_FIELD_TYPE .AND. ;
+            VALTYPE( aField[ DBS_FIELD_TYPE ] ) == 'L' .AND. aField[DBS_FIELD_TYPE]
+
+           cType := aField[ DBS_TYPE ]
+
+       CASE ( cType == "C" )
+           cType := "VARCHAR"
+           xDefault := "' '"
+
+       CASE ( cType == "N" )
+           cType := "NUMERIC"
+           xDefault := "0"
+
+       CASE ( cType == "M" )
+         // Changed: Vailton REnato at 22/08/2005 : 17:58, new column type for memo fields
+           cType := "TEXT"
+
+       CASE ( cType == "D" )
+           cType := "DATE"
+*           xDefault := "'" + SL_NULLDATE + "'"
+
+       CASE ( cType == "L" )
+           cType := "BOOLEAN" 
+           xDefault := 'FALSE'
          
        OTHERWISE
-           SL_ERROR( 1028, "PGSQL - Invalid field type: '" + typ + "' for field " + fld[ DBS_NAME ] )
+           SL_ERROR( 1028, "PGSQL - Invalid field type: '" + cType + "' for field " + aField[ DBS_NAME ] )
            RETURN FAILURE
        End
        
        /* Name of the fields in lower case */
-       cSQL += '"' + lower( fld[ DBS_NAME ] ) + '" ' + typ
+       cSQL += '"' + lower( aField[ DBS_NAME ] ) + '" ' + cType
        
-       IF ( typ == 'DATE' ) .OR. (typ == 'TEXT' ) .OR. ( typ == 'BOOLEAN' )
+       IF ( cType == 'DATE' ) .OR. (cType == 'TEXT' ) .OR. ( cType == 'BOOLEAN' )
           *
+       ELSEIF nLen == -1
+          * -1 disables size modifier inside sql string
        ELSE
-          cSQL += " (" + Alltrim(Str( len ))
+          cSQL += " (" + Alltrim(Str( nLen ))
    
-          IF ( typ == "NUMERIC" .and. dec <> 00 )
-             IF len >= dec+2
-                cSQL +=  "," + Alltrim(Str( dec ))
+          IF ( cType == "NUMERIC" .and. nDec <> 00 )
+             IF nLen >= nDec+2
+                cSQL +=  "," + Alltrim(Str( nDec ))
              ELSE
                 SL_ERROR( 1028, "PGSQL - Invalid field length for field " +;
-                                          fld[ DBS_NAME ] + " '" + typ +"'," + ;
-                                          alltrim( str( len ))+','+ alltrim( str( dec )) )
+                                          aField[ DBS_NAME ] + " '" + cType +"'," + ;
+                                          alltrim( str( nLen ))+','+ alltrim( str( nDec )) )
                 RETURN FAILURE
              End
           End
@@ -380,38 +401,65 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
           cSQL +=  ")"
        END
    
-       IF ( Len( fld ) >= DBS_DEFAULT )
-          IF VALTYPE( fld[ DBS_DEFAULT ]) == 'C'
-             def := "'" + fld[ DBS_DEFAULT ] + "'"
+       IF ( Len( aField ) >= DBS_DEFAULT )
+          IF VALTYPE( aField[ DBS_DEFAULT ]) == 'C'
+             IF LEFT( aField[ DBS_DEFAULT ],1) == '@'
+                xDefault := SubStr( aField[ DBS_DEFAULT ], 2 )
+             ELSE
+                xDefault := "'" + PQESCAPESTRING( aField[ DBS_DEFAULT ] ) + "'"
+             End
           End
-          IF VALTYPE( fld[ DBS_DEFAULT ]) == 'N'
-             def := alltrim( str( fld[ DBS_DEFAULT ] ))
+          IF VALTYPE( aField[ DBS_DEFAULT ]) == 'N'
+             xDefault := alltrim( str( aField[ DBS_DEFAULT ] ))
           End
-          IF VALTYPE( fld[ DBS_DEFAULT ]) == 'D'
-             def := "'" +;
-                  STRZERO( YEAR( fld[ DBS_DEFAULT ] ), 4 ) + '-' +;
-                  STRZERO(MONTH( fld[ DBS_DEFAULT ] ), 2 ) + '-' +;
-                  STRZERO(  DAY( fld[ DBS_DEFAULT ] ), 2 ) + "'"
+          IF VALTYPE( aField[ DBS_DEFAULT ]) == 'D'
+             xDefault := "'" +;
+                  STRZERO( YEAR( aField[ DBS_DEFAULT ] ), 4 ) + '-' +;
+                  STRZERO(MONTH( aField[ DBS_DEFAULT ] ), 2 ) + '-' +;
+                  STRZERO(  DAY( aField[ DBS_DEFAULT ] ), 2 ) + "'"
           End
-          IF VALTYPE( fld[ DBS_DEFAULT ]) == 'L'
-             def := iif( fld[ DBS_DEFAULT ], 'TRUE', 'FALSE' )
-          End
-       End
-       
-       IF ( Len( fld ) >= DBS_REQUIRED )
-          IF (VALTYPE( fld[ DBS_REQUIRED ]) == 'L' .AND. ;
-                       fld[ DBS_REQUIRED ] ) 
-                cSQL += ' NOT NULL'
+          IF VALTYPE( aField[ DBS_DEFAULT ]) == 'L'
+             xDefault := iif( aField[ DBS_DEFAULT ], 'TRUE', 'FALSE' )
           End
        End
        
-       IF !Empty( def ) 
-          cSQL +=  " DEFAULT " + def
+       IF ( Len( aField ) >= DBS_REQUIRED )
+          IF (VALTYPE( aField[ DBS_REQUIRED ]) == 'L' .AND. ;
+                       aField[ DBS_REQUIRED ] ) 
+             cSQL += ' NOT NULL'
+          End
+       End
+
+       IF ( Len( aField ) >= DBS_UNIQUE )
+          IF (VALTYPE( aField[ DBS_UNIQUE ]) == 'L' .AND. ;
+                       aField[ DBS_UNIQUE ] ) 
+             cSQL += ' UNIQUE'
+          End
+       End
+       
+       IF !Empty( xDefault ) 
+          cSQL +=  " DEFAULT " + xDefault
        End              
+
+       /*
+        * Testamos se este campo é uma chave primária.
+        * 24/05/2009 - 01:49:31
+        */
+       IF ( Len( aField ) >= DBS_PRIMARY_KEY )
+          IF (VALTYPE( aField[ DBS_PRIMARY_KEY ]) == 'L' .AND. ;
+                       aField[ DBS_PRIMARY_KEY ] ) 
+                                 
+             IF !Empty( cConstraintPK )
+                cConstraintPK += ','
+             End
+               
+             cConstraintPK += '"' + lower( aField[ DBS_NAME ] ) + '" '
+          End
+       End
    End
 
-   aWAData[ WA_TEMP ] := cSQL
-
+   aWAData[ WA_TEMP,1 ] := cSQL
+   aWAData[ WA_TEMP,2 ] := cConstraintPK
    RETURN SUCCESS
    
 /*

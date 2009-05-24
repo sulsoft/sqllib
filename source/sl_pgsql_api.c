@@ -512,7 +512,7 @@ HB_FUNC( PQGETVALUEEX )
    /*
     * Read: http://pgdocptbr.sourceforge.net/pg80/datatype.html
     */
-   switch( hb_arrayGetNI( aFieldInfo, DBS_FLD_TYPE ) )       // See TPQserver:TableStruct() 
+   switch( hb_arrayGetNI( aFieldInfo, DBS_FIELD_TYPE ) )       // See TPQserver:TableStruct() 
    {
       case HB_FT_STRING:
          {

@@ -61,6 +61,7 @@
    #define SL_COL_CUSTOM_LEN       16
    #define SL_NULLDATE             "0001-01-01"
    #define SL_NULLDATE2            "0000-00-00"
+   #define SL_CONSTRAINT_PK        "sl_primary_key"
                                    
    #define SL_LOG_FILENAME         "sqllog.txt"
    #define SL_INDEX                "sqllib$indexes"
@@ -164,10 +165,13 @@
    #define ID_ORACLE              5                 
    #define ID_MAX_DRIVERS         2
    
-   /* DBCreate additional constants */
-   #define DBS_REQUIRED           5
-   #define DBS_DEFAULT            6
-   #define DBS_FLD_TYPE           7
+   /* DBCreate/DBStruct additional constants */
+   #define DBS_REQUIRED           5       // Forces NOT NULL
+   #define DBS_UNIQUE             6       
+   #define DBS_PRIMARY_KEY        7       
+   #define DBS_DEFAULT            8       // Default value for this column
+   #define DBS_FIELD_TYPE         9       // Reserved to PQGETVALUEEX() into sl_pgsql_api.c
+   #define DBS_COUNT              DBS_FIELD_TYPE 
    
    /* Buffer direction */
 #ifndef MS_NONE

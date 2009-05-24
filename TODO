@@ -23,10 +23,14 @@ Pendencias para a versão 0.01 (24/03/09)
 ========================================
 
 - Dbcreate - passar os parametros para criar com campos:
-             - Primary Key
-             - Unique
-             - Not Null
-             - Default values
+             - Primary Key        // Fiz agora (24/05/2009 - 02:18:54) na opção SL_CONSTRAINT_PK
+             - Unique             // Td fiz agora através da opção DBS_UNIQUE
+             - Not Null           // já existe através da opção DBS_REQUIRED - veja SL_CREATEFLDS_PGSQL(401)
+             - Default values     // Já existe na opção DBS_DEFAULT - veja SL_CREATEFLDS_PGSQL(408)
+             
+             além destes a SQL LIB suporta a criaçao de campos com tipos personalizados,
+             veja SL_CREATEFLDS_PGSQL(353) e tb criei o comando SQL ADD FIELD pensando já
+             em ajudar a criar os campos com os valores corretos.
 
 - Rever os comandos: SQL CREATE DATABASE e SQL DELETE DATABASE
 

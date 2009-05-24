@@ -174,5 +174,48 @@ REQUEST SQLLIB
    *
    #command SET PACKETSIZE [TO] <x>               => SL_PacketSize( <x> )
    *
+/*
+ * Novos comandos que lhe auxiliarÆo no uso da fun‡Æo DBcreate()
+ * Para maiores informa‡äes, consulte estes links em portugues:
+ *
+ *  MySQL link: http://dev.mysql.com/doc/refman/4.1/pt/create-table.html
+ *  Post  link: http://pgdocptbr.sourceforge.net/pg80/sql-createtable.html
+ */
+#command SQL ADD FIELD <cFieldName> <cType>(<nSize>[, <nDec>])  ;
+            [DEFAULT <d>]                 ;
+            [<nn: NOT NULL>]               ;
+            [<u: UNIQUE>]                 ;
+            [<p: PRIMARY_KEY>]            ;
+            [INTO <aStruct>]   =>         ;
+                                          ;
+      AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
+                        <"cType">   ,;             // 2ø Tipo do campo, minimo 1¦ letra
+                        <nSize>     ,;             // 3ø Tamanho do campo
+                        iif(<.nDec.>, <nDec>, 0),; // 4ø Casas decimais
+                           <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
+                           <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
+                           <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
+                           <d>      ,;             // 8ø ExpressÆo DEFAULT para o campo
+                           .F. ;                   // 9ø .T. indica campo no formato SQL
+                        } )
+
+#command SQL ADD FIELD <cFieldName> TYPE <cType> ;
+            [DEFAULT <d>]        ;
+            [<nn:NOT NULL>]       ;
+            [<u:UNIQUE>]         ;
+            [<p:PRIMARY_KEY>]    ;
+             INTO <aStruct>   => ;
+                                 ;
+      AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
+                        <"cType">   ,;             // 2ø Tipo do campo, minimo 1¦ letra
+                                  0 ,;             // 3ø Tamanho do campo
+                                  0 ,;             // 4ø Casas decimais
+                           <.nn.>    ,;            // 5ø .T. indica o flag NOT NULL
+                           <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
+                           <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
+                           <d>      ,;             // 8ø ExpressÆo DEFAULT para o campo
+                           .T. ;                   // 9ø .T. indica campo no formato SQL
+                        } )
+                        
    #include "sqllibconsts.ch"   
 #endif
