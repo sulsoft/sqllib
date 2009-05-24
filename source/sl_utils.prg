@@ -297,7 +297,10 @@ FUNCTION SQLServerVersionNum( pConn, nSysID )
    ELSE
       pConn  := SL_GETCONNINFO( pConn )
    End
-
+   IF pConn == NIL 
+      RETURN nil
+   End
+   
    IF nSysID == NIL 
       nSysID := pConn[SL_CONN_SYSTEMID]
    End

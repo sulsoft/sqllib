@@ -925,9 +925,9 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    PGSQL_QUERY_LOG( pSQL, "COMMIT",,, True )
    
    /*
-    * 12/01/2005 - Order ADD apos a criacao do novo INDEX.
-    * http://www.clipx.net/ng/53guide/ng8059c.php OR
-    * http://www.ousob.com/ng/53guide/ng8059c.php
+    * Order ADD apos a criacao do novo INDEX em conformidade com a doc. do Clipper
+    * disponivel em: http://www.ousob.com/ng/53guide/ng8059c.php
+    * 24/05/2009 - 00:01:46
     */
    aOrderInfo := Array(UR_ORI_SIZE)
    aOrderInfo[UR_ORI_BAG] := Substr( cIdx, Len( ID_PREFIX ) +1 )

@@ -495,17 +495,19 @@ function SL_GETCONNBYALIAS( nAlias )
 function SL_GETCONNINFO( nHandle )
 ***************************
 
-   LOCAL c
+   LOCAL c := VALTYPE( nHandle )
    
-   IF (nHandle == NIL) .OR. ( VALTYPE(nHandle) == "N" .and. nHandle == 00 )
+   IF (c == "U") .OR. ( c == "N" .and. nHandle == 00 )
       RETURN saConnInfo                            
-   ELSEIF Valtype( nHandle ) == "A" .AND. Len( nHandle ) == SL_CONN_COUNT
+      
+   ELSEIF c == "A" .AND. Len( nHandle ) == SL_CONN_COUNT
       * Usamos isto caso ele já esteja passando por engano um array com os dados
       * de uma conexão aparentemente válida - 23/05/2009 - 23:11:01
-      IF ValType( nHandle[SL_CONN_HANDLE] ) $ "PO"
+      IF ValType( nHandle[SL_CONN_HANDLE] ) $ "PON"
          RETURN nHandle
       End
-   ELSEIF VALTYPE( nHandle ) $ "PO"   
+      
+   ELSEIF c $ "PON"   
       * NOTE que ele pega as conexões mais recentes primeiro para o caso dele
       * estar procurando as ultimas ou mais recentes.
       FOR c := len( saConnections ) TO 1 STEP -1
@@ -524,11 +526,12 @@ function SL_GETCONNINFO( nHandle )
 *******************************
 function SL_GETCONNINFOBYID( nDriverID )
 *******************************
-   LOCAL c
+   LOCAL c := VALTYPE( nDriverID )
    
-   IF (nDriverID == NIL) .OR. ( VALTYPE(nDriverID) == "N" .and. nDriverID == 00 )
-      RETURN saConnInfo                            
-   ELSEIF VALTYPE( nDriverID ) == 'N'
+   IF (c == "U") .OR. ( c == "N" .and. nDriverID == 00 )
+      RETURN saConnInfo           
+                       
+   ELSEIF c == 'N'
       FOR c := len( saConnections ) TO 1 STEP -1
           IF saConnections[c,SL_CONN_SYSTEMID] == nDriverID
              RETURN aClone( saConnections[c] )

@@ -1213,8 +1213,11 @@ FUNCTION SL_ORDCREATE( nWA, aOrderCreateInfo )
    LOCAL aStruct := aWAData[WA_STRUCT]
    LOCAL Keys    := {}
    LOCAL Sizes   := {}
-   LOCAL Fields  := {}
-   LOCAL aKeys, lComplex, oError
+   LOCAL Fields  := {}                                   
+   LOCAL aKeys
+   LOCAL lComplex
+   LOCAL oError
+   LOCAL aOrderInfo
    LOCAL i,j
 
    if SL_GOCOLD( nWA ) != SUCCESS
@@ -1273,8 +1276,20 @@ FUNCTION SL_ORDCREATE( nWA, aOrderCreateInfo )
       UR_SUPER_ERROR( nWA, oError )
    End
       
-   HB_ExecFromArray( { FSL_ORDCREATE( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, aOrderCreateInfo, Fields, Keys, Sizes } )
-return SUCCESS
+   IF HB_ExecFromArray( { FSL_ORDCREATE( aWAData[ WA_SYSTEMID ] ), nWa, aWAData,;
+                            aOrderCreateInfo, Fields, Keys, Sizes } ) != SUCCESS
+      RETURN FAILURE
+   End
+   
+   /*
+    * SET ORDER TO automaticamente apos a criacao do novo INDEX em conformidade 
+    * com a doc. do Clipper disponivel em: http://www.ousob.com/ng/53guide/ngcc94d.php
+    * 24/05/2009 - 00:31:31
+    */
+   aOrderInfo := Array( UR_ORI_SIZE )
+   aOrderInfo[ UR_ORI_TAG ] := Len( aWAData[ WA_INDEX ] )
+   
+   RETURN SL_ORDLSTFOCUS( nWA, aOrderInfo )
  
 ******************************
 static function SL_ORDDESTROY( nWA, aOrderInfo )
