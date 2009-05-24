@@ -282,6 +282,28 @@ FUNCTION SQLGetConnectedUsers( pConn )
    RETURN SQLGetDBInfo( DBI_GETALLCONNUSERS, pConn )
 
 /*
+ * SQLServerVersionNum( pConn ) --> Server Version as numeric value
+ * 27/04/2009 - 15:26:53
+ */
+FUNCTION SQLServerVersionNum( pConn, nSysID )
+	LOCAL Temp
+
+	IF ( nSysID == ID_MYSQL ) .OR. ( nSysID == ID_POSTGRESQL )
+		Temp := SQLArray("select version()",, pConn,, nSysID)
+		IF ValType( Temp ) == "A" .AND. Len( Temp ) == 1
+		  Temp := Temp[1,1]
+		  Temp := Substr( Temp, At( " ", Temp ) + 1 )
+		  
+		  IF ( nSysID == ID_POSTGRESQL )
+		  		// Sample: PostgreSQL 8.2.5
+		  		Temp := Substr( Temp, 1, At( " ", Temp ) - 1 )
+		  End
+		  RETURN VAL( substr(Temp,1,1)+'0'+substr(Temp,3,1)+'0'+substr(Temp,5,1) )
+		End
+	End
+	RETURN 0
+	
+/*
  * Retorna a versao do servidor SQL no formato string
  */
 FUNCTION SQLServerVersion(pConn)

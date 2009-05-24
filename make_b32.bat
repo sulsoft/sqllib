@@ -1,13 +1,13 @@
 @echo off
+if "%1" == "clean" goto CLEAN
+if "%1" == "CLEAN" goto CLEAN
+
 :INICIO
 if "%HB_INC_PGSQL%" == ""  goto ERRO_2
 if not exist libpq.dll 		goto ERRO_1
                          
 if "%HRB_DIR%" == "" if not "%HB_INSTALL_PREFIX%" == "" 	SET HRB_DIR=%HB_INSTALL_PREFIX%
 if "%HRB_DIR%" == "" if not "%HB_PATH%"  == "" 				SET HRB_DIR=%HB_PATH%
-
-if "%1" == "clean" goto CLEAN
-if "%1" == "CLEAN" goto CLEAN
 
 if not exist lib md lib
 if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
@@ -71,6 +71,8 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto INICIO
 
 :CLEAN
+   del /s .\source\win\*.c
+   del /s .\source\win\*.obj
    del /s source\*.ppo
    del /s source\*.log
    del /s *.map

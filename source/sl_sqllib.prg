@@ -183,7 +183,7 @@ msgstop( cPort    + CRLF + ;
                          		  0 ;  // SL_CONN_VERSION
                       }) 
 
-	Atail(saConnections)[ SL_CONN_VERSION] :=	SL_GetNumVersion( Atail(saConnections), nSysID )	// 27/04/2009 - 15:27:44 - Vailton
+	Atail(saConnections)[ SL_CONN_VERSION] :=	SQLServerVersionNum( Atail(saConnections), nSysID )	// 27/04/2009 - 15:27:44 - Vailton
 	
    snConnHandle := nResult
    saConnInfo   := aClone( Atail(saConnections) )
@@ -195,28 +195,6 @@ msgstop( cPort    + CRLF + ;
 
 RETURN nResult
 
-/*
- * SL_GetNumVersion( pConn ) --> Server Version as numeric value
- * 27/04/2009 - 15:26:53
- */
-FUNCTION SL_GetNumVersion( pConn, nSysID )
-	LOCAL Temp
-
-	IF ( nSysID == ID_MYSQL ) .OR. ( nSysID == ID_POSTGRESQL )
-		Temp := SQLArray("select version()",, pConn,, nSysID)
-		IF ValType( Temp ) == "A" .AND. Len( Temp ) == 1
-		  Temp := Temp[1,1]
-		  Temp := Substr( Temp, At( " ", Temp ) + 1 )
-		  
-		  IF ( nSysID == ID_POSTGRESQL )
-		  		// Sample: PostgreSQL 8.2.5
-		  		Temp := Substr( Temp, 1, At( " ", Temp ) - 1 )
-		  End
-		  RETURN VAL( substr(Temp,1,1)+'0'+substr(Temp,3,1)+'0'+substr(Temp,5,1) )
-		End
-	End
-	RETURN 0
-	
 /*
  * Valida se para o RDD solicitado é um ALIAS e  
  * existe um nome correto a ser enviado.
@@ -618,6 +596,13 @@ function SL_GETCONNPARAMS
 *************************
 
 return { s_cHost, s_cUser, s_cPwd, s_cDriverName }
+
+/*
+ * Retorna a versão da SQL LIB em uso
+ * 23/05/2009 - 22:18:31
+ */
+FUNCTION SL_Version()
+   RETURN SQL_VTEXT + SQL_VERSION
 
 **-------------------**
 ** Final de Programa **
