@@ -94,7 +94,7 @@
    /* Another operations and misc values */
    #define WA_BUFFER_INFO_BASE    WA_TABLENAME          +  1    /* Anterior + 1 */
    #define WA_BUFFER_ARR          WA_BUFFER_INFO_BASE   +  0    // Array for buffer
-   #define WA_BUFFER_POS          WA_BUFFER_INFO_BASE   +  1    // Buffer with current row number
+   #define WA_BUFFER_POS          WA_BUFFER_INFO_BASE   +  1    // Buffer with current row number (#17)
    #define WA_BUFFER_ROWCOUNT     WA_BUFFER_INFO_BASE   +  2    // Number of lines in buffer to avoid LEN(WA_BUFFER_ARR)
    #define WA_INVALIDBUFFER       WA_BUFFER_INFO_BASE   +  3    // Indicates if current buffer is invalid
    
@@ -180,22 +180,27 @@
    #define DBS_DEFAULT            8       // Default value for this column
    #define DBS_FIELD_TYPE         9       // Reserved to PQGETVALUEEX() into sl_pgsql_api.c
    #define DBS_COUNT              DBS_FIELD_TYPE 
-    
    
    /* Buffer direction */
-#ifndef MS_NONE
-   #define MS_NONE                0
-#endif
-#ifndef MS_DOWN                
-   #define MS_DOWN                1
-#endif   
-#ifndef MS_UP                  
-   #define MS_UP                  2
-#endif   
+   #ifndef MS_NONE
+      #define MS_NONE             0
+   #endif
+   #ifndef MS_DOWN
+      #define MS_DOWN             1
+   #endif
+   #ifndef MS_UP
+      #define MS_UP               2
+   #endif
    
    /* Table Stype */
    #define TS_COMPLEX_SQL         2
    #define TS_SINGLE_SQL          1
+   
+   /* PGSQL_EXECANDUPDATE() constants */
+   #define EU_IGNORE_NONE         4
+   #define EU_IGNORE_FIRST        8
+   #define EU_BOF_ON_EMPTY        16
+   #define EU_EOF_ON_EMPTY        32
    
    /* Custom indexes constants loaded from sqllib$indexes */
    #define IDX_TABLE              1

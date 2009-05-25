@@ -84,6 +84,7 @@
    
    #define  CRLF                          ( CHR(13)+CHR(10) )
    #define SL_CLEAR_RECCACHE(aWAData)     ( aWAData[ WA_RECCOUNT_EXPIRES ] := -99999999999999 )
+   #define SL_HAS(a,b)                    (hb_bitAnd(a,b)==b)
    
    /* Comandos Personalizados */
    #Command If <Cond> then <*Cmd1*> ;

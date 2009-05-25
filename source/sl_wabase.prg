@@ -402,7 +402,6 @@ static function SL_GOBOTTOM( nWA )  && XBASE - DBGOBOTTOM()
 
    RETURN SL_UpdateFlags( nWA, aWAData )
 
-STATIC;
 FUNCTION SL_UpdateFlags( nWA, aWAData )
 
    USRRDD_SETBOF( nWA, aWAData[ WA_BOF ] )
@@ -424,12 +423,12 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
    LOCAL cOrderBy
    LOCAL cWhere 
    LOCAL cSQL
+   LOCAL nOptions
    LOCAL i
 
 //   DEBUG_ARGS
-   
-   aRules  := SL_BUILDWHERE( aWAData, nDirection )
-   cOrderBy:= SL_BUILDORDERBY( aWAData, nDirection )       
+   aRules  := SL_BuildWhere( aWAData, nDirection )
+   cOrderBy:= SL_BuildOrderBy( aWAData, nDirection )
    nLimit  := aWAData[ WA_PACKET_SIZE ]
    cLimit  := " LIMIT " + STR( nLimit )
 
@@ -448,7 +447,6 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
 //      IF nOffSet != 00
 //         cLimit += " OFFSET " + STR( nOffSet ) 
 //      End
-   
    IF Empty( aRules )
       cWhere := SL_BuildWhereStr( nWA, aWAData, .T., aRules, nDirection )
       cSQL   := aWAData[ WA_SL_GOTOP ] + " WHERE " + cWhere + " ORDER BY " + cOrderBy + cLimit 
@@ -468,14 +466,15 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
       cSQL += ") ORDER BY " + cOrderBy + cLimit
    End
 
-   // TODO: Evitar chamar esta função diretamente!!
-   IF PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, nDirection, True ) != SUCCESS
-      RETURN FAILURE
+   IF nDirection == MS_DOWN
+      nOptions := EU_IGNORE_FIRST + EU_EOF_ON_EMPTY
+   ELSE
+      nOptions := EU_IGNORE_FIRST + EU_BOF_ON_EMPTY
    End
    
-   aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
-   aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
-   RETURN SL_UpdateFlags( nWA, aWAData )
+   // TODO: Evitar chamar esta função diretamente!!
+   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, nDirection, nOptions )
+   
 /*
  * Avança ou retrocede a quantidade de registros desejadas dentro do buffer
  * 21/03/2009 - 13:22:08
@@ -488,6 +487,7 @@ function SL_SKIPRAW( nWA, nRecords )  && XBASE - DBSKIP()
    LOCAL lFechtData 
    
    LOCAL nDirection
+   LOCAL lInverse
 
  * DEBUG_ARGS
    DEBUG iif( nRecords<0, "retrocedendo ", "avancando " ) + alltrim( str( nRecords )) + ' regs     ----  Posição atual: '+  alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ]))
@@ -502,101 +502,71 @@ function SL_SKIPRAW( nWA, nRecords )  && XBASE - DBSKIP()
       RETURN SUCCESS 
    End
 
-   /*
-    * Estava descendo no bufffer e quer avançar mais regitros
-    */
-   IF aWAData[ WA_RESULT_DIRECTION ] == MS_DOWN
-      IF nRecords > 0
-DEBUG "MS_DOWN: Ele está AVANÇANDO no dados!", nRecords         
-         nDirection := MS_DOWN
-         
-         IF ( aWAData[ WA_BUFFER_POS ] + nRecords) <= aWAData[ WA_BUFFER_ROWCOUNT ]
-            aWAData[ WA_BUFFER_POS ] += nRecords
-            aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
-DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
-            //// substituir acima por isto:
-            //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @aWAData[ WA_RECNO ], .T. )
-            
-            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
-            RETURN SL_UpdateFlags( nWA, aWAData )
-         End
-         
-         /*
-          * Forçamos ele a puxar só a quantidade de registros que faltam considerando
-          * a quantidade de itens que já possuimos em nosso buffer atual.
-          */
-         lFechtData := .T.
-         nOffSet    := nRecords - ( aWAData[ WA_BUFFER_ROWCOUNT ] - aWAData[ WA_BUFFER_POS ] )
-         
-         /* Facilitamos o trabalho para SL_GETVALUE_WA() usada em SL_BUILDWHERE() */
-         aWAData[ WA_BUFFER_POS ] := aWAData[ WA_BUFFER_ROWCOUNT ]  
-      ELSE
-DEBUG "MS_DOWN: Ele está VOLTANDO no buffer!", nRecords         
-         nDirection := MS_UP          
-         
-         IF ( aWAData[ WA_BUFFER_POS ] + nRecords) >= 1
-            aWAData[ WA_BUFFER_POS ] += nRecords
-            aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
-DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
-            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
-            RETURN SL_UpdateFlags( nWA, aWAData )
-         End
-         
-         lFechtData := .T.
-         nOffSet    := ( ABS( nRecords ) - aWAData[ WA_BUFFER_POS ] ) + 1
-         
-         aWAData[ WA_BUFFER_POS ] := 1  
-      End
-   ELSE 
-      IF nRecords > 0
-         nDirection := MS_DOWN
-         
-         IF ( aWAData[ WA_BUFFER_POS ] + nRecords) <= aWAData[ WA_BUFFER_ROWCOUNT ]
-            aWAData[ WA_BUFFER_POS ] += nRecords
-            aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
-DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
-            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
-            RETURN SL_UpdateFlags( nWA, aWAData )
-         End
-         
-         lFechtData := .T.
-         nOffSet    := nRecords - ( aWAData[ WA_BUFFER_ROWCOUNT ] - aWAData[ WA_BUFFER_POS ] )
-         
-         aWAData[ WA_BUFFER_POS ] := aWAData[ WA_BUFFER_ROWCOUNT ]  
-DEBUG "MS_UP: Ele está AVANÇANDO no dados!", nRecords         
-      ELSE
-DEBUG "MS_UP: Ele está VOLTANDO no buffer!", nRecords         
-         nDirection := MS_UP
-         nRecords   := ABS( nRecords )
-         
-         IF ( aWAData[ WA_BUFFER_POS ] + nRecords) <= aWAData[ WA_BUFFER_ROWCOUNT ]
-            aWAData[ WA_BUFFER_POS ] += nRecords
-            aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
-DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
-            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
-            RETURN SL_UpdateFlags( nWA, aWAData )
-         End
-
-         lFechtData := .T.
-       * nOffSet    := ( ABS( nRecords ) - aWAData[ WA_BUFFER_POS ] ) +1
-         nOffSet    := ABS( nRecords ) - ( aWAData[ WA_BUFFER_ROWCOUNT ] - aWAData[ WA_BUFFER_POS ] )
-         
-         aWAData[ WA_BUFFER_POS ] := aWAData[ WA_BUFFER_ROWCOUNT ]  
-      End
+   lInverse := ( aWAData[ WA_RESULT_DIRECTION ] == MS_UP )
+   
+   IF lInverse
+      nRecords *= -1
    End
-      
+
+   IF nRecords > 0
+DEBUG "MS_DOWN: Ele está AVANÇANDO no dados!", nRecords
+      nDirection := MS_DOWN
+
+      IF ( aWAData[ WA_BUFFER_POS ] + nRecords) <= aWAData[ WA_BUFFER_ROWCOUNT ]
+         aWAData[ WA_BUFFER_POS ] += nRecords
+         aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
+DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
+         //// substituir acima por isto:
+         //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @aWAData[ WA_RECNO ], .T. )
+
+         aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+         RETURN SL_UpdateFlags( nWA, aWAData )
+      End
+
+      /*
+       * Forçamos ele a puxar só a quantidade de registros que faltam considerando
+       * a quantidade de itens que já possuimos em nosso buffer atual.
+       */
+      lFechtData := .T.
+      nOffSet    := nRecords - ( aWAData[ WA_BUFFER_ROWCOUNT ] - aWAData[ WA_BUFFER_POS ] )
+
+      /* Facilitamos o trabalho para SL_GETVALUE_WA() usada em SL_BUILDWHERE() */
+      aWAData[ WA_BUFFER_POS ] := aWAData[ WA_BUFFER_ROWCOUNT ]
+   ELSE
+DEBUG "MS_UP: Ele está VOLTANDO no buffer!", nRecords
+      nDirection := MS_UP
+
+      IF ( aWAData[ WA_BUFFER_POS ] + nRecords) >= 1
+         aWAData[ WA_BUFFER_POS ] += nRecords
+         aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
+DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
+         aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+         RETURN SL_UpdateFlags( nWA, aWAData )
+      End
+
+      lFechtData := .T.
+      nOffSet    := ( ABS( nRecords ) - aWAData[ WA_BUFFER_POS ] ) + 1
+
+      aWAData[ WA_BUFFER_POS ] := 1
+   End
+
    IF lFechtData
       aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
       DEBUG "Vamos ler mais dados:", nOffSet, ' regs à partir do registro',aWAData[ WA_RECNO ]
-      
+
+      IF lInverse
+         nDirection := iif( nDirection == MS_DOWN, MS_UP, MS_DOWN )
+      End
+
       IF nOffSet < 0
          nOffSet := ABS( nOffSet )
       End
-                        
+
       WHILE SL_FETCH( nWA, aWAData, nDirection ) == SUCCESS
       
             /* Eof?! */  
-            IF aWAData[ WA_EOF ]
+            IF (nDirection == MS_UP    .AND. aWAData[ WA_BOF ]) .OR. ;
+               (nDirection == MS_DOWN  .AND. aWAData[ WA_EOF ])
                Exit
             End
             
@@ -680,42 +650,38 @@ static function SL_DELETE( nWA )    && XBASE - DBDELETE()
 return SUCCESS
  
 *************************
-static function SL_RECNO( nWA, nRecNo )   && XBASE - RECNO()
-*************************
- 
-   local aWAData := USRRDD_AREADATA( nWA )
- 
-   if nRecNo == 0
-      nRecNo := aWAData[ WA_RECNO ]
-   else
-      aWAData[ WA_RECNO ] := nRecNo
-   endif
-return SUCCESS
+STATIC;
+FUNCTION SL_RECNO( nWA, nRecNo )   && XBASE - RECNO()
+    ** Evitamos ter 2 funções com o mesmo código!
+   RETURN SL_RECID( nWA, @nRecNo )
 
 ******************
-function SL_RECID( nWA, nRecNo )   && XBASE - RECNO()
-******************
+STATIC;
+FUNCTION SL_RECID( nWA, nRecNo )   && XBASE - RECNO()
+   LOCAL aWAData := USRRDD_AREADATA( nWA )
 
-   local aWAData := USRRDD_AREADATA( nWA )
- 
-   if nRecNo == 0
-      nRecNo := aWAData[ WA_RECNO ]
-   else
-      aWAData[ WA_RECNO ] := nRecNo
-   endif
- 
-return SUCCESS
+   IF aWAData[ WA_EOF ]
+      IF SL_RECCOUNT( nWA, @nRecNo ) == SUCCESS   // Simulate xBase EOF() - 25/05/2009 - 15:06:38
+         * TODO: BUG: Esta linha abaixo nao seria necessario se a linha acima
+         * funcionasse corretamente, o que nao tem ocorrido aqui nos meus testes
+         nRecNo := aWAData[ WA_RECCOUNT ] +1
+      End
+   ELSE
+      IF nRecNo == 0
+         nRecNo := aWAData[ WA_RECNO ]
+      ELSE
+         aWAData[ WA_RECNO ] := nRecNo
+      End
+   End
+   RETURN SUCCESS
 
 ****************************
-static function SL_RECCOUNT( nWA, nRecords )  && XBASE - LASTREC() / RECCOUNT()
-****************************
- 
+STATIC ;
+FUNCTION SL_RECCOUNT( nWA, nRecords )  && XBASE - LASTREC() / RECCOUNT()
    LOCAL aWAData  := USRRDD_AREADATA( nWA )
    LOCAL nExpires := aWAData[ WA_RECCOUNT_EXPIRES ]
    LOCAL nNow     := SL_GetCurrentTime()
 
-   DEBUG nNow, nExpires + SL_TIMER_RECCOUNT, nExpires
-   
    IF nNow <= ( nExpires + SL_TIMER_RECCOUNT )
       * Use cache here!
       DEBUG "Using cache here -->",aWAData[ WA_RECCOUNT ]
@@ -723,10 +689,11 @@ static function SL_RECCOUNT( nWA, nRecords )  && XBASE - LASTREC() / RECCOUNT()
       HB_ExecFromArray( { FSL_RECCOUNT( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } )
       
       aWAData[ WA_RECCOUNT_EXPIRES ] := SL_GetCurrentTime()
+      DEBUG "Updated cache value -->",aWAData[ WA_RECCOUNT ]
    End
-   
+
    nRecords := aWAData[ WA_RECCOUNT ]
-RETURN SUCCESS
+   RETURN SUCCESS
 
 ****************************
 //static;
@@ -768,7 +735,7 @@ function SL_GETVALUE_WA( nWA, nField, xValue, lHidden )  && XBASE - FIELDGET()
    IF (bEmpty)
       s_aStruct := aWAData[ WA_REAL_STRUCT ]
 
-      DEBUG nField, s_aStruct
+      //DEBUG nField, s_aStruct
    
        /* Get formated value */
        do case
@@ -2438,43 +2405,47 @@ FUNCTION SL_FLD2CHAR( aFieldInfo )
  * Monta o comando SQL da clausula ORDER BY conforme o indice ativo.
  * 18/03/2009 - 21:57:24
  */
-FUNCTION SL_BUILDORDERBY( aWAData, nDirection )
-   LOCAL aCurrIdx, aFields, cSep, cOrderBy
+FUNCTION SL_BuildOrderBy( aWAData, nDirection )
+   LOCAL cOrderBy
+   LOCAL aCurrIdx
+   LOCAL aFields
+   LOCAL cSep
    LOCAL lDown
    LOCAL c,i
    
    DEFAULT nDirection   TO MS_DOWN
    
-   cSep  := SQLSYS_SEP( aWAData[WA_SYSTEMID] )
+   cOrderBy := ""
+   cSep     := SQLSYS_SEP( aWAData[WA_SYSTEMID] )
    
    IF aWAData[ WA_INDEX_CURR ] == 0
-      cOrderBy := cSep + SL_PKFIELD( aWAData ) + cSep
+      lDown    := (nDirection == MS_UP)
+      aFields  := {}
    ELSE
       aCurrIdx := aWAData[ WA_INDEX, aWAData[ WA_INDEX_CURR ] ]
       aFields  := aCurrIdx[ IDX_FIELDS ]             
-      cOrderBy := ""
-      
+
       IF aCurrIdx[ IDX_DESCEND ]
          lDown := (nDirection == MS_DOWN)
       ELSE
          lDown := (nDirection == MS_UP)
       End 
-      
-      c := Len( aFields )
-      
-      FOR i := 1 TO c
-          cOrderBy += cSep + aFields[i] + cSep + ;
-                     iif( lDown, ' DESC, ', ' ASC, ' )                     
-      End       
-      cOrderBy += cSep + SL_PKFIELD( aWAData ) + cSep + iif( lDown, ' DESC', ' ASC' )                
-   End   
+   End
+   
+   c := Len( aFields )
+
+   FOR i := 1 TO c
+       cOrderBy += cSep + aFields[i] + cSep + ;
+                  iif( lDown, ' DESC, ', ' ASC, ' )
+   End
+   cOrderBy += cSep + SL_PKFIELD( aWAData ) + cSep + iif( lDown, ' DESC', ' ASC' )
    RETURN cOrderBy
 
 /*
  * Monta as informações básicas para a montagem da clausula WHERE no comando SQL 
  * 19/03/2009 - 18:31:04
  */   
-FUNCTION SL_BUILDWHERE( aWAData, nDirection )
+FUNCTION SL_BuildWhere( aWAData, nDirection )
    LOCAL aCurrIdx, aRules, aValues
    LOCAL nFCount, ID, i, p
 

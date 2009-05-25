@@ -461,19 +461,20 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
    RETURN SUCCESS
    
 /*
- * Run a specific query and updates the internal flags
+ * Run a specific query and updates the internal flags.
  * 22/12/2008 - 15:48:28
  */
 ***********************************
-function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, lIgnoreFirst )
+function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
 ***********************************
 
    LOCAL oConn   := aWAData[ WA_CONNECTION ]
    LOCAL lAdjust := .F.
    LOCAL pResult
+   LOCAL nRows
    LOCAL xOldKey, xNewKey
 
-   DEBUG nWa, cQuery, nDirection, lIgnoreFirst
+   DEBUG nWa, cQuery, nDirection, nOptions
 
  * IF aWAData[ WA_RESULT_DIRECTION ] == MS_NONE
    IF (nDirection == MS_DOWN) .OR. (nDirection == MS_UP)
@@ -484,21 +485,18 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, lIgnoreFirst )
    End
 
    DEFAULT nDirection   TO MS_NONE
-   DEFAULT lIgnoreFirst TO .T.
+   DEFAULT nOptions     TO EU_IGNORE_FIRST
    
-   IF ValType( aWAData[ WA_RESULT ] ) == "P" 
-      PQClear( aWAData[ WA_RESULT ] )
-      aWAData[ WA_RESULT ] := nil 
-   End
-
-   pResult := PQExec( oConn:pDB, cQuery )        
+   pResult := PQExec( oConn:pDB, cQuery )
    
    IF PQresultstatus( pResult ) != PGRES_TUPLES_OK
       PQClear( pResult )
       RETURN FAILURE
    End
 
-   IF lIgnoreFirst
+   nRows := PQNTUPLES( pResult )
+   
+   IF SL_HAS( nOptions, EU_IGNORE_FIRST )
       xOldKey := aWAData[ WA_RECNO ]
       xNewKey := PQGETVALUE( pResult, 1, aWAData[ WA_FLD_RECNO ] )
 
@@ -513,7 +511,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, lIgnoreFirst )
       IF xOldKey != xNewKey
          * Ok, no error
          DEBUG 'Nenhum ajuste no KEY necessário:', xOldKey, xNewKey
-      ELSEIF PQNTUPLES( pResult ) > 1
+      ELSEIF nRows > 1
          lAdjust := .T.
          DEBUG 'Será necessário ignorar o primeiro registro!', xOldKey, xNewKey
       ELSE
@@ -529,11 +527,33 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, lIgnoreFirst )
       End
    End
    
+   * We want to ignore if an empty result-set has found?   25/05/2009 - 11:36:34
+   IF ( nRows < 1 ) .AND. ( SL_HAS( nOptions, EU_BOF_ON_EMPTY ) .OR. ;
+                            SL_HAS( nOptions, EU_EOF_ON_EMPTY ) )
+
+      PQClear( pResult )
+      
+      IF SL_HAS( nOptions, EU_BOF_ON_EMPTY )
+         aWAData[ WA_BOF ] := True
+      End
+      IF SL_HAS( nOptions, EU_EOF_ON_EMPTY )
+         aWAData[ WA_EOF ] := True
+      End
+
+      DEBUG "Ignorando Result-set vazio!", aWAData[ WA_BOF ], aWAData[ WA_EOF ]
+      RETURN SL_UpdateFlags( nWA, aWAData )
+   End
+   
+   IF ValType( aWAData[ WA_RESULT ] ) == "P"
+      PQClear( aWAData[ WA_RESULT ] )
+      aWAData[ WA_RESULT ] := nil
+   End
+
    aWAData[ WA_RESULT ]          := pResult
    aWAData[ WA_RESULT_DIRECTION ]:= nDirection
-   
-   aWAData[ WA_BUFFER_POS ]      := iif( lAdjust, 2, 1 )   
-   aWAData[ WA_BUFFER_ROWCOUNT ] := PQNTUPLES( pResult )
+
+   aWAData[ WA_BUFFER_POS ]      := iif( lAdjust, 2, 1 )
+   aWAData[ WA_BUFFER_ROWCOUNT ] := nRows
 
    /* Update recno position */
    IF aWAData[ WA_TABLETYPE ] == TS_COMPLEX_SQL
@@ -541,28 +561,21 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, lIgnoreFirst )
    ELSE
       aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
    End
-   
-   RETURN SUCCESS
+
+   aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
+   aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
+   RETURN SL_UpdateFlags( nWA, aWAData )
 
 *************************
 function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
 *************************
 
    LOCAL cSQL
-/*
-   cSQL := "SELECT " + SL_GetFieldNames( aWAData ) +;
-            " FROM " + SQLGetFullTableName( aWAData )
-   cSql += ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) )   
-   cSQL += ' LIMIT 1'
-
-   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, *** )
-*/
 
   cSQL := SQLPARAMS( aWAData[ WA_SL_GOTOID ], { AllTrim( Str( nRecNo ) ) }, ID_POSTGRESQL )
   
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, True )
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_FIRST )
 
-**  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, strtran( aWAData[ WA_SL_GOTOID ], "?", AllTrim( Str( nRecNo ) ) ) )
 
 /*
  * Perform DbGoTop() on current WA. 
@@ -579,7 +592,7 @@ FUNCTION SL_GOTOP_PGSQL( nWa, aWAData )
                       }  ,;
             ID_POSTGRESQL )
             
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, False )
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_NONE )
 
 /*
  * Perform DbGoTop() on current WA
@@ -595,33 +608,8 @@ FUNCTION SL_GOBOTTOM_PGSQL( nWa, aWAData ) && DbGoBottom()
                       }  ,;
             ID_POSTGRESQL )
             
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_UP, False )
-/*
-   cSQL := aWAData[ WA_SL_GOBOTTOM ]
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_UP, EU_IGNORE_NONE )
 
-   IF aWAData[ WA_INDEX_CURR ] == 0
-      cOrderBy := '"' + SL_PKFIELD( aWAData ) + '" DESC'
-   ELSE
-      aCurrIdx := aWAData[ WA_INDEX, aWAData[ WA_INDEX_CURR ] ]
-      aFields  := aCurrIdx[ IDX_FIELDS ]             
-      cOrderBy := ""
-      
-      c := Len( aFields )
-      
-      FOR i := 1 TO c
-          cOrderBy += '"' + aFields[i] + '"' + ;
-                     iif( !aCurrIdx[ IDX_DESCEND ], ' DESC', ' ASC' ) +;
-                     iif( i == c, '', ', ' )
-      End 
-   End   
-   
-   IF !Empty( cOrderBy )
-      cSQL += ' ORDER BY ' + cOrderBy
-   End
-   
-   cSQL += ' LIMIT ' + str(aWAData[ WA_PACKET_SIZE ])
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, *** )
-/**/
 **************************
 function SL_DELETED_PGSQL( nWa, aWAData, nRecno )
 **************************
