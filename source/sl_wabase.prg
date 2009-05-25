@@ -363,11 +363,8 @@ static function SL_GOTOP( nWA )  && XBASE - DBGOTOP()
    aWAData[ WA_BOF ] := .T.                                && Rossine 28/12/08
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
 
-   USRRDD_SETTOP( nWA, aWAData[ WA_BOF ] )     && Rossine 28/12/08
-   USRRDD_SETBOTTOM( nWA, aWAData[ WA_EOF ] )  && Rossine 28/12/08
+   RETURN SL_UpdateFlags( nWA, aWAData )
 
-   return SUCCESS
- 
 ****************************
 static function SL_GOBOTTOM( nWA )  && XBASE - DBGOBOTTOM()
 ****************************
@@ -394,13 +391,22 @@ static function SL_GOBOTTOM( nWA )  && XBASE - DBGOBOTTOM()
    endif
 
    aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
-   aWAData[ WA_EOF ] := .T.  && Rossine 28/12/08
+   // TODO: tenho duvidas se em DBF o comportamento é o mesmo que o abaixo... verificar!
+   //aWAData[ WA_EOF ] := .T.  && Rossine 28/12/08
+   aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
 
+   RETURN SL_UpdateFlags( nWA, aWAData )
+
+STATIC;
+FUNCTION SL_UpdateFlags( nWA, aWAData )
+
+   USRRDD_SETBOF( nWA, aWAData[ WA_BOF ] )
+   USRRDD_SETEOF( nWA, aWAData[ WA_EOF ] )
+   *
    USRRDD_SETTOP( nWA, aWAData[ WA_BOF ] )     && Rossine 28/12/08
    USRRDD_SETBOTTOM( nWA, aWAData[ WA_EOF ] )  && Rossine 28/12/08
-
-return SUCCESS
-
+   RETURN SUCCESS
+   
 /*
  * Lê mais um pacote de dados direto do banco e atualiza os flags internos.
  * retorna SUCCESS indicando êxito e em nCount parametro passado por referência a 
@@ -459,17 +465,15 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
       
       cSQL += ") ORDER BY " + cOrderBy + cLimit
    End
-   
-   IF PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, nDirection ) != SUCCESS
+
+   // TODO: Evitar chamar esta função diretamente!!
+   IF PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, nDirection, True ) != SUCCESS
       RETURN FAILURE
    End
    
    aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
-   
-   USRRDD_SETBOF( nWA, aWAData[ WA_BOF ] )
-   USRRDD_SETEOF( nWA, aWAData[ WA_EOF ] )
-   RETURN SUCCESS
+   RETURN SL_UpdateFlags( nWA, aWAData )
 /*
  * Avança ou retrocede a quantidade de registros desejadas dentro do buffer
  * 21/03/2009 - 13:22:08
@@ -509,8 +513,10 @@ DEBUG "MS_DOWN: Ele está AVANÇANDO no dados!", nRecords
             aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
             //// substituir acima por isto:
-            //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @aWAData[ WA_RECNO ], .T. )                        
-            RETURN SUCCESS
+            //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @aWAData[ WA_RECNO ], .T. )
+            
+            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+            RETURN SL_UpdateFlags( nWA, aWAData )
          End
          
          /*
@@ -530,7 +536,8 @@ DEBUG "MS_DOWN: Ele está VOLTANDO no buffer!", nRecords
             aWAData[ WA_BUFFER_POS ] += nRecords
             aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
-            RETURN SUCCESS
+            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+            RETURN SL_UpdateFlags( nWA, aWAData )
          End
          
          lFechtData := .T.
@@ -546,7 +553,8 @@ DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWADat
             aWAData[ WA_BUFFER_POS ] += nRecords
             aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
-            RETURN SUCCESS
+            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+            RETURN SL_UpdateFlags( nWA, aWAData )
          End
          
          lFechtData := .T.
@@ -563,7 +571,8 @@ DEBUG "MS_UP: Ele está VOLTANDO no buffer!", nRecords
             aWAData[ WA_BUFFER_POS ] += nRecords
             aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
-            RETURN SUCCESS
+            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+            RETURN SL_UpdateFlags( nWA, aWAData )
          End
 
          lFechtData := .T.
@@ -607,11 +616,10 @@ DEBUG "FETCH: Li os dados e parei na posição atual:", alltrim(str(aWAData[ WA_BU
             nOffSet ++
             DEBUG "VAMOS LER MAIS DADOS"
       End
-      
-      DEBUG "Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]         
+      DEBUG "Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
    End   
 
-RETURN SUCCESS
+RETURN SL_UpdateFlags( nWA, aWAData )
  
 ***********************
 static function SL_BOF( nWA, lBof )  && XBASE - BOF()

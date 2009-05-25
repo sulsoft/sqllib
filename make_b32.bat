@@ -14,7 +14,7 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
 
 :BUILD_HB
    cd source
-   hbmk2 -trace -info -i%HB_INC_PGSQL% -n -w -es2 -hblib -osqllib *.prg *.c > make_b32.log
+   hbmk2 -b -trace -info -i%HB_INC_PGSQL% -n -w -es2 -hblib -osqllib *.prg *.c > make_b32.log
    rem hbmk2 -trace -inc -info -i%HB_INC_PGSQL% -n -w -es2 -hblib -osqllib *.prg *.c > make_b32.log
    if errorlevel 1 goto BUILD_ERR
    goto BUILD_OK

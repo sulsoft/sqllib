@@ -465,7 +465,7 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
  * 22/12/2008 - 15:48:28
  */
 ***********************************
-function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection )
+function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, lIgnoreFirst )
 ***********************************
 
    LOCAL oConn   := aWAData[ WA_CONNECTION ]
@@ -473,7 +473,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection )
    LOCAL pResult
    LOCAL xOldKey, xNewKey
 
-   DEBUG nWa, cQuery, nDirection
+   DEBUG nWa, cQuery, nDirection, lIgnoreFirst
 
  * IF aWAData[ WA_RESULT_DIRECTION ] == MS_NONE
    IF (nDirection == MS_DOWN) .OR. (nDirection == MS_UP)
@@ -483,7 +483,8 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection )
       RETURN FAILURE
    End
 
-   DEFAULT nDirection TO MS_NONE
+   DEFAULT nDirection   TO MS_NONE
+   DEFAULT lIgnoreFirst TO .T.
    
    IF ValType( aWAData[ WA_RESULT ] ) == "P" 
       PQClear( aWAData[ WA_RESULT ] )
@@ -496,36 +497,37 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection )
       PQClear( pResult )
       RETURN FAILURE
    End
-   
-   //SL_GETVALUE_WA( aWAData, aWAData[ WA_FLD_RECNO ], @xOldKey, .T. )
-   xOldKey := aWAData[ WA_RECNO ]
-   xNewKey := PQGETVALUE( pResult, 1, aWAData[ WA_FLD_RECNO ] )
 
-   DEBUG xOldKey, xNewKey
-   
-   IF ValType( xOldKey ) != 'C'
-      xOldKey := SQLITEM2STR( xOldKey )
-   End
-   
- * BUG: Erroneous first record is current record?
- *      20/03/2009 - 16:55:58   
-   IF xOldKey != xNewKey
-      * Ok, no error
-      DEBUG 'Nenhum ajuste no KEY necessário:', xOldKey, xNewKey 
-   ELSEIF PQNTUPLES( pResult ) > 1  
-      lAdjust := .T.
-      DEBUG 'Será necessário ignorar o primeiro registro!', xOldKey, xNewKey 
-   ELSE
-      * Force EOF!
-      DEBUG 'EOF detectado!'
-       
-      pResult := PQExec( oConn:pDB, aWAData[ WA_SL_GOTOP ] + " WHERE 1=0" )
-              
-      IF PQresultstatus( pResult ) != PGRES_TUPLES_OK
-         PQClear( pResult )
-         RETURN FAILURE
+   IF lIgnoreFirst
+      xOldKey := aWAData[ WA_RECNO ]
+      xNewKey := PQGETVALUE( pResult, 1, aWAData[ WA_FLD_RECNO ] )
+
+      DEBUG xOldKey, xNewKey
+
+      IF ValType( xOldKey ) != 'C'
+         xOldKey := SQLITEM2STR( xOldKey )
       End
-   End   
+
+    * BUG: Erroneous first record is current record?
+    *      20/03/2009 - 16:55:58
+      IF xOldKey != xNewKey
+         * Ok, no error
+         DEBUG 'Nenhum ajuste no KEY necessário:', xOldKey, xNewKey
+      ELSEIF PQNTUPLES( pResult ) > 1
+         lAdjust := .T.
+         DEBUG 'Será necessário ignorar o primeiro registro!', xOldKey, xNewKey
+      ELSE
+         * Force EOF!
+         DEBUG 'EOF detectado!'
+
+         pResult := PQExec( oConn:pDB, aWAData[ WA_SL_GOTOP ] + " WHERE 1=0" )
+
+         IF PQresultstatus( pResult ) != PGRES_TUPLES_OK
+            PQClear( pResult )
+            RETURN FAILURE
+         End
+      End
+   End
    
    aWAData[ WA_RESULT ]          := pResult
    aWAData[ WA_RESULT_DIRECTION ]:= nDirection
@@ -558,7 +560,7 @@ function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
 
   cSQL := SQLPARAMS( aWAData[ WA_SL_GOTOID ], { AllTrim( Str( nRecNo ) ) }, ID_POSTGRESQL )
   
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN )
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, True )
 
 **  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, strtran( aWAData[ WA_SL_GOTOID ], "?", AllTrim( Str( nRecNo ) ) ) )
 
@@ -577,7 +579,7 @@ FUNCTION SL_GOTOP_PGSQL( nWa, aWAData )
                       }  ,;
             ID_POSTGRESQL )
             
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN )
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, False )
 
 /*
  * Perform DbGoTop() on current WA
@@ -593,7 +595,7 @@ FUNCTION SL_GOBOTTOM_PGSQL( nWa, aWAData ) && DbGoBottom()
                       }  ,;
             ID_POSTGRESQL )
             
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_UP )
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_UP, False )
 /*
    cSQL := aWAData[ WA_SL_GOBOTTOM ]
 
@@ -655,9 +657,9 @@ function SL_RECCOUNT_PGSQL( nWa, aWAData )
 ***************************   
    LOCAL cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    LOCAL cField  := cRddSep + SL_PKFIELD( nWA ) + cRddSep
+   LOCAL cTemp   := '0'
    LOCAL cSql
-   LOCAL cTemp
-   
+
    cSql := 'SELECT ' + cField +;
            ' FROM '  + SQLGetFullTableName( aWAData ) + ;
            ' ORDER BY ' + cField + ' DESC'+;
@@ -1216,7 +1218,6 @@ local oSql := aWAData[ WA_POINTER ]
 **memowrit( "sql.txt", cQuery )
 
 pQuery := PQexec( oSql:pDB, cQuery )
-
 if PQresultstatus( pQuery ) == PGRES_TUPLES_OK
    if PQLastrec( pQuery ) != 0
        if PQFcount( pQuery ) == 1 .and. PQLastrec( pQuery ) == 1
