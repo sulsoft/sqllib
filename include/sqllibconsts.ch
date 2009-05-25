@@ -67,6 +67,8 @@
    #define SL_INDEX                "sqllib$indexes"
    #define ID_PREFIX               "IDX_"
    
+   #define SL_TIMER_RECCOUNT       15
+   
    /* Important RDD data */
    #define WA_SYSTEMID             1    // Current SYSTEM ID number  (ID_MYSQL, ID_POSTGRESQL)
    #define WA_ENGINE               2    // System ID for this alias as string for quick access, eg ( "MYSQL", "PGSQL", etc...)
@@ -105,23 +107,25 @@
    #define WA_FCOUNT              WA_WORKAREA_INFO_BASE +  7    // 
    #define WA_RECNO               WA_WORKAREA_INFO_BASE +  8    // 
    #define WA_RECCOUNT            WA_WORKAREA_INFO_BASE +  9    // 
-   #define WA_APPEND              WA_WORKAREA_INFO_BASE + 10    // dbAppend() flag
-   #define WA_RECORDCHANGED       WA_WORKAREA_INFO_BASE + 11    // pArea->fRecordChanged flag
-   #define WA_FOUND               WA_WORKAREA_INFO_BASE + 12    // Rossine 07/10/08
-   #define WA_LOCK                WA_WORKAREA_INFO_BASE + 13    // Rossine 18/10/08
-   #define WA_RECSIZE             WA_WORKAREA_INFO_BASE + 14    // Rossine 22/10/08
-   #define WA_STRUCT              WA_WORKAREA_INFO_BASE + 15    // emulate dbf struct with hidden fields - 22/12/2008 - 13:40:59 Vailton Renato
-   #define WA_REAL_STRUCT         WA_WORKAREA_INFO_BASE + 16    // Real table struct - 22/12/2008 - 13:41:12 Vailton Renato  
-   #define WA_SL_GOTOID           WA_WORKAREA_INFO_BASE + 17
-   #define WA_SL_GOTOP            WA_WORKAREA_INFO_BASE + 18
-   #define WA_SL_GOBOTTOM         WA_WORKAREA_INFO_BASE + 19
-
-   #define WA_INDEX               WA_WORKAREA_INFO_BASE + 20    // Current INDEX info
-   #define WA_INDEX_CURR          WA_WORKAREA_INFO_BASE + 21    // Current SET ORDER number
-
-   #define WA_LAST_PACKSIZE       WA_WORKAREA_INFO_BASE + 22
-   
-   #define WA_ALIAS               WA_WORKAREA_INFO_BASE + 23
+   #define WA_RECCOUNT_EXPIRES    WA_WORKAREA_INFO_BASE + 10    // Time life for LASTREC() in SL_TIMER_RECCOUNT second(s)
+                                  
+   #define WA_APPEND              WA_WORKAREA_INFO_BASE + 11    // dbAppend() flag
+   #define WA_RECORDCHANGED       WA_WORKAREA_INFO_BASE + 12    // pArea->fRecordChanged flag
+   #define WA_FOUND               WA_WORKAREA_INFO_BASE + 13    // Rossine 07/10/08
+   #define WA_LOCK                WA_WORKAREA_INFO_BASE + 14    // Rossine 18/10/08
+   #define WA_RECSIZE             WA_WORKAREA_INFO_BASE + 15    // Rossine 22/10/08
+   #define WA_STRUCT              WA_WORKAREA_INFO_BASE + 16    // emulate dbf struct with hidden fields - 22/12/2008 - 13:40:59 Vailton Renato
+   #define WA_REAL_STRUCT         WA_WORKAREA_INFO_BASE + 17    // Real table struct - 22/12/2008 - 13:41:12 Vailton Renato  
+   #define WA_SL_GOTOID           WA_WORKAREA_INFO_BASE + 18
+   #define WA_SL_GOTOP            WA_WORKAREA_INFO_BASE + 19
+   #define WA_SL_GOBOTTOM         WA_WORKAREA_INFO_BASE + 20                          
+                                  
+   #define WA_INDEX               WA_WORKAREA_INFO_BASE + 21    // Current INDEX info
+   #define WA_INDEX_CURR          WA_WORKAREA_INFO_BASE + 22    // Current SET ORDER number
+                                  
+   #define WA_LAST_PACKSIZE       WA_WORKAREA_INFO_BASE + 23                           
+                                  
+   #define WA_ALIAS               WA_WORKAREA_INFO_BASE + 24
 
    #define WA_SIZE                WA_ALIAS    /* Put here the last key value for this array */
 
@@ -165,13 +169,18 @@
    #define ID_ORACLE              5                 
    #define ID_MAX_DRIVERS         2
    
-   /* DBCreate/DBStruct additional constants */
-   #define DBS_REQUIRED           5       // Forces NOT NULL
+   /*
+    * DBCreate/DBStruct additional constants 
+    * Nota tardia: ATENÇÃO: alterar estes valores ou adicionar itens à esta 
+    *              sequencia implica em rever o código de TPQServer:TableStruct()
+    */
+   #define DBS_REQUIRED           5       // Forces NOT NULL   
    #define DBS_UNIQUE             6       
    #define DBS_PRIMARY_KEY        7       
    #define DBS_DEFAULT            8       // Default value for this column
    #define DBS_FIELD_TYPE         9       // Reserved to PQGETVALUEEX() into sl_pgsql_api.c
    #define DBS_COUNT              DBS_FIELD_TYPE 
+    
    
    /* Buffer direction */
 #ifndef MS_NONE

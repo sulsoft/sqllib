@@ -59,6 +59,10 @@
    #include "usrrdd.ch"
 #endif
 
+//TODO: remove this later..
+      #command DEBUG <*x*> => SQL_DEBUGEX( alltrim(ProcName(0))+ "("+alltrim(str(ProcLine(0)))+"):",<x> )
+      #command DEBUG_ARGS  => SQL_DEBUGEX( alltrim(ProcName(0))+ "("+alltrim(str(ProcLine(0)))+") "+alltrim(str(len(hb_aparams()))) + ' arg(s)'+":", hb_aparams(), "called from " + alltrim(ProcName(1))+ "("+alltrim(str(ProcLine(1)))+") in " + ProcFile(1) + ' / ' + alltrim(ProcName(2))+ "("+alltrim(str(ProcLine(2)))+") in " + ProcFile(2) +':' )
+
 CLASS TPQServer
 
     DATA     pDb
@@ -336,6 +340,25 @@ MSGSTOP( cQuery )
     
 RETURN result    
 
+// 24/05/2009 - 20:39:18
+STATIC;
+FUNCTION FieldContrains( cField, pContraints )
+   LOCAL cType
+   LOCAL cFieldN
+   LOCAL r
+
+   IF PQresultstatus(pContraints) == PGRES_TUPLES_OK
+      FOR r := 1 TO PQlastrec(pContraints)
+          cType  := PQgetvalue(pContraints, r, 1)
+          cFieldN:= PQgetvalue(pContraints, r, 2)
+
+          IF Lower( cFieldN ) == cField
+             RETURN cType
+          End
+      End
+   End
+   RETURN ""
+
 METHOD TableStruct( cTable ) CLASS TPQserver
     Local result := {}
     Local cQuery
@@ -348,14 +371,35 @@ METHOD TableStruct( cTable ) CLASS TPQserver
     Local xDef
     Local bNull
     Local hbType
+    Local pConstraints
+    Local cConstType
             *           1           2              3                       4                       5              6              7           
-    cQuery := "SELECT column_name, data_type, character_maximum_length, numeric_precision, numeric_scale, column_default, is_nullable "
-    cQuery += "  FROM information_schema.columns "
-    cQuery += " WHERE table_schema = " + DataToSql(::Schema) + " and table_name = " + DataToSql(cTable)
-    cQuery += " ORDER BY ordinal_position "                                                             
+    cQuery := "SELECT column_name, data_type, character_maximum_length, "+;
+              "       numeric_precision, numeric_scale, column_default, is_nullable"+;
+              " FROM information_schema.columns " +;
+              " WHERE table_schema = " + DataToSql(::Schema) +;
+              "   AND table_name = " + DataToSql(cTable) +;
+              " ORDER BY ordinal_position "
 
     res := PQexec( ::pDB, cQuery )
-    
+           
+    // To check PK & Unique columns
+    cQuery := "SELECT "+;
+           ;//"	  tc.constraint_name,"+;
+              "          tc.constraint_type,"+;
+              "          kcu.column_name"+;
+              "     FROM information_schema.table_constraints tc "+;
+              "LEFT JOIN information_schema.key_column_usage kcu"+;
+              "       ON tc.constraint_catalog = kcu.constraint_catalog"+;
+              "      AND tc.constraint_schema = kcu.constraint_schema"+;
+              "      AND tc.constraint_name = kcu.constraint_name"+;
+              "    WHERE tc.table_schema = " + DataToSql(::Schema) +;
+              "      AND tc.table_name   = " + DataToSql(cTable)   +;
+              "	AND kcu.column_name <> ''"+;
+              "    ORDER BY kcu.column_name"
+        
+    pConstraints := PQexec( ::pDB, cQuery )
+
     IF PQresultstatus(res) == PGRES_TUPLES_OK
         For i := 1 to PQlastrec(res)
             cField    := PQgetvalue(res, i, 1)
@@ -475,9 +519,15 @@ METHOD TableStruct( cTable ) CLASS TPQserver
             IF Valtype( xDef ) == 'C'
                ** Montar um bloco aqui que gerencie isto
             End                  
+                   
+            // See "DBCreate/DBStruct additional constants" in sqllibconsts.ch
+            // TODO: Load DBS_PRIMARY_KEY & DBS_UNIQUE from current indexes in PGSCHEMA...
 
-            IF cType <> 'U'   //   1      2      3     4      5     6      7
-                aadd( result, { cField, cType, nSize, nDec, bNull, xDef, hbType } )
+            IF cType <> 'U'   //   1      2      3     4      5     6      7    8     9
+               cConstType := FieldContrains( cField, pConstraints )
+
+            // DEBUG cField, cType, nSize, nDec, bNull, (cConstType == 'UNIQUE'), (cConstType == 'PRIMARY KEY'), xDef, hbType
+               AADD( Result, { cField, cType, nSize, nDec, bNull, (cConstType == 'UNIQUE'), (cConstType == 'PRIMARY KEY'), xDef, hbType } )
             End                
 
         Next

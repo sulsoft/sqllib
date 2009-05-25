@@ -82,7 +82,8 @@
    #include "hbclass.ch"
    #include "SQLLIB.ch"
    
-   #define  CRLF              ( CHR(13)+CHR(10) )
+   #define  CRLF                          ( CHR(13)+CHR(10) )
+   #define SL_CLEAR_RECCACHE(aWAData)     ( aWAData[ WA_RECCOUNT_EXPIRES ] := 0 )
    
    /* Comandos Personalizados */
    #Command If <Cond> then <*Cmd1*> ;

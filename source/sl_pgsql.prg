@@ -290,8 +290,6 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    End
 
    cSql += ')'
-   
-msginfo( cSQL )
    aWAData[ WA_TEMP ] := nil
 
    /* Aqui executamos o comando e deixamos a msg de erro aparecer ao usuario */
@@ -380,8 +378,8 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
        /* Name of the fields in lower case */
        cSQL += '"' + lower( aField[ DBS_NAME ] ) + '" ' + cType
        
-       IF ( cType == 'DATE' ) .OR. (cType == 'TEXT' ) .OR. ( cType == 'BOOLEAN' )
-          *
+       IF ( ';' + UPPER(cType) + ';' $ ';DATE;TEXT;BOOLEAN;SERIAL;' )
+          * This field type does not support length modifier
        ELSEIF nLen == -1
           * -1 disables size modifier inside sql string
        ELSE
@@ -492,7 +490,6 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection )
       aWAData[ WA_RESULT ] := nil 
    End
 
-*   msginfo( cQuery )
    pResult := PQExec( oConn:pDB, cQuery )        
    
    IF PQresultstatus( pResult ) != PGRES_TUPLES_OK
@@ -503,6 +500,8 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection )
    //SL_GETVALUE_WA( aWAData, aWAData[ WA_FLD_RECNO ], @xOldKey, .T. )
    xOldKey := aWAData[ WA_RECNO ]
    xNewKey := PQGETVALUE( pResult, 1, aWAData[ WA_FLD_RECNO ] )
+
+   DEBUG xOldKey, xNewKey
    
    IF ValType( xOldKey ) != 'C'
       xOldKey := SQLITEM2STR( xOldKey )
@@ -619,7 +618,6 @@ FUNCTION SL_GOBOTTOM_PGSQL( nWa, aWAData ) && DbGoBottom()
    End
    
    cSQL += ' LIMIT ' + str(aWAData[ WA_PACKET_SIZE ])
-msginfo( cSQL )
   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, *** )
 /**/
 **************************
@@ -654,16 +652,20 @@ return SL_ExecQuery( aWAData, cSql )
 
 ***************************
 function SL_RECCOUNT_PGSQL( nWa, aWAData )
-***************************
-
-local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
-local cSql    := 'SELECT COUNT( "' + SL_PKFIELD( nWA ) + '" ) FROM ' + SQLGetFullTableName( aWAData )
- 
-if set(_SET_DELETED)
-   cSql += " where " + cRddSep + SL_COL_DELETED + cRddSep + " != 'T'" && // RecCount()"
-endif
-
-return SL_ExecQuery( aWAData, cSql )
+***************************   
+   LOCAL cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
+   LOCAL cField  := cRddSep + SL_PKFIELD( nWA ) + cRddSep
+   LOCAL cSql
+   LOCAL cTemp
+   
+   cSql := 'SELECT ' + cField +;
+           ' FROM '  + SQLGetFullTableName( aWAData ) + ;
+           ' ORDER BY ' + cField + ' DESC'+;
+           ' LIMIT 1'
+    
+   SL_QuickQuery_PGSQL( aWAData, cSql, @cTemp )
+   aWAData[ WA_RECCOUNT ] := VAL( cTemp )
+   RETURN SUCCESS
 
 /*
  * Retrieve a value from original buffer
@@ -685,7 +687,7 @@ function SL_GETVALUE_PGSQL( nWa, aWAData, nField, lHidden )
    aField := aWAData[ WA_REAL_STRUCT, nField ]
    nRow   := aWAData[ WA_BUFFER_POS ]
    
-   IF valtype( aWAData[ WA_RESULT ] ) == 'P'
+   IF Valtype( aWAData[ WA_RESULT ] ) == 'P'
       RETURN PQGetValueEx( nWA, aWAData[ WA_RESULT ], nRow, nField, aField )
    End
 
@@ -1003,7 +1005,6 @@ function SL_ORDDESTROY_PGSQL( nWa, aWAData, aOrderInfo )
       cTag   := Lower( cTag )
       nOrder := aScan( aWAData[ WA_INDEX ], {| idx | idx[ IDX_TAG ] == cTag })
    endif
-   *msginfo(aWAData[ WA_INDEX])
    if nOrder <1 .OR. nOrder > Len( aWAData[ WA_INDEX ] )
       return lRet
    end
@@ -1311,7 +1312,7 @@ local oSql := aWAData[ WA_POINTER ]
 
 oQuery                   := oSql:Execute( cQuery )
 lRet                     := oQuery:neterr()
-aWAData[ WA_POINTER ]    := oSql
+aWAData[ WA_POINTER ]    := oSql       // TODO: Faz setindo isto aqui???  (( o_O ))
 
 return NIL
 

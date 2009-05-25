@@ -116,6 +116,17 @@ static function SL_EXIT( nRDD )  && Rossine 05/11/08
    HB_SYMBOL_UNUSED( nRDD )
 
 return SUCCESS
+
+/*
+ * Auxiliar function to RECCOUNT()
+ * 24/05/2009 - 17:49:11
+ */
+STATIC;
+FUNCTION SL_GetCurrentTime()
+   RETURN VAL(  STRZERO(  Year( Date() ),4 ) + ;
+                STRZERO( Month( Date() ),2 ) + ;
+                STRZERO(   Day( Date() ),2 ) + ;
+                STRTRAN( TIME(), ':', '' ) )
  
 ***********************
 static function SL_NEW( nWA )
@@ -134,6 +145,7 @@ static function SL_NEW( nWA )
    aWAData[ WA_EOF ]             := .F.
    aWAData[ WA_FOUND ]           := .F.
    aWAData[ WA_RECCOUNT ]        := 0
+   SL_CLEAR_RECCACHE( aWAData )
  
    aWAData[ WA_BUFFER_ARR ]      := NIL
    aWAData[ WA_BUFFER_POS ]      := 0
@@ -448,9 +460,6 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
       cSQL += ") ORDER BY " + cOrderBy + cLimit
    End
    
-   *DEBUG cSQL
-   *msginfo( cSQL )
-   
    IF PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, nDirection ) != SUCCESS
       RETURN FAILURE
    End
@@ -567,7 +576,7 @@ DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[
       
    IF lFechtData
       aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
-      DEBUG "Vamos ler mais dados: " + alltrim(str(nOffSet)) + ' regs à partir do registro ' + alltrim(str( aWAData[ WA_RECNO ] ))
+      DEBUG "Vamos ler mais dados:", nOffSet, ' regs à partir do registro',aWAData[ WA_RECNO ]
       
       IF nOffSet < 0
          nOffSet := ABS( nOffSet )
@@ -667,7 +676,6 @@ static function SL_RECNO( nWA, nRecNo )   && XBASE - RECNO()
    else
       aWAData[ WA_RECNO ] := nRecNo
    endif
- 
 return SUCCESS
 
 ******************
@@ -688,13 +696,22 @@ return SUCCESS
 static function SL_RECCOUNT( nWA, nRecords )  && XBASE - LASTREC() / RECCOUNT()
 ****************************
  
-   local aWAData := USRRDD_AREADATA( nWA )
+   LOCAL aWAData  := USRRDD_AREADATA( nWA )
+   LOCAL nExpires := aWAData[ WA_RECCOUNT_EXPIRES ]
+   LOCAL nNow     := SL_GetCurrentTime()
 
-   HB_ExecFromArray( { FSL_RECCOUNT( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } )
- 
+   DEBUG nNow, nExpires + SL_TIMER_RECCOUNT, nExpires
+   
+   IF nNow <= ( nExpires + SL_TIMER_RECCOUNT )
+      * Use cache here!
+   ELSE
+      HB_ExecFromArray( { FSL_RECCOUNT( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } )
+      
+      aWAData[ WA_RECCOUNT_EXPIRES ] := SL_GetCurrentTime()
+   End
+   
    nRecords := aWAData[ WA_RECCOUNT ]
-
-return SUCCESS
+RETURN SUCCESS
 
 ****************************
 //static;
@@ -712,13 +729,11 @@ function SL_GETVALUE_WA( nWA, nField, xValue, lHidden )  && XBASE - FIELDGET()
       aWAData := USRRDD_AREADATA( nWA )
    End
    
-   bEmpty    := aWAData[ WA_EOF ]
-   s_aStruct := aWAData[ WA_STRUCT ]
-   
+   bEmpty  := aWAData[ WA_EOF ]   
    aBuffer := aWAData[ WA_BUFFER_ARR ]
    nRow    := aWAData[ WA_BUFFER_POS ]
 
-   IF !bEmpty .and. valtype( aBuffer ) == "A"
+   IF !bEmpty .and. Valtype( aBuffer ) == "A"
       /* We are positioned properly within the buffer? */
       if nRow < 1 .OR. nRow > aWAData[ WA_BUFFER_ROWCOUNT ]
          msgstop( "SL_GETVALUE_WA() -> We are positioned properly within the buffer?" )
@@ -736,6 +751,10 @@ function SL_GETVALUE_WA( nWA, nField, xValue, lHidden )  && XBASE - FIELDGET()
    endif
 
    IF (bEmpty)
+      s_aStruct := aWAData[ WA_REAL_STRUCT ]
+
+      DEBUG nField, s_aStruct
+   
        /* Get formated value */
        do case
        case s_aStruct[ nField ][ DBS_TYPE ] == "CHAR"
@@ -2562,7 +2581,8 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
       
    IF lFirst .OR. aWAData[ WA_INDEX_CURR ] == 0
       szRecno := AWAData[ WA_REAL_STRUCT, AWAData[ WA_FLD_RECNO ], DBS_NAME ]
-
+//DEBUG AWAData[ WA_REAL_STRUCT ]
+//DEBUG AWAData[ WA_FLD_RECNO ]
       SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @CurrRowId, .T. )
       
       IF aWAData[ WA_INDEX_CURR ] == 0
