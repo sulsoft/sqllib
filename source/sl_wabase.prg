@@ -363,6 +363,8 @@ static function SL_GOTOP( nWA )  && XBASE - DBGOTOP()
    aWAData[ WA_BOF ] := .T.                                && Rossine 28/12/08
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
 
+   USRRDD_SETTOP( nWA, .T. )
+   USRRDD_SETBOTTOM( nWA, .F. )
    RETURN SL_UpdateFlags( nWA, aWAData )
 
 ****************************
@@ -395,6 +397,9 @@ static function SL_GOBOTTOM( nWA )  && XBASE - DBGOBOTTOM()
    //aWAData[ WA_EOF ] := .T.  && Rossine 28/12/08
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
 
+   USRRDD_SETTOP( nWA, .F. )
+   USRRDD_SETBOTTOM( nWA, .T. )
+
    RETURN SL_UpdateFlags( nWA, aWAData )
 
 STATIC;
@@ -402,9 +407,6 @@ FUNCTION SL_UpdateFlags( nWA, aWAData )
 
    USRRDD_SETBOF( nWA, aWAData[ WA_BOF ] )
    USRRDD_SETEOF( nWA, aWAData[ WA_EOF ] )
-   *
-   USRRDD_SETTOP( nWA, aWAData[ WA_BOF ] )     && Rossine 28/12/08
-   USRRDD_SETBOTTOM( nWA, aWAData[ WA_EOF ] )  && Rossine 28/12/08
    RETURN SUCCESS
    
 /*
@@ -619,6 +621,10 @@ DEBUG "FETCH: Li os dados e parei na posição atual:", alltrim(str(aWAData[ WA_BU
       DEBUG "Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
    End   
 
+   // Same as dbf1.c... - 25/05/2009 - 10:15:45
+   USRRDD_SETTOP( nWA, .F. )
+   USRRDD_SETBOTTOM( nWA, .F. )
+
 RETURN SL_UpdateFlags( nWA, aWAData )
  
 ***********************
@@ -712,6 +718,7 @@ static function SL_RECCOUNT( nWA, nRecords )  && XBASE - LASTREC() / RECCOUNT()
    
    IF nNow <= ( nExpires + SL_TIMER_RECCOUNT )
       * Use cache here!
+      DEBUG "Using cache here -->",aWAData[ WA_RECCOUNT ]
    ELSE
       HB_ExecFromArray( { FSL_RECCOUNT( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } )
       
@@ -2594,7 +2601,13 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
       SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @CurrRowId, .T. )
       
       IF aWAData[ WA_INDEX_CURR ] == 0
-         cWhere += sep + szRecno + sep + ' > ' + SQLITEM2STR( CurrRowId ) +' )'
+         // Havia um BUG aqui antes que não testava o conteudo desta variavel,
+         // foi ajustado em 25/05/2009 - 10:49:06 - vailton
+         IF nDirection == MS_DOWN
+            cWhere += sep + szRecno + sep + ' > ' + SQLITEM2STR( CurrRowId ) +' )'
+         ELSE
+            cWhere += sep + szRecno + sep + ' < ' + SQLITEM2STR( CurrRowId ) +' )'
+         End
       ELSE
          IF nDirection == MS_DOWN
             cWhere += ' AND ' + sep + szRecno + sep + ' >= ' + SQLITEM2STR( CurrRowId ) +' )'
