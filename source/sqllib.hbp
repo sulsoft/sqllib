@@ -1,8 +1,8 @@
 libs=libpq
 prgflags=-I.\..\INCLUDE
 prgflags=-W3
-#prgflags=-DSQL_DEBUG
+prgflags=-DSQL_DEBUG
 
 cflags=-I.\..\INCLUDE
 cflags=-I%HB_INC_PGSQL%
-#cflags=-DSQL_DEBUG
+cflags=-DSQL_DEBUG
