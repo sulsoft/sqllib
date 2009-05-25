@@ -498,16 +498,39 @@ function SL_SKIPRAW( nWA, nRecords )  && XBASE - DBSKIP()
       RETURN FAILURE
    End
 
-   IF nRecords == 0
-      RETURN SUCCESS 
+   lInverse := ( aWAData[ WA_RESULT_DIRECTION ] == MS_UP )
+
+   IF aWaData[ WA_EOF ]
+      IF nRecords > 0
+         RETURN SUCCESS
+      End
+
+      IF nRecords < 0
+         DEBUG "## Está no EOF, descontamos 1 registro dele então!", nRecords
+         nRecords := nRecords +1
+
+       * Ele saiu do EOF() ??? Vá para o ultimo registro do buffer!!!
+         IF (nRecords == 00) .AND. aWAData[ WA_BUFFER_ROWCOUNT ] >0
+            IF lInverse
+               aWAData[ WA_BUFFER_POS ] := 1
+            ELSE
+               aWAData[ WA_BUFFER_POS ] := aWAData[ WA_BUFFER_ROWCOUNT ]
+            End
+            aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
+            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+            RETURN SL_UpdateFlags( nWA, aWAData )
+         End
+      End
    End
 
-   lInverse := ( aWAData[ WA_RESULT_DIRECTION ] == MS_UP )
-   
    IF lInverse
       nRecords *= -1
    End
 
+   IF (nRecords == 0)
+      RETURN SUCCESS
+   End
+   
    IF nRecords > 0
 DEBUG "MS_DOWN: Ele está AVANÇANDO no dados!", nRecords
       nDirection := MS_DOWN
