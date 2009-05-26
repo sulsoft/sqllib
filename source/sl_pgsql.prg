@@ -518,12 +518,14 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
          * Force EOF!
          DEBUG 'EOF detectado!'
 
-         pResult := PQExec( oConn:pDB, aWAData[ WA_SL_GOTOP ] + " WHERE 1=0" )
+         nRows := 0     // força EOF() / BOF() - 25/05/2009 - 21:23:49
 
-         IF PQresultstatus( pResult ) != PGRES_TUPLES_OK
-            PQClear( pResult )
-            RETURN FAILURE
-         End
+//         pResult := PQExec( oConn:pDB, aWAData[ WA_SL_GOTOP ] + " WHERE 1=0" )
+
+//         IF PQresultstatus( pResult ) != PGRES_TUPLES_OK
+//            PQClear( pResult )
+//            RETURN FAILURE
+//         End
       End
    End
    

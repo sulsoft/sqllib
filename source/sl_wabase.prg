@@ -426,7 +426,7 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
    LOCAL nOptions
    LOCAL i
 
-//   DEBUG_ARGS
+//altd()
    aRules  := SL_BuildWhere( aWAData, nDirection )
    cOrderBy:= SL_BuildOrderBy( aWAData, nDirection )
    nLimit  := aWAData[ WA_PACKET_SIZE ]
