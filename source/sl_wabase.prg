@@ -233,7 +233,7 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
    End
 
    s_aStruct              := aWAData[ WA_STRUCT ]
-   aWAData[ WA_BOF ]      := aWAData[ WA_EOF ] := .F.
+   aWAData[ WA_BOF ]      := aWAData[ WA_EOF ] := aWAData[ WA_FOUND ] := .F.
    aWAData[ WA_RECSIZE ]  := 0  && Rossine  22/10/08
    aWAData[ WA_FCOUNT ]   := Len( s_aStruct ) // Hasta que hagamos una conexion real
    aWAData[ WA_ALIAS ]    := aOpenInfo[ UR_OI_ALIAS ]  && Rossine - 
@@ -329,6 +329,7 @@ static function SL_GOTOID( nWA, nRecord )  && XBASE - DBGOTO()
 
    aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
+   aWAData[ WA_FOUND ] := False
    
    return SUCCESS
  
@@ -362,13 +363,14 @@ static function SL_GOTOP( nWA )  && XBASE - DBGOTOP()
 
    aWAData[ WA_BOF ] := .T.                                && Rossine 28/12/08
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
+   aWAData[ WA_FOUND ] := .F.
 
    USRRDD_SETTOP( nWA, .T. )
    USRRDD_SETBOTTOM( nWA, .F. )
    RETURN SL_UpdateFlags( nWA, aWAData )
 
 ****************************
-static function SL_GOBOTTOM( nWA )  && XBASE - DBGOBOTTOM()
+static function SL_GOBOTTOM( nWA, nRecords )  && XBASE - DBGOBOTTOM()
 ****************************
 
    local aWAData := USRRDD_AREADATA( nWA )
@@ -388,19 +390,26 @@ static function SL_GOBOTTOM( nWA )  && XBASE - DBGOBOTTOM()
 // aWAData[ WA_RECNO ]           := aWAData[ WA_RECCOUNT ]             && Rossine 07/10/08
    aWAData[ WA_BUFFER_POS ]      := 1        // my row inside aWAData
 
-   if HB_ExecFromArray( { FSL_GOBOTTOM( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } ) != SUCCESS
-      return FAILURE
-   endif
+   IF HB_ExecFromArray( { FSL_GOBOTTOM( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } ) != SUCCESS
+      RETURN FAILURE
+   End
 
    aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
    // TODO: tenho duvidas se em DBF o comportamento é o mesmo que o abaixo... verificar!
    //aWAData[ WA_EOF ] := .T.  && Rossine 28/12/08
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1  && Rossine 28/12/08
+   aWAData[ WA_FOUND ] := .F.
 
    USRRDD_SETTOP( nWA, .F. )
    USRRDD_SETBOTTOM( nWA, .T. )
 
-   RETURN SL_UpdateFlags( nWA, aWAData )
+   SL_UpdateFlags( nWA, aWAData )
+   
+   IF VALTYPE( nRecords ) == 'N'
+      RETURN SL_SKIPRAW( nWA, nRecords )
+   End
+   
+   RETURN SUCCESS
 
 FUNCTION SL_UpdateFlags( nWA, aWAData )
 
@@ -503,24 +512,29 @@ function SL_SKIPRAW( nWA, nRecords )  && XBASE - DBSKIP()
 
    IF aWaData[ WA_EOF ]
       IF nRecords > 0
+         DEBUG "## Nao tem como avancar sobre o EOF!", nRecords
          RETURN SUCCESS
       End
 
       IF nRecords < 0
-         DEBUG "## Está no EOF, descontamos 1 registro dele então!", nRecords
+         DEBUG "## Esta no EOF, descontamos 1 registro dele entao!", nRecords
          nRecords := nRecords +1
 
-       * Ele saiu do EOF() ??? Vá para o ultimo registro do buffer!!!
-         IF (nRecords == 00) .AND. aWAData[ WA_BUFFER_ROWCOUNT ] >0
-            IF lInverse
-               aWAData[ WA_BUFFER_POS ] := 1
-            ELSE
-               aWAData[ WA_BUFFER_POS ] := aWAData[ WA_BUFFER_ROWCOUNT ]
+       * Ele saiu do EOF() ??? Va para o ultimo registro do buffer!!!
+         IF (nRecords == 00)
+            IF aWAData[ WA_BUFFER_ROWCOUNT ] >0
+               IF lInverse
+                  aWAData[ WA_BUFFER_POS ] := 1
+               ELSE
+                  aWAData[ WA_BUFFER_POS ] := aWAData[ WA_BUFFER_ROWCOUNT ]
+               End
+               aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
+               aWAData[ WA_FOUND ] := aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+               RETURN SL_UpdateFlags( nWA, aWAData )
             End
-            aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
-            aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
-            RETURN SL_UpdateFlags( nWA, aWAData )
          End
+         DEBUG "For‡amos ele … voltar … partir do GO BOTTOM! -->", nRecords
+         RETURN SL_GOBOTTOM(nWA,nRecords)
       End
    End
 
@@ -543,7 +557,7 @@ DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWADat
          //// substituir acima por isto:
          //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @aWAData[ WA_RECNO ], .T. )
 
-         aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+         aWAData[ WA_FOUND ] := aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
          RETURN SL_UpdateFlags( nWA, aWAData )
       End
 
@@ -564,7 +578,7 @@ DEBUG "MS_UP: Ele está VOLTANDO no buffer!", nRecords
          aWAData[ WA_BUFFER_POS ] += nRecords
          aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
-         aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
+         aWAData[ WA_FOUND ] := aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
          RETURN SL_UpdateFlags( nWA, aWAData )
       End
 
@@ -615,6 +629,9 @@ DEBUG "FETCH: Li os dados e parei na posição atual:", alltrim(str(aWAData[ WA_BU
       DEBUG "Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
    End   
 
+   // Clear FOUND() flag - 26/05/2009 - 14:41:56
+   aWAData[ WA_FOUND ] := .F.
+   
    // Same as dbf1.c... - 25/05/2009 - 10:15:45
    USRRDD_SETTOP( nWA, .F. )
    USRRDD_SETBOTTOM( nWA, .F. )
@@ -1576,7 +1593,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
        nIndexKeyLength += aCurrIdx[ IDX_KEYSIZES, i]
    End
 
-   IF cType == 'C'
+   IF cType $ 'CM'
       * Ok
    ELSEIF ( nFCount > 01 )
       * DBSeek error: invalid value passed to seek - HB doesnt raises an exception here!
@@ -1642,14 +1659,16 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
          IF ( nKeyLength == nIndexKeyLength )
             DEBUG "SQL pode-se tirar os espa‡os finais pois teoricamente em DBF td ‚ espa‡o no final,n‚?"
             uKey := Alltrim(uKey)       // TODO: Revisar aqui sobre campos CHAR/VARCHAR
-            bSoftSeek := False
+            //bSoftSeek := False
          End
       End
 
       IF ( bSoftSeek )
-         IF ( aField[DBS_TYPE] == 'C' )
+         IF ( aField[DBS_TYPE] $ 'CM' )
+
             IF ( uKey == "" )
                SQL += '1=1'; p:=1
+               
             ELSE
                SQL += cFieldN + ' LIKE '
                iPacketSize := 01
@@ -1662,9 +1681,6 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
                IF p == 00
                   DEBUG "SQL += SQL_ANY2SEEK( ",uKey,",",bSoftSeek,",",aField[DBS_TYPE]," )"
 
-                  *IF Valtype( uKey ) == 'C' .and. bSoftSeek
-                     *uKey := StrTran( StrTran( uKey, '%', '\%' ), '_', '\_' )
-                  *ELSE
                   IF bIsCustom
                      uKey := Transform( uKey, "" )
                   End
@@ -1684,7 +1700,6 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
             End
 
          ELSEIF ( aField[DBS_TYPE] == 'D' )
-
             IF Empty( uKey )
                SQL += '1=1'; p:=1
             ELSE
@@ -1693,6 +1708,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
             End
          ELSE
             SQL += cFieldN + '>='
+            bSoftSeek := .F.
          End
 
       ELSE
@@ -1729,7 +1745,17 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
             " LIMIT 1" //+ SQLNTrim(aWAData[ WA_PACKET_SIZE ])
 
    DEBUG "SQL final:", SQL
-   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, SQL, MS_DOWN, EU_IGNORE_NONE )
+   IF PGSQL_ExecAndUpdate( nWa, aWAData, SQL, MS_DOWN, EU_IGNORE_NONE ) != SUCCESS
+      RETURN FAILURE
+   End
+   
+   * Se encontrou algo, ajustamos o FOUND() para refletir o resultado!
+   * NOTE: bSoftSeek ativo nÆo altera o valor de FOUND!!!
+   IF !bSoftSeek
+      aWAData[ WA_FOUND ] := aWAData[ WA_BUFFER_ROWCOUNT ] > 0
+      USRRDD_SETFOUND( nWA, aWAData[ WA_FOUND ] )
+   End
+   RETURN SUCCESS
 #endif
    
 /*
