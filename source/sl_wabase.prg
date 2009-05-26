@@ -406,6 +406,7 @@ FUNCTION SL_UpdateFlags( nWA, aWAData )
 
    USRRDD_SETBOF( nWA, aWAData[ WA_BOF ] )
    USRRDD_SETEOF( nWA, aWAData[ WA_EOF ] )
+   USRRDD_SETFOUND( nWA, aWAData[ WA_FOUND ] )
    RETURN SUCCESS
    
 /*
@@ -758,20 +759,20 @@ function SL_GETVALUE_WA( nWA, nField, xValue, lHidden )  && XBASE - FIELDGET()
    IF (bEmpty)
       s_aStruct := aWAData[ WA_REAL_STRUCT ]
 
-      //DEBUG nField, s_aStruct
+      DEBUG "EOF() for --->", nField, s_aStruct[ nField ]
    
        /* Get formated value */
        do case
-       case s_aStruct[ nField ][ DBS_TYPE ] == "CHAR"
+       case s_aStruct[ nField ][ DBS_FIELD_TYPE ] == HB_FT_STRING
             xValue := Space( s_aStruct[ nField ][ DBS_LEN ] )
  
-       case s_aStruct[ nField ][ DBS_TYPE ] == "MEMO"
+       case s_aStruct[ nField ][ DBS_FIELD_TYPE ] == HB_FT_MEMO
             xValue := ''
  
-       case s_aStruct[ nField ][ DBS_TYPE ] == "LOGICAL"
+       case s_aStruct[ nField ][ DBS_FIELD_TYPE ] == HB_FT_LOGICAL
             xValue := .F.
  
-       case s_aStruct[ nField ][ DBS_TYPE ] == "DATE"
+       case s_aStruct[ nField ][ DBS_FIELD_TYPE ] == HB_FT_DATE
             xValue := CTOD('')
  
        otherwise  // Numeric field..
@@ -1508,15 +1509,230 @@ FUNCTION SL_ORDLSTFOCUS( nWA, aOrderInfo )  && XBASE - DBSETORDER() / OrdSetFocu
    return SUCCESS
 
 ************************
-static function SL_SEEK( nWA, lSoftSeek, cKey, lFindLast )  && XBASE - DBSEEK()
-************************
+#ifdef F
+STATIC;
+FUNCTION SL_SEEK()
+   RETURN SUCCESS
+#else
+STATIC;
+FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
+   LOCAL aWAData  := USRRDD_AREADATA( nWA )
+   LOCAL cRddSep  := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
+   LOCAL aCurrIdx                   // Current index info
+   LOCAL aFields                    // Fields attached into current index
+   LOCAL aField                     // Field info inside aFields
+   LOCAL cFieldN                    // Current Fieldname with separators
+   LOCAL iPacketSize                // nRows to fetch
+   LOCAL ForceSoftSeek
+   LOCAL bNexted                    // Indicates if we need an AND statement
+   LOCAL nFCount                    // Total fields on current key
+   LOCAL nKeyLength                 // Length of uKey if this is string
+   LOCAL nIndexKeyLength            // Total lenght of indexkey() value
+   LOCAL bIsCustom
+   LOCAL cType                      // Valtype() for current value for seek
+   LOCAL SQL                        // Final where statement
+   LOCAL i,p                        // Temporary memvars
 
-   local aWAData := USRRDD_AREADATA( nWA )
-   local aRet, nRecno
+   DEBUG_ARGS
+   
+   IF SL_GOCOLD( nWA ) != SUCCESS  && Rossine 08/01/09
+      RETURN FAILURE
+   End
 
-   if SL_GOCOLD( nWA ) != SUCCESS  && Rossine 08/01/09
-      return FAILURE
-   endif
+   /*
+    * Regras do SEEK:
+    *
+    * 1ª - Se a chave for do mesmo tamanho é uma pesquisa exata, exceto se softseek
+    *      estiver ativo
+    * 2ª - Se o valor de pesquisa for menor que o tamanho total da indexkey(), é
+    *      uma pesquisa parcial (SOFTSEEK forçado)
+    * 3ª - Problema com SEEK SOFT em 2 campos, 1 char e uma data com DTOS
+    */
+
+   IF aWAData[ WA_INDEX_CURR ] == 0
+      SL_Error( 1201, "Workarea not indexed", True, False )
+      RETURN FAILURE
+   End
+   
+   aCurrIdx := aWAData[ WA_INDEX, aWAData[ WA_INDEX_CURR ] ]
+   aFields  := aCurrIdx[ IDX_FIELDS ]
+
+   iPacketSize    := aWAData[ WA_PACKET_SIZE ]
+   ForceSoftSeek  := FALSE
+   bNexted        := TRUE
+   bIsCustom      := FALSE
+   SQL            := ''
+
+   DEBUG aCurrIdx
+   DEBUG aFields
+   DEBUG aWAData[ WA_REAL_STRUCT, aCurrIdx[ IDX_FIELDPOS, 1 ] ]
+   
+   cType   := VALTYPE( uKey  )
+   aField  := aWAData[ WA_REAL_STRUCT, aCurrIdx[ IDX_FIELDPOS, 1 ] ]
+   nFCount := Len( aCurrIdx[ IDX_KEYS ] )
+   nIndexKeyLength := 0
+
+   FOR i := 01 TO nFCount
+       nIndexKeyLength += aCurrIdx[ IDX_KEYSIZES, i]
+   End
+
+   IF cType == 'C'
+      * Ok
+   ELSEIF ( nFCount > 01 )
+      * DBSeek error: invalid value passed to seek - HB doesnt raises an exception here!
+      DEBUG "TODO: EMULATE EOF HERE?"
+      RETURN FAILURE
+   ELSE
+      DEBUG "Converte literal values to string"
+      
+      /* Converte literal values to string */
+      IF aField[DBS_TYPE] != cType
+         DEBUG "TODO: EMULATE EOF HERE?"
+         RETURN FAILURE
+
+      ELSEIF cType == "D"
+         uKey  := DTOS( uKey )
+         cType := 'C'
+         
+      ELSEIF cType == "N"
+         uKey  := STR( uKey, aField[DBS_LEN], aField[DBS_DEC] )
+         cType := 'C'
+      ELSEIF cType == "L"
+         uKey  := iif( uKey, "TRUE", "FALSE" )
+         cType := 'C'
+      End
+   End
+
+   /*
+    * Evita do SEEk q sempre achar algo e nunca dava EOF() !!!
+    * 8/4/2007 10:28:44
+    */
+   IF cType == "C"
+      nKeyLength    := Len( uKey )
+      ForceSoftSeek := ( nKeyLength < nIndexKeyLength )
+   End
+
+   DEBUG 'uKey Length -->:', nKeyLength, " expected ->:", nIndexKeyLength
+   
+   /*
+    * Ajusta o ForceSoftSeek
+    * 9/4/2007 15:20:04
+    */
+   IF !bSoftSeek     .AND. ;
+      ForceSoftSeek  .AND. ;
+      (nFCount == 01)            // 14/5/2007 18:23:38 - O Softseek tem q ser feito individualmente!
+
+      bSoftSeek := .T.
+      bNexted   := .F.
+   End
+
+   DEBUG 'bSoftSeek:', bSoftSeek, ' bNexted:', bNexted
+   DEBUG 'VALUE -->', uKey
+   
+ * Indexkey() with one single field?
+   IF ( nFCount == 01 )
+      DEBUG 'INDICE COM 1 CAMPO SO', 'bSoftSeek:', bSoftSeek
+      p   := 00         // O segredo completo do RDD est  no nome desta variavel, pode acreditar... (o_O)
+      
+      cFieldN := cRddSep + aField[DBS_NAME] + cRddSep
+
+      IF !ForceSoftSeek .AND. ( aField[DBS_TYPE] == 'C' )
+         DEBUG "O Campo de pesquisa  caracter..."
+
+         IF ( nKeyLength == nIndexKeyLength )
+            DEBUG "SQL pode-se tirar os espa‡os finais pois teoricamente em DBF td ‚ espa‡o no final,n‚?"
+            uKey := Alltrim(uKey)       // TODO: Revisar aqui sobre campos CHAR/VARCHAR
+            bSoftSeek := False
+         End
+      End
+
+      IF ( bSoftSeek )
+         IF ( aField[DBS_TYPE] == 'C' )
+            IF ( uKey == "" )
+               SQL += '1=1'; p:=1
+            ELSE
+               SQL += cFieldN + ' LIKE '
+               iPacketSize := 01
+
+               /*
+                * Implementamos SOFT SEEK, tipo: SEEK 'JOAA' faz
+                * achar NOME igual … 'JOANA'!
+                * 21/12/2006 11:03:55
+                */
+               IF p == 00
+                  DEBUG "SQL += SQL_ANY2SEEK( ",uKey,",",bSoftSeek,",",aField[DBS_TYPE]," )"
+
+                  *IF Valtype( uKey ) == 'C' .and. bSoftSeek
+                     *uKey := StrTran( StrTran( uKey, '%', '\%' ), '_', '\_' )
+                  *ELSE
+                  IF bIsCustom
+                     uKey := Transform( uKey, "" )
+                  End
+
+                  IF VALTYPE( uKey ) == aField[DBS_TYPE]
+                     SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek, aField[DBS_TYPE] )
+                  ELSE
+                     SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek, NIL )
+                  End
+
+                  IF bNexted
+                     SQL += ' OR ' + cRddSep + aField[DBS_NAME] + cRddSep + ' >= '
+                  ELSE
+                     p := 1
+                  End
+               End
+            End
+
+         ELSEIF ( aField[DBS_TYPE] == 'D' )
+
+            IF Empty( uKey )
+               SQL += '1=1'; p:=1
+            ELSE
+               SQL += cRddSep + aField[DBS_NAME] + cRddSep
+               SQL += '>='
+            End
+         ELSE
+            SQL += cFieldN + '>='
+         End
+
+      ELSE
+         SQL += cFieldN
+
+         IF ( ValType( uKey ) == 'D' .or. aField[DBS_TYPE] == 'D' ) .and. Empty( uKey )
+            SQL += ' IS NULL OR ' + cFieldN + " = '" + SL_NULLDATE + "'"
+            p := 1
+         ELSE
+            SQL += '='
+         End
+      End
+
+      IF p == 00
+         DEBUG "SQL += SQL_ANY2SEEK( ",uKey,",",bSoftSeek,",",aField[DBS_TYPE]," )"
+
+         IF bIsCustom
+            uKey := Transform( uKey, "" )
+         End
+
+         IF VALTYPE( uKey ) == aField[DBS_TYPE]
+            SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek, aField[DBS_TYPE] )
+         ELSE
+            SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek )
+         End
+      End
+   End
+   
+   DEBUG "WHERE final:", SQL
+   
+   SQL := aWAData[ WA_SL_GOTOP ] + ;
+            " WHERE " + SQL + ;
+            " ORDER BY " + SL_BUILDORDERBY( aWAData, MS_DOWN ) + ;
+            " LIMIT 1" //+ SQLNTrim(aWAData[ WA_PACKET_SIZE ])
+
+   DEBUG "SQL final:", SQL
+   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, SQL, MS_DOWN, EU_IGNORE_NONE )
+#endif
+   
+/*
 
 **   HB_SYMBOL_UNUSED( nWA )
 **   HB_SYMBOL_UNUSED( lSoftSeek )
@@ -1544,7 +1760,7 @@ static function SL_SEEK( nWA, lSoftSeek, cKey, lFindLast )  && XBASE - DBSEEK()
    endif
 
 return SUCCESS
-
+/**/
 *************************
 static function SL_FOUND( nWA, lFound )  && XBASE - FOUND()
 *************************
@@ -2570,7 +2786,7 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
          
          IF ( typ == 'D' ) .and. Empty( aValues[i] )
             cWhere += '1 = 1 '
-         ELSEIF ( typ == 'C' ) .and. Len( aValues[i] ) == 2    // empty string
+         ELSEIF ( typ == 'C' ) .and. Len( aValues[i] ) == 2    // Empty string
             cWhere += '1 = 1 '
          ELSEIF ( Empty( aValues[i] ) )
             cWhere += '1 = 1 '
@@ -2629,395 +2845,81 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
    
    DEBUG "WHERE COMPLETO: " + cWhere
    RETURN cWhere
-   
-#ifdef _n_ 
-*UNCTION _MYSL_WHERE( pArea, nDirection, CurrRowId, lGoTopBott, szRecno )
-      LOCAL Order, Index, Where, Fields, Fields2
-      LOCAL i,j,f,v,f1,f2,t1,t2,sc1,sc2,r1,r2
-      LOCAL SoftChar
 
-      LOCAL rule, pos, tc
-      LOCAL c
+STATIC ;
+FUNCTION SQL_ANY2SEEK( uField, bTrim, cAdd, bSoft, cType )
+   LOCAL t,r,x
+   DEBUG uField, VALTYPE(uField)
 
-      DEBUG_ARGS
+   x := VALTYPE( uField )
 
-      DEFAULT nDirection   TO MS_DOWN
-      DEFAULT lGoTopBott   TO False
-      DEFAULT szRecno      TO AWAData[ WA_REAL_STRUCT, AWAData[ WA_FLD_RECNO ], DBS_NAME ]
+   if ctype == nil
+      t := x
+   else
+      t = ctype
+   end
 
-      DEBUG_ARGS
-      
-      szRecno := RDD_SEP + szRecno + RDD_SEP
+   DEFAULT bSoft TO False
+   DEFAULT cAdd  TO ""
+   DEFAULT bTrim TO FALSE
 
-      CurrRowId := 
-      IF ( _SL_SETAPPEND( pArea ) )
-         CurrRowId := __GetColBuffer( __SETSQLAPPBUFFER( pArea ), 1, _SL_ROWID( pArea ) )
-         TRACE ' ON APPENDIG: ROW ID CHANGED TO --> ' + CurrRowId
+   DEBUG uField, bTrim, cAdd, bSoft, cType
 
-      ELSEIF ( VALTYPE( CurrRowId ) == 'N' )
-         CurrRowId := NTrim(CurrRowId)
-      End
+   DO CASE
+   CASE ( t == 'C' )
+        IF ( bTrim ) THEN;
+           uField := RTrim(uField)
 
-      Order    := ListAllIndex( pArea )
+        IF ( Empty( uField ) .and. bTrim ) THEN;
+            uField := ' '
 
-      IF (Order == NIL) .or. Empty( Order ) THEN;
-         RETURN ''
+        *uField := StrTran( uField, '%', '\%' )
+        *uField := StrTran( uField, '_', '\_' )
 
-      Where    := "("
-      Fields   := ""
-      Fields2  := ""
+   DEBUG 'retornando -->', "'" + PQescapeString(uField + cAdd) + iif( bSoft,'%','')+ "'"
+        RETURN "'" + PQescapeString(uField + cAdd) + iif( bSoft,'%','')+ "'"
 
-      f1 := f2 := 00
+   CASE ( t == "N" )
 
-      IF ( lGoTopBott )
-         // NÆo faz nada...
-      ELSE
+        if ctype == nil .or. valtype( uField ) == 'N'
+           uField := STR( uField )
+        end
 
-         IF Empty( Order )
-            j  := 00
-         ELSE
-            j  := LEN( Order[KEY_FNAMES] ) // KEY_LASTVALUES] )
-         End
+        IF ( bTrim ) THEN ;
+           uField := RTrim(uField)
 
-      // Total de Campos
-         tc   := j
-         pos  := 00
+        RETURN uField
 
-         IF ( nDirection == MS_DOWN )
-         // As regras
-            rule := {}
+   CASE ( t == "D" )
+        if ctype == nil .or. x == 'D'
+           uField := DTOS( uField )
+           uField := "'" + Substr( uField, 1, 4 ) + '-' + ;
+                           Substr( uField, 5, 2 ) + '-' +;
+                           Substr( uField, 7, 2 ) + "'"
 
-            for i := 1 to tc-2
-                aadd( rule, '>=' )
-            end
+        elseif Empty( uField )
+           uField := ""
 
-            if tc >= 2 then;
-               aadd( rule, ' =' )
-            if tc >= 1 then;
-               aadd( rule, ' >' )
-         ELSE
-         // As regras
-            rule := {}
+        #ifdef __XHARBOUR__
+        elseif uField[5] == '-'
+        #else
+        elseif Subst(uField,5,1) == '-'
+        #endif
+           uField := "'" + uField + "'"
 
-            for i := 1 to tc-2
-                aadd( rule, '<=' )
-            end
+        else
+           uField := "'" + Substr( uField, 1, 4 ) + '-' + ;
+                           Substr( uField, 5, 2 ) + '-' +;
+                           Substr( uField, 7, 2 ) + "'"
 
-            if tc >= 2 then;
-               aadd( rule, ' =' )
-            if tc >= 1 then;
-               aadd( rule, ' <' )
-         End
+        end
 
-      // Regra inicial
-         Where += '( '
+        RETURN uField
 
-         for c := 1 to tc
-            // Pega o nome do campo
-               f := '`' + Order[KEY_FNAMES][c] + '`'
-
-            // Pega o valor do campo
-               v := _MYSL_FETCH_COL( pArea,  Order[KEY_FPOS][c] )
-            // v := SL_ANY2SEEK( v, TRUE ,,, Order[KEY_FTYPES][c] ) - 01-09-2005 : 06:15 hs remove o TRUE
-               v := SL_ANY2SEEK( v, FALSE,,, Order[KEY_FTYPES][c] )
-
-               IF ( nDirection == MS_DOWN )
-                  IF ( Order[KEY_FTYPES][c] == 'D' ) .and. Empty( v )
-                     Where += '1 = 1 and '
-                  ELSEIF /*( Order[KEY_FTYPES][c] == 'C' ) .and.*/ ( v == "" )
-                     Where += '1 = 1 and '
-                  ELSE
-                     Where += f + ' >= ' + v + ' and '
-                  End
-               ELSE
-                  IF ( Order[KEY_FTYPES][c] == 'D' ) .and. Empty( v )
-                     Where += f + 'IS NULL and '
-                  ELSEIF /*( Order[KEY_FTYPES][c] == 'C' ) .and.*/ ( v == "" )
-                     Where += '1 = 1 and '
-                  ELSE
-                     Where += f + ' <= ' + v + ' and '
-                  End
-               End
-         end
-
-         IF ( nDirection == MS_DOWN )
-            Where += szRecno +' > ' + CurrRowId +' )'
-         ELSE
-            Where += '(' + szRecno +' < ' + CurrRowId +' OR ' + szRecno + ' IS NULL ))'
-         End
-
-      // Monta as outras regras
-         FOR i := tc TO 1 STEP -1
-             Where += ' OR ( '
-
-             FOR c := 1 TO i
-               // Pega o nome do campo
-                  f := '`' + Order[KEY_FNAMES][c] + '`'
-
-               // Pega o valor do campo
-                  v := _MYSL_FETCH_COL( pArea,  Order[KEY_FPOS][c] )
-               // v := SL_ANY2SEEK( v, TRUE ,,, Order[KEY_FTYPES][c] ) - 01/09/2005 : 06:15
-                  v := SL_ANY2SEEK( v, FALSE,,, Order[KEY_FTYPES][c] )
-
-                  IF ( Order[KEY_FTYPES][c] == 'D' )
-                     IF Empty( v )
-                        if ( c == 1 ) .and. ( i == 1 )
-                           Where += '1=0'
-
-                        elseif rule[pos+c] == '>='
-                           Where += '1 = 1'
-                        elseif rule[pos+c] == ' ='
-                           Where += f + ' IS NULL'
-                        elseif rule[pos+c] == ' >'
-                           Where += f + ' IS NOT NULL'
-                        elseif rule[pos+c] == ' <'
-                           Where += f + ' IS NULL'
-                        elseif rule[pos+c] == '<='
-                           Where += f + ' IS NULL'
-                        end
-
-                     ELSE
-                        if rule[pos+c] == ' <'
-                           Where += '(' + f + ' < ' + v + ' OR ' + f + ' IS NULL )'
-                        else
-                           Where += f + rule[pos+c] + v
-                        end
-                     End
-
-                  ELSEIF /*( Order[KEY_FTYPES][c] == 'C' ) .and.*/ ( v == "" )
-                     Where += '1 = 1'
-
-                  ELSE
-                     Where += f + rule[pos+c] + v
-                  End
-
-                  Where += if(  c == i, '', ' and ' )
-             End
-
-             Where += ' )'
-             pos ++
-         End
-
-         IF Empty( Order )
-            *
-         ELSEIF ( f2<>00 )
-            IF nDirection == MS_DOWN
-               Where += " OR (" + Fields2 + " AND "
-               Where += szRecno + ' < ' + CurrRowId + " OR "+szRecno+" IS NULL"
-               Where += ")"
-            ELSE
-               Where += " OR (" + Fields2 + " AND "
-               Where += szRecno + ' > '+ CurrRowId
-               Where += ")"
-            End
-         End
-
-         Where += ") "
-      End
-
-      /*
-       * SetScope v2.5
-       */
-      i := _SL_SCOPE(pArea,SC_SCOPETOP)
-      j := _SL_SCOPE(pArea,SC_SCOPEBOTTOM)
-
-      IF Empty(i) THEN;
-         i := NIL
-
-      IF Empty(j) THEN;
-         j := NIL
-
-      TRACE ' ###  --> ', i, j
-
-      IF ( i == NIL ) .and. ( j == NIL )
-         IF ( lGoTopBott ) THEN;
-            Where := ""
-      ELSE
-         IF ( lGoTopBott )
-            Where := ' ( '
-         ELSE
-            Where += " AND ( "
-         End
-
-         IF Empty( Order )
-            Where += ' 1=1 '
-         ELSE
-         // Total de Campos
-            tc := LEN( Order[KEY_FNAMES] ) // KEY_LASTVALUES] )
-            t1 := 1
-            sc1:= sc2 := ''
-            
-            /* bug fix - 13/08/2008 - 14:17:15 */
-            if i = NIL then i := ''
-            if j = NIL then j := ''
-
-            FOR c := 1 TO tc
-               // Pega o nome do campo
-                  f := '`' + Order[KEY_FNAMES][c] + '`'
-                  v := ''
-
-               // Pega o TAMANHO do campo
-                  t2:= Order[KEY_FSIZES][c]
-
-               // Pega o valor do campo
-                  f1:= Substr( i, t1, t2 )
-                 *f2:= Substr( i, t1, t2 ) // 14-12-2005 - para pegar em parte
-                  f2:= Substr( j, t1, t2 )
-
-               // Ajusta a posição para o novo campo
-                  t1+= t2
-
-                  IF (f1=='') THEN r1 := '*'
-                  IF (f2=='') THEN r2 := '*'
-
-                  IF r1 <> '*' .and. r2 == '*'
-                     r1 := '>='
-                     
-                  ELSEIF r1 = '*' .and. r2 <> '*'
-                     r2 := '<='
-                     
-                  ELSEIF r1 <> '*' .and. r2 <> '*'
-                     r1 := '>='
-                     r2 := '<='
-                     
-                     if ( f1==f2 ) then r1 := r2 := ' ='
-                     
-                     if (r1 == ' =') .and. Len(f1)<t2 then r1 := ' LIKE '
-                     if (r2 == ' =') .and. Len(f2)<t2 then r2 := ' LIKE '
-                  End
-
-                  IF (r1=='*') THEN sc1 += '1=1' //+ iif( c == tc, '', ' and ' )
-                  IF (r2=='*') THEN sc2 += '1=1' // + iif( c == tc, '', ' and ' )
-                  
-                  /*
-                   * 31/08/2006 @ 08:22hs
-                   * Qdo dá um ordScope() numa tabela com campos caracter, ex:
-                   *
-                   * Campo: {{ 'NOME', 'C', 50, 0 }}
-                   *
-                   * Se filtrar por "J", "S"... ele não filtra certo, pq o filtro
-                   * é montado assim: >= "J%" and <= "S%". Por isto houve esta
-                   * revisão neste trecho de código. Detectado pela SysFarm.
-                   *
-                   *
-                   * Ajeitar isto no PostgreSQL
-                   */
-                  SoftChar := nil
-                  
-                  IF !(f1 == '')
-                     if (Len(f1)<t2) .and. (Order[KEY_FTYPES][c] == 'C') .and. (r1 <> ' LIKE ') then;
-                        SoftChar := ''
-                        
-                     f1 := SL_ANY2SEEK( f1, FALSE,,Len(f1)<t2, Order[KEY_FTYPES][c], SoftChar )
-                  End
-                  
-                  IF !(f2 == '')
-                     if (Len(f2)<t2) .and. (Order[KEY_FTYPES][c] == 'C') .and. (r2 <> ' LIKE ')  then;
-                        SoftChar := Chr(255)
-                     f2 := SL_ANY2SEEK( f2, FALSE,,Len(f2)<t2, Order[KEY_FTYPES][c], SoftChar )
-                  End
-
-                  IF ( r1 <> '*' )
-                     rule := r1
-                     IF ( Order[KEY_FTYPES][c] == 'D' )
-                        IF Empty( f1 )
-                           if false // ( c == 1 ) .and. ( i == 1 )
-                              sc1 += '1=0'
-                           elseif rule == '>='
-                              sc1 += '1 = 1'
-                           elseif rule == ' ='
-                              sc1 += f + ' IS NULL'
-                           elseif rule == ' >'
-                              sc1 += f + ' IS NOT NULL'
-                           elseif rule == ' <'
-                              sc1 += f + ' IS NULL'
-                           elseif rule == '<='
-                              sc1 += f + ' IS NULL'
-                           end
-                        ELSE
-                           if rule == ' <'
-                              sc1 += '(' + f + ' < ' + f1 + ' OR ' + f + ' IS NULL )'
-                           else
-                              sc1 += f + rule + f1
-                           end
-                        End
-                     ELSE
-                        sc1 += f + rule + f1
-                     End
-                  End
-                  IF ( r2 <> '*' )
-                     rule := r2
-                     IF ( Order[KEY_FTYPES][c] == 'D' )
-                        IF Empty( f2 )
-                           if false // ( c == 1 ) .and. ( i == 1 )
-                              sc2 += '1=0'
-                           elseif rule == '>='
-                              sc2 += '1 = 1'
-                           elseif rule == ' ='
-                              sc2 += f + ' IS NULL'
-                           elseif rule == ' >'
-                              sc2 += f + ' IS NOT NULL'
-                           elseif rule == ' <'
-                              sc2 += f + ' IS NULL'
-                           elseif rule == '<='
-                              sc2 += f + ' IS NULL'
-                           end
-                        ELSE
-                           if rule == ' <'
-                              sc2 += '(' + f + ' < ' + f2 + ' OR ' + f + ' IS NULL )'
-                           else
-                              sc2 += f + rule + f2
-                           end
-                        End
-                     ELSE
-                        sc2 += f + rule + f2
-                     End
-                  End
-
-                  IF c <> tc
-                     sc1 += ' and '
-                     sc2 += ' and '
-                  End
-            End
-         End
-         
-         IF Empty(sc2)
-            Where += sc1 + ")"
-                                                   
-         /*
-          * 31-08-2006 @ 08:34 coloquei para ajudar no filtro
-          */
-         ELSEIF sc1 == sc2
-            Where += sc1 + ")"
-
-         ELSE
-            Where += '(' + sc1 + ') AND (' + sc2 + "))"
-         End
-      End
-      ************************************************************
-
-      IF SET(_SET_DELETED)
-         IF !Empty( Where ) THEN;
-            Where += " AND "
-
-         Where += "( " + SL_COL_DELETED + " = 'F' ) "
-      End
-
-   // 14/03/2005
-      IF ( __SQLFILTERLEN() <> 00 )
-         IF Empty(Where)
-            Where += '(' + SQLFilter( NIL, pArea ) + ')' // 25/10/2007 - 11:36:11 Colocamos os parenteses para evitar BUGs
-         ELSE
-            Where += ' and (' + SQLFilter( NIL, pArea ) + ')'
-         End
-      End
-
-     IF !( lGoTopBott ) .and. !( nDirection == MS_DOWN ) THEN;
-        Where += ' AND (' + szRecno +' <> ' + CurrRowId +') '
-
-      RETURN Where
-#endif 
- 
-**-------------------**
-** Final de Programa **
-**-------------------**
+   CASE ( t == "L" )
+        if ctype == nil
+           uField := IIF( uField, "T", "F" )
+        end
+        RETURN "'"+ uField+"'"
+   END
+   RETURN r

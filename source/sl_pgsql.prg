@@ -590,7 +590,7 @@ FUNCTION SL_GOTOP_PGSQL( nWa, aWAData )
    cSQL := SQLParams( "\? ORDER BY \? LIMIT \? ",; 
                       { aWAData[ WA_SL_GOTOP ], ;
                         SL_BUILDORDERBY( aWAData, MS_DOWN ), ;
-                        STR( 12 /* aWAData[ WA_PACKET_SIZE ] /**/ ) ; 
+                        STR( aWAData[ WA_PACKET_SIZE ] ) ;
                       }  ,;
             ID_POSTGRESQL )
             
@@ -606,7 +606,7 @@ FUNCTION SL_GOBOTTOM_PGSQL( nWa, aWAData ) && DbGoBottom()
    cSQL := SQLParams( "\? ORDER BY \? LIMIT \? ",; 
                       { aWAData[ WA_SL_GOBOTTOM ], ;
                         SL_BUILDORDERBY( aWAData, MS_UP ), ;
-                        STR( 12 /* aWAData[ WA_PACKET_SIZE ] /**/ ) ; 
+                        STR( aWAData[ WA_PACKET_SIZE ] ) ;
                       }  ,;
             ID_POSTGRESQL )
             

@@ -182,16 +182,11 @@
    #define DBS_COUNT              DBS_FIELD_TYPE 
    
    /* Buffer direction */
-   #ifndef MS_NONE
-      #define MS_NONE             0
-   #endif
-   #ifndef MS_DOWN
-      #define MS_DOWN             1
-   #endif
-   #ifndef MS_UP
-      #define MS_UP               2
-   #endif
-   
+   #define MS_NONE                0
+   #define MS_DOWN                1
+   #define MS_UP                  2
+   #define MS_SEEK                3
+
    /* Table Stype */
    #define TS_COMPLEX_SQL         2
    #define TS_SINGLE_SQL          1

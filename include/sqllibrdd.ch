@@ -64,12 +64,7 @@
       
    #define _SQL_TIMER_RECCOUNT 15
 
-   /* Moviment Scheme */
-   #define MS_NONE            0
-   #define MS_DOWN            1
-   #define MS_UP              2
-         
-   /*   
+   /*
     * SQL Struct & Constants for SQLLIB RDD...
     */
    #include "common.ch"
