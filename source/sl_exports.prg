@@ -160,7 +160,7 @@ for each cFile in aFiles
        endif
     endif
 
-    if SL_file( cFile ) .and. cFile != "SQLLIB$indexes"
+    if SL_file( cFile ) .and. cFile != "sl$indexes"
        use ( cFile ) alias "TMP_SQL" via "SQLLIB" NEW exclusive
        if lPack
           TMP_SQL->( __dbpack() )

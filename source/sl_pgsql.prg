@@ -868,7 +868,7 @@ cSql := 'VACUUM FULL ANALYZE ' + SQLGetFullTableName( aWAData )
 return SL_ExecQuery( aWAData, cSql )
 
 ****************************
-function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSizes )
+function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSizes, aTypes )
 ****************************
    LOCAL aValues
 	LOCAL cSql
@@ -877,11 +877,11 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 	LOCAL cTag
 	LOCAL lDesc
 	LOCAL n
-   local pSQL 		:= aWAData[ WA_POINTER ]:pDB
-   local nVersion := aWAData[ WA_VERSION  ]
-   local oError   
-   local aOrderInfo
-   
+   LOCAL pSQL 		:= aWAData[ WA_POINTER ]:pDB
+   LOCAL nVersion := aWAData[ WA_VERSION  ]
+   LOCAL oError
+   LOCAL aOrderInfo
+
    // Add ID_PREFIX to void conflit with reserved words (vailton - 15/01/2009 - 22:08:54)
    cIdx := ID_PREFIX + lower(aOrderCreateInfo [UR_ORCR_BAGNAME]) // + iif( empty( aOrderCreateInfo [UR_ORCR_TAGNAME] ), "", "_" ) + lower(aOrderCreateInfo [UR_ORCR_TAGNAME])
    cBag := cIdx + iif( empty( aOrderCreateInfo [UR_ORCR_TAGNAME] ), "", "_" ) + lower(aOrderCreateInfo [UR_ORCR_TAGNAME])
@@ -918,7 +918,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    lDesc := iif( valtype( aOrderCreateInfo [UR_ORCR_CONDINFO] ) == "A" .and. aOrderCreateInfo [UR_ORCR_CONDINFO,DBOI_ISDESC], .T., .F. )
    
    /* Montamos o comando SQL */      
-   for n = 1 to len(aFields)
+   FOR n = 1 TO Len(aFields)
        cSql += '"' + lower( aFields[n] ) + '"' 
 		 
 		 IF lDesc
@@ -932,7 +932,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 		 ELSE
 		 	cSql += iif( n < len(aFields), ",", "" )
 		 End
-   next                                                                                  
+   End
    
    cSql += " )"
    
@@ -944,8 +944,8 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    PGSQL_QUERY_LOG( pSQL, cSql,, True, True )
    
    cSql := 'INSERT INTO "\?"."\?" '+;
-            '( IndexStamp,IndexTable,IndexFile,IndexTag,IndexFields,IndexKey,IndexKeySizes,IndexFor, IndexUnique,IndexDescending ) ' +;
-            ' VALUES ( \?, ?, ?, ?, ?, ?, ?, ?, ?, ? )'  
+            '( IndexStamp,IndexTable,IndexFile,IndexTag,IndexFields,IndexKey,IndexKeySizes,IndexKeyTypes,IndexFor, IndexUnique,IndexDescending ) ' +;
+            ' VALUES ( \?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )'
 
    aValues := {}
    AADD( aValues, aWAData[ WA_SCHEMA ])                                         // Schema
@@ -957,10 +957,11 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    AADD( aValues, SQLArray2Text( aFields, ";") )                                // IndexFields
    AADD( aValues, SQLArray2Text( aKeys, ";") )                                  // IndexKey
    AADD( aValues, SQLArray2Text( aSizes, ";") )                                 // IndexKeySizes
+   AADD( aValues, SQLArray2Text( aTypes, ";") )                                 // IndexKeyTypes
    AADD( aValues, ' ' )                                                         // IndexFor
    AADD( aValues, iif( aOrderCreateInfo[UR_ORCR_UNIQUE], 'T', 'F' ) )           // IndexUnique
    AADD( aValues, iif( lDesc,'T','F'))                                          // IndexDescending
-    
+
    cSql := SQLParams( cSQL, aValues, ID_POSTGRESQL )
 
    PGSQL_QUERY_LOG( pSQL, cSql,, True, True )
@@ -1031,7 +1032,11 @@ return lRet
 FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
    LOCAL cFile := aOrderInfo[ UR_ORI_BAG ] 
    LOCAL cTag  := aOrderInfo[ UR_ORI_TAG ]
-   LOCAL aIndexes, aInfo, cSQL, cError, i, p, f 
+   LOCAL aIndexes
+   LOCAL aInfo
+   LOCAL cSQL
+   LOCAL cError
+   LOCAL i
    
    HB_SYMBOL_UNUSED( nWA )
    
@@ -1073,22 +1078,20 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
        aInfo[ IDX_FIELDS ]    := hb_ATokens( aIndexes[ i, 07 ], ';' )
        aInfo[ IDX_KEYS ]      := hb_ATokens( aIndexes[ i, 09 ], ';' )
        aInfo[ IDX_KEYSIZES ]  := hb_ATokens( aIndexes[ i, 10 ], ';' )
+       aInfo[ IDX_KEYTYPES ]  := hb_ATokens( aIndexes[ i, 11 ], ';' )      // 27/05/2009 - 11:13:05 - To check integrity
        aInfo[ IDX_DESCEND ]   := aIndexes[ i, 06 ] == 'T'
        aInfo[ IDX_FOR ]       := aIndexes[ i, 08 ]
        aInfo[ IDX_UNIQUE ]    := aIndexes[ i, 05 ] == 'T'
-       aInfo[ IDX_ROWID ]     := aIndexes[ i, 12 ]
+       aInfo[ IDX_ROWID ]     := aIndexes[ i, 13 ]
+       aInfo[ IDX_CUSTOM_COL ]:= VAL( aIndexes[ i, 12 ] )
        
-     * Adjust index field pos
-       aInfo[ IDX_FIELDPOS ]  := Array( Len( aInfo[ IDX_FIELDS ] ) )
-       
-       FOR p := 1 TO Len( aInfo[ IDX_FIELDS ] )
-           f := Upper( aInfo[ IDX_FIELDS, p ] )
-           
-           aInfo[ IDX_FIELDPOS, p ] := aScan( aWAData[WA_REAL_STRUCT], {|_1| Upper(_1[1]) == f } )           
+     * Check index integrity - 27/05/2009 - 10:34:20
+       IF SL_ORDLSTCheckintegrity( aWAData, aInfo, @cError ) != SUCCESS
+          cError := "Corruption detected into tag '"+aInfo[ IDX_TAG ]+"' for index '"+aInfo[ IDX_BAG ]+"': " + cError
+          SL_Error( SL_ERR_CORRUPTED_INDEX, cError, .T., .F., cFile, 0 )
+          RETURN FAILURE
        End
-
-     * Convert KEY_SIZES into numeric values
-       AEval( aInfo[ IDX_KEYSIZES], {|_1,_2| aInfo[ IDX_KEYSIZES, _2 ] := Val( _1 ) })  
+       
      * Add to current WA struct
        AADD( aWAData[ WA_INDEX ], aInfo )
    End   

@@ -437,7 +437,7 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
    LOCAL i
 
 //altd()
-   aRules  := SL_BuildWhere( aWAData, nDirection )
+   aRules  := SL_BuildWhereRules( aWAData, nDirection )
    cOrderBy:= SL_BuildOrderBy( aWAData, nDirection )
    nLimit  := aWAData[ WA_PACKET_SIZE ]
    cLimit  := " LIMIT " + STR( nLimit )
@@ -1190,13 +1190,95 @@ static function SL_SETREL( nWA, aRelInfo )
 return SUCCESS
  
 /*
+ * NOTE: We must be sure that the information contained in the dictionary of
+ * data within of sl$indexes are trustworthy and true. This function does this
+ * and triggers an exception if any discrepancy is found!
+ * 27/05/2009 - 10:27:18 - vailtom
+ */
+FUNCTION SL_ORDLSTCheckintegrity( aWAData, aIndex, cErrMsg )
+
+   LOCAL aField
+   LOCAL lCustom
+   LOCAL i,f
+   
+   DEBUG aIndex
+   
+#ifdef SQL_CHECK_INDEX_INTEGRITY
+   * 1º Check params integrity
+   IF Len( aIndex[ IDX_FIELDS ] ) == Len( aIndex[ IDX_KEYS ] )     .AND. ;
+      Len( aIndex[ IDX_FIELDS ] ) == Len( aIndex[ IDX_KEYSIZES ] ) .AND. ;
+      Len( aIndex[ IDX_FIELDS ] ) == Len( aIndex[ IDX_KEYTYPES ] )
+      * Ok, same sizes ...
+   ELSE
+      DEBUG "Size of IDX_FIELDS x IDX_KEYS x IDX_KEYSIZES x IDX_KEYTYPES does not match!"
+      cErrMsg := "Internal table size does not match!"
+      RETURN CHK_ERR_WRONG_ARRAYS
+   End
+
+   * 2º Check custom flag
+   IF aIndex[ IDX_CUSTOM_COL ] >= 00 .AND. aIndex[ IDX_CUSTOM_COL ] <= Len( aWAData[ WA_REAL_STRUCT ] )
+      * Ok, is an valid fieldpos()
+   ELSE
+      DEBUG "Invalid fieldpos for customcol", aIndex[ IDX_CUSTOM_COL ]
+      cErrMsg := "Invalid field pos for customcol: " + aIndex[ IDX_CUSTOM_COL ]
+      RETURN CHK_ERR_WRONG_CUSTPOS
+   End
+
+   lCustom := ( aIndex[ IDX_CUSTOM_COL ] > 0 )
+#endif
+
+ * Adjust index field pos
+   aIndex[ IDX_FIELDPOS ] := Array( Len( aIndex[ IDX_FIELDS ] ) )
+
+   FOR i := 1 TO Len( aIndex[ IDX_FIELDS ] )
+       f := Upper( aIndex[ IDX_FIELDS, i ] )
+
+       aIndex[ IDX_FIELDPOS, i ] := aScan( aWAData[WA_REAL_STRUCT], {|_1| Upper(_1[1]) == f } )
+       aIndex[ IDX_KEYSIZES, i ] := VAL( aIndex[ IDX_KEYSIZES, i ] )
+
+#ifdef SQL_CHECK_INDEX_INTEGRITY
+     * 3º Check if the fieldname exist
+       IF aIndex[ IDX_FIELDPOS, i ] == 00
+          DEBUG "Referenced field does not exist:", f
+          cErrMsg := "Referenced field does not exist: " + f
+          RETURN CHK_ERR_FIELD_MISSING
+       End
+       
+       aField := aWAData[ WA_REAL_STRUCT, aIndex[ IDX_FIELDPOS, i ] ]
+
+     * 4º Check field types - affects the behavior of indexkey(), dbseek(), ordscope(), etc.
+       IF aField[ DBS_TYPE ] != aIndex[ IDX_KEYTYPES, i ]
+          DEBUG "Data type mismatch for field", f
+          cErrMsg := "Data type mismatch for field " + f
+          RETURN CHK_ERR_TYPE_MISMATCH
+       End
+
+     * 5º Check field sizes - affects the behavior of custom indexes support
+     *    TODO: Check decimals here too...
+       IF aField[ DBS_LEN ] != aIndex[ IDX_KEYSIZES, i ]
+          DEBUG "Data size mismatch for field", f
+          cErrMsg := "Data size mismatch for field " + f
+          IF lCustom
+             RETURN CHK_ERR_SIZE_MISMATCH
+          ELSE
+            DEBUG "Intentionally fixed the value here to avoid the application aborts"
+            aIndex[ IDX_KEYSIZES, i ] := aField[ DBS_LEN ]
+          End
+       End
+#endif
+   End
+   
+   DEBUG 'Integrity OK'
+   RETURN CHK_OK
+ 
+/*
  * Open a existing index into current WA
  * 15/01/2009 - 20:09:32
  */
 STATIC ;
 FUNCTION SL_ORDLSTADD( nWA, aOrderInfo )
    LOCAL aWAData := USRRDD_AREADATA( nWA )
- 
+
 /* DBORDERINFO
 #define UR_ORI_BAG            1
 #define UR_ORI_TAG            2
@@ -1255,7 +1337,8 @@ FUNCTION SL_ORDCREATE( nWA, aOrderCreateInfo )
    LOCAL aStruct := aWAData[WA_STRUCT]
    LOCAL Keys    := {}
    LOCAL Sizes   := {}
-   LOCAL Fields  := {}                                   
+   LOCAL Fields  := {}
+   LOCAL Types   := {}
    LOCAL aKeys
    LOCAL lComplex
    LOCAL oError
@@ -1305,6 +1388,7 @@ FUNCTION SL_ORDCREATE( nWA, aOrderCreateInfo )
     // Sintaxe em Clipper para este campo ser convertido em CARACTER
        AADD(Keys  , SL_FLD2CHAR( aStruct[j] ))
        AADD(Sizes , aStruct[j,DBS_LEN] )
+       AADD(Types , aStruct[j,DBS_TYPE] )
    END
 
    IF aOrderCreateInfo[UR_ORCR_UNIQUE]
@@ -1319,7 +1403,7 @@ FUNCTION SL_ORDCREATE( nWA, aOrderCreateInfo )
    End
       
    IF HB_ExecFromArray( { FSL_ORDCREATE( aWAData[ WA_SYSTEMID ] ), nWa, aWAData,;
-                            aOrderCreateInfo, Fields, Keys, Sizes } ) != SUCCESS
+                            aOrderCreateInfo, Fields, Keys, Sizes, Types } ) != SUCCESS
       RETURN FAILURE
    End
    
@@ -1539,7 +1623,6 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    LOCAL aFields                    // Fields attached into current index
    LOCAL aField                     // Field info inside aFields
    LOCAL cFieldN                    // Current Fieldname with separators
-   LOCAL iPacketSize                // nRows to fetch
    LOCAL ForceSoftSeek
    LOCAL bNexted                    // Indicates if we need an AND statement
    LOCAL nFCount                    // Total fields on current key
@@ -1548,10 +1631,13 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    LOCAL bIsCustom
    LOCAL cType                      // Valtype() for current value for seek
    LOCAL SQL                        // Final where statement
+   LOCAL aValues                    // uKey parsed into converted values
    LOCAL i,p                        // Temporary memvars
 
    DEBUG_ARGS
-   
+
+   HB_SYMBOL_UNUSED( lFindLast )
+
    IF SL_GOCOLD( nWA ) != SUCCESS  && Rossine 08/01/09
       RETURN FAILURE
    End
@@ -1574,7 +1660,6 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    aCurrIdx := aWAData[ WA_INDEX, aWAData[ WA_INDEX_CURR ] ]
    aFields  := aCurrIdx[ IDX_FIELDS ]
 
-   iPacketSize    := aWAData[ WA_PACKET_SIZE ]
    ForceSoftSeek  := FALSE
    bNexted        := TRUE
    bIsCustom      := FALSE
@@ -1589,7 +1674,9 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    nFCount := Len( aCurrIdx[ IDX_KEYS ] )
    nIndexKeyLength := 0
 
+   * Compute IndexKey Length...
    FOR i := 01 TO nFCount
+       DEBUG "#" + SQLNTrim(i) + " Field: ", aCurrIdx[ IDX_FIELDS, i], "Size:", aCurrIdx[ IDX_KEYSIZES, i]
        nIndexKeyLength += aCurrIdx[ IDX_KEYSIZES, i]
    End
 
@@ -1598,6 +1685,12 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    ELSEIF ( nFCount > 01 )
       * DBSeek error: invalid value passed to seek - HB doesnt raises an exception here!
       DEBUG "TODO: EMULATE EOF HERE?"
+      // montar 1 funcao chamada FORCE-EOF aqui! para o pResult e indica eof() como .T.
+      //
+      // revisar o modo de go bottom atual que volta em SKIP_RAW pq poderia calcular que se
+      // o cara quer voltar XX registros apartir do EOF e se tivermos estes registros no buffer
+      // atual, podemos usar eles, evitando assim que tenhamos que puxar os registros novamente.
+      // 27/05/2009 - 10:16:38
       RETURN FAILURE
    ELSE
       DEBUG "Converte literal values to string"
@@ -1646,6 +1739,30 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    DEBUG 'bSoftSeek:', bSoftSeek, ' bNexted:', bNexted
    DEBUG 'VALUE -->', uKey
    
+ * Index with two or more fields?
+   IF ( nFCount > 01 )
+      aValues := {}
+      
+      FOR i := 1 TO nFCount
+          aField  := aWAData[ WA_REAL_STRUCT, aCurrIdx[ IDX_FIELDPOS, i ] ]
+          
+          AAdd( aValues, Substr( uKey, 01, aCurrIdx[ IDX_KEYSIZES, i] ) )
+          uKey := Substr( uKey, aCurrIdx[ IDX_KEYSIZES, i] +1 )
+
+          DEBUG "#" + SQLNTrim(i) + " Field: ", aCurrIdx[ IDX_FIELDS, i], ;
+                  "Type:" , aField[ DBS_TYPE ], ;
+                  "Size:" , Str( aCurrIdx[ IDX_KEYSIZES, i], 3 ), ;
+                  ">>>>:" , Str( aCurrIdx[ IDX_KEYTYPES, i], 3 ), ;
+                  "Value:","[" + Atail( aValues ) + "]"
+      End
+      
+      DEBUG "Parsed keys --->", aValues
+
+      IF !ForceSoftSeek .AND. !bSoftSeek
+         * Find an exact query!
+      End
+   End
+
  * Indexkey() with one single field?
    IF ( nFCount == 01 )
       DEBUG 'INDICE COM 1 CAMPO SO', 'bSoftSeek:', bSoftSeek
@@ -1671,7 +1788,6 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
                
             ELSE
                SQL += cFieldN + ' LIKE '
-               iPacketSize := 01
 
                /*
                 * Implementamos SOFT SEEK, tipo: SEEK 'JOAA' faz
@@ -1710,7 +1826,6 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
             SQL += cFieldN + '>='
             bSoftSeek := .F.
          End
-
       ELSE
          SQL += cFieldN
 
@@ -2710,7 +2825,7 @@ FUNCTION SL_BuildOrderBy( aWAData, nDirection )
  * Monta as informações básicas para a montagem da clausula WHERE no comando SQL 
  * 19/03/2009 - 18:31:04
  */   
-FUNCTION SL_BuildWhere( aWAData, nDirection )
+FUNCTION SL_BuildWhereRules( aWAData, nDirection )
    LOCAL aCurrIdx, aRules, aValues
    LOCAL nFCount, ID, i, p
 
@@ -2778,7 +2893,7 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
    LOCAL nFCount
    LOCAL cWhere  := '('
    
-   DEBUG_ARGS
+   DEBUG nWA, lFirst, aDefaultRules, nDirection
 
    ID  := aWAData[ WA_SYSTEMID ]
    sep := SQLSYS_SEP( ID )
@@ -2874,7 +2989,7 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
 
 STATIC ;
 FUNCTION SQL_ANY2SEEK( uField, bTrim, cAdd, bSoft, cType )
-   LOCAL t,r,x
+   LOCAL t,x
    DEBUG uField, VALTYPE(uField)
 
    x := VALTYPE( uField )
@@ -2948,4 +3063,4 @@ FUNCTION SQL_ANY2SEEK( uField, bTrim, cAdd, bSoft, cType )
         end
         RETURN "'"+ uField+"'"
    END
-   RETURN r
+   RETURN ""

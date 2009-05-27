@@ -61,8 +61,9 @@
    
    #define SQL_BACKUP_VERSION "1.5"
    #define SQL_VERSION        "v" + SQL_VERSION_NUM + SQL_MINOR_VERSION
-      
+
    #define _SQL_TIMER_RECCOUNT 15
+   #define SQL_CHECK_INDEX_INTEGRITY
 
    /*
     * SQL Struct & Constants for SQLLIB RDD...

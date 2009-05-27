@@ -1145,7 +1145,7 @@ HB_FUNC( PGSQL_QUERY_LOG )
 
 /*
  * Verifica se as tabelas de sistema existem
- * i.e. SQLLIB$INDEXES - 21/01/2009 - 22:48:06
+ * i.e. SL$INDEXES - 21/01/2009 - 22:48:06
  */
 HB_FUNC( PGSQL_CHECKSYSTEMTABLES )
 {
@@ -1200,6 +1200,7 @@ HB_FUNC( PGSQL_CHECKSYSTEMTABLES )
                       \"indexfor\" ,\
                       \"indexkey\" ,\
                       \"indexkeysizes\" ,\
+                      \"indexkeytypes\" ,\
                       \"indexcustomcol\" \
                      FROM  \"%s\".\"%s\"  LIMIT 1"
              , SchemaName, SL_INDEX);
@@ -1236,15 +1237,16 @@ HB_FUNC( PGSQL_CHECKSYSTEMTABLES )
       SQL[0] = '\0';
       sprintf( SQL,  "CREATE TABLE \"%s\".\"%s\" (\
                      \"indexstamp\" date default NULL,\
-                     \"indextable\" varchar(40) default NULL,\
-                     \"indexfile\" varchar(40) NOT NULL default '',\
-                     \"indextag\" varchar(40) default NULL,\
+                     \"indextable\" varchar(128) default NULL,\
+                     \"indexfile\" varchar(254) NOT NULL default '',\
+                     \"indextag\" varchar(128) default NULL,\
                      \"indexunique\" char(1) NOT NULL default 'F',\
                      \"indexdescending\" char(1) NOT NULL default 'F', \
                      \"indexfields\" varchar(255) default NULL,\
                      \"indexfor\" varchar(255) default NULL,\
                      \"indexkey\" varchar(255) default NULL,\
                      \"indexkeysizes\" varchar(40) default NULL,\
+                     \"indexkeytypes\" varchar(40) default NULL,\
                      \"indexcustomcol\" smallint NOT NULL default 0,\
                      %s numeric(15) UNIQUE default nextval('%s'::regclass) NOT NULL \
                      )", SchemaName, SL_INDEX, SL_COL_RECNO, seq );

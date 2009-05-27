@@ -64,7 +64,7 @@
    #define SL_CONSTRAINT_PK        "sl_primary_key"
                                    
    #define SL_LOG_FILENAME         "sqllog.txt"
-   #define SL_INDEX                "sqllib$indexes"
+   #define SL_INDEX                "sl$indexes"
    #define ID_PREFIX               "IDX_"
    
    #define SL_TIMER_RECCOUNT       15
@@ -197,20 +197,33 @@
    #define EU_BOF_ON_EMPTY        16
    #define EU_EOF_ON_EMPTY        32
    
-   /* Custom indexes constants loaded from sqllib$indexes */
+   /* Custom indexes constants loaded from sl$indexes */
    #define IDX_TABLE              1
    #define IDX_BAG                2
    #define IDX_TAG                3
    #define IDX_FIELDS             4
    #define IDX_KEYS               5
    #define IDX_KEYSIZES           6
-   #define IDX_FIELDPOS           7
-   #define IDX_DESCEND            8
-   #define IDX_FOR                9
-   #define IDX_UNIQUE            10    
-   #define IDX_ROWID             11 
+   #define IDX_KEYTYPES           7
+   #define IDX_FIELDPOS           8
+   #define IDX_DESCEND            9
+   #define IDX_FOR               10
+   #define IDX_UNIQUE            11
+   #define IDX_CUSTOM_COL        12
+   #define IDX_ROWID             13
    #define IDX_MAX_CONSTS        IDX_ROWID
-              
+
+   /* SL_ORDLSTCheckintegrity() constants */
+   #define CHK_OK                0     // Always same as SUCCESS
+   #define CHK_ERR_WRONG_ARRAYS  1     // Size of IDX_FIELDS x IDX_KEYS x IDX_KEYSIZES x IDX_KEYTYPES does not match!
+   #define CHK_ERR_WRONG_CUSTPOS 2     // Invalid fieldpos for customcol
+   #define CHK_ERR_FIELD_MISSING 3     // Referenced field does not exist
+   #define CHK_ERR_TYPE_MISMATCH 4     // Data type mismatch / affects the behavior of indexkey(), dbseek(), ordscope(), etc.
+   #define CHK_ERR_SIZE_MISMATCH 5     // Data size mismatch / affects the behavior of custom indexes support
+   
+   /* RT errors from SQL LIB */
+   #define SL_ERR_CORRUPTED_INDEX               1000
+
    /* HB_EXEC Constants */
    #define DSL_CREATE            1
    #define DSL_CREATEFIELDS      2            
