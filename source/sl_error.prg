@@ -168,6 +168,10 @@ FUNCTION SL_LOG( cText )
 
 FUNCTION __WRITE_ERRLOG( cSQL, cAbrev )
    LOCAL file
+
+   IF VALTYPE( cSQL ) != 'C'
+      RETURN .F.
+   End
    
    IF file( SL_LOG_FILENAME )
       file = FOpen( SL_LOG_FILENAME, 18 )
@@ -185,8 +189,16 @@ FUNCTION __WRITE_ERRLOG( cSQL, cAbrev )
    fwrite( file,  cSQL )
    fwrite( file,  chr(13)+chr(10) )
    fclose( file )
-   RETURN nil
+   RETURN .T.
 
 /* Generic default error msgs */
-FUNCTION ERROR_NO_PK( AWAData )
-   RETURN SL_Error( 2001, aWAData[ WA_ENGINE ] + ": No primary key detected for table "+SQLGetFullTableName( aWAData )+"!" ) 
+FUNCTION SQLERR_WITHOUT_PK( AWAData )
+   RETURN SL_Error( SL_ERR_MISSING_PK, aWAData[ WA_ENGINE ] + ": No primary key detected for table "+SQLGetFullTableName( aWAData )+"!" )
+   
+/*
+ * Generic error for SQL statements
+ * 28/05/2009 - 10:16:43
+ */
+FUNCTION SQLERR_QUERY_ERROR( cError, cSQL )
+   SL_LOG( cSQL )
+   RETURN SL_ERROR( SL_ERR_QUERY_ERROR, cError )

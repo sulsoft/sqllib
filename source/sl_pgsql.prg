@@ -136,7 +136,7 @@ function SL_DISCONN_PGSQL( oSQL )
       oSQL : Close()
                
    RETURN .T.
-   
+
 /*
  * Abre uma tabela j  existente
  * 18/12/2008 - 18:56:16
@@ -472,6 +472,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    LOCAL lAdjust := .F.
    LOCAL pResult
    LOCAL nRows
+   LOCAL nStatus
    LOCAL xOldKey, xNewKey
 
    DEBUG nWa, cQuery, nDirection, nOptions
@@ -488,9 +489,24 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    DEFAULT nOptions     TO EU_IGNORE_FIRST
    
    pResult := PQExec( oConn:pDB, cQuery )
+   nStatus := PQresultstatus( pResult )
    
-   IF PQresultstatus( pResult ) != PGRES_TUPLES_OK
+   IF nStatus != PGRES_TUPLES_OK
+      DEBUG
       PQClear( pResult )
+
+    * Check for any error
+      IF (nStatus == PGRES_FATAL_ERROR)
+         DEBUG "Status #" + SQLNTrim(nStatus) +": " + PQERRORMESSAGE( oConn:pDB )
+
+         IF SL_HAS( nOptions, EU_IGNORE_ERRORS )
+            SL_LOG( cQuery )
+            SL_LOG( "Status #" + SQLNTrim(nStatus) +": " + PQERRORMESSAGE( oConn:pDB ) )
+         ELSE
+            SQLERR_QUERY_ERROR( PQERRORMESSAGE( oConn:pDB ), cQuery )
+         End
+      End
+      
       RETURN FAILURE
    End
 

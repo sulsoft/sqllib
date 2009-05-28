@@ -194,8 +194,9 @@
    /* PGSQL_EXECANDUPDATE() constants */
    #define EU_IGNORE_NONE         4
    #define EU_IGNORE_FIRST        8
-   #define EU_BOF_ON_EMPTY        16
-   #define EU_EOF_ON_EMPTY        32
+   #define EU_IGNORE_ERRORS       16
+   #define EU_BOF_ON_EMPTY        32
+   #define EU_EOF_ON_EMPTY        64
    
    /* Custom indexes constants loaded from sl$indexes */
    #define IDX_TABLE              1
@@ -222,7 +223,12 @@
    #define CHK_ERR_SIZE_MISMATCH 5     // Data size mismatch / affects the behavior of custom indexes support
    
    /* RT errors from SQL LIB */
-   #define SL_ERR_CORRUPTED_INDEX               1000
+   // 1000 - 1099 -> erros de conexao
+   // 1100 - 1199 -> erros de dados (replace errado, indice corrompido,etc)
+   #define SL_ERR_MISSING_PK                    1100
+   #define SL_ERR_CORRUPTED_INDEX               1101
+   // 1200 - 1299 -> erros em SQL (comandos mal formatados, etc)
+   #define SL_ERR_QUERY_ERROR                   1200
 
    /* HB_EXEC Constants */
    #define DSL_CREATE            1

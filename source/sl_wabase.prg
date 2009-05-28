@@ -2,6 +2,8 @@
  * SQLLIB RDD Project source code
  * A Free & Open source RDD for Harbour & xHarbour Compilers
  *
+ * sl_wabase.prg - Workarea base for all RDD entries
+ *
  * Copyright 2008 Vailton Renato <vailtom@gmail.com> and
  *                Rossine Maia   <qiinfo@ig.com.br>
  * www - http://www.harbour-project.org
@@ -228,7 +230,7 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
 
    /* Check system fields */
    IF aWAData[ WA_TABLETYPE ] == TS_SINGLE_SQL .and. aWAData[ WA_FLD_RECNO ] == 0
-      ERROR_NO_PK(aWAData)
+      SQLERR_WITHOUT_PK(aWAData)
       RETURN FAILURE
    End
 
@@ -1194,16 +1196,27 @@ return SUCCESS
  * data within of sl$indexes are trustworthy and true. This function does this
  * and triggers an exception if any discrepancy is found!
  * 27/05/2009 - 10:27:18 - vailtom
+ *******************************************************************************
+ * Terminei agora e acho que ficou boa a rotina mas falta checar o caso das
+ * casas decimais. Aproveitei para deixar esta rotina opcional pois não sei como
+ * ela vai se comportar com maquinas muito lentas.
+ * 27/05/2009 - 12:31:46
  */
 FUNCTION SL_ORDLSTCheckintegrity( aWAData, aIndex, cErrMsg )
 
-   LOCAL aField
-   LOCAL lCustom
    LOCAL i,f
    
+#ifndef SQL_CHECK_INDEX_INTEGRITY
+   HB_SYMBOL_UNUSED( cErrMsg )
+
    DEBUG aIndex
-   
-#ifdef SQL_CHECK_INDEX_INTEGRITY
+   DEBUG "Skip integrity tests... (this features is disabled)"
+#else
+   LOCAL aField
+   LOCAL lCustom
+
+   DEBUG aIndex
+
    * 1º Check params integrity
    IF Len( aIndex[ IDX_FIELDS ] ) == Len( aIndex[ IDX_KEYS ] )     .AND. ;
       Len( aIndex[ IDX_FIELDS ] ) == Len( aIndex[ IDX_KEYSIZES ] ) .AND. ;
@@ -1736,7 +1749,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
       bNexted   := .F.
    End
 
-   DEBUG 'bSoftSeek:', bSoftSeek, ' bNexted:', bNexted
+   DEBUG 'bSoftSeek:', bSoftSeek, 'ForceSoftSeek:',ForceSoftSeek,' bNexted:', bNexted
    DEBUG 'VALUE -->', uKey
    
  * Index with two or more fields?
@@ -1752,7 +1765,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
           DEBUG "#" + SQLNTrim(i) + " Field: ", aCurrIdx[ IDX_FIELDS, i], ;
                   "Type:" , aField[ DBS_TYPE ], ;
                   "Size:" , Str( aCurrIdx[ IDX_KEYSIZES, i], 3 ), ;
-                  ">>>>:" , Str( aCurrIdx[ IDX_KEYTYPES, i], 3 ), ;
+                  ">>>>:" , aCurrIdx[ IDX_KEYTYPES, i], ;
                   "Value:","[" + Atail( aValues ) + "]"
       End
       
@@ -1860,7 +1873,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
             " LIMIT 1" //+ SQLNTrim(aWAData[ WA_PACKET_SIZE ])
 
    DEBUG "SQL final:", SQL
-   IF PGSQL_ExecAndUpdate( nWa, aWAData, SQL, MS_DOWN, EU_IGNORE_NONE ) != SUCCESS
+   IF PGSQL_ExecAndUpdate( nWa, aWAData, SQL, MS_DOWN, EU_IGNORE_NONE + EU_EOF_ON_EMPTY ) != SUCCESS
       RETURN FAILURE
    End
    

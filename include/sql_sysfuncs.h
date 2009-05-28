@@ -85,3 +85,18 @@ typedef struct _SQLSYS_INFO
    int           EscapeFlags;                                  /* Flags do configure SQLRUN_ESCAPE */
    PFUNC_ESCAPE_STR EscapeString;                             
 } SQLSYS_INFO;
+
+/*
+   TODO: colocar na estrutura acima a funcao que envia comandos SQL (pqexecANDupdate)
+         para torna-la independente em sl_wabase.prg ... pois assim todas as fun‡äes
+         que trabalham com a conexÆo "ativa" poderiam usar os dados desta estrutura
+         para operarem sem problemas... ademais se esta funcao for em C puro o desempenho
+         dever  aumentar pois como ela deve ser chamada muitas vezes... Analisar isto melhor
+         pois isto pode trazer problemas com codigo em MT pois nao seria seguro A MENOS que
+         ela s¢ rode se estive atrelada a uma aWAData[] mas nao sei como isto ficaria...
+         
+         VOLTANDO no assunto -> SQLExecute() usa o SYSID e EXECANDEXECUTE tb pode usar o SYSID
+         para poder chamar a funcao correta!!! seria uma boa solu‡Æo para casos de funcoes em C
+         que precisam se tornar "gen‚ricas".
+ */
+ 
