@@ -112,7 +112,7 @@ REQUEST SQLLIB
                         [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]            ;
                         [ INTO <nCnn> ]                                     ;
                                                                          => ;
-       [ <nCnn> := ] SL_CONN( <cHost>, <nPort>, <cDb>, <cUser>,         ;
+       [ <nCnn> := ] SL_CONN( <cHost>, <nPort>, <cDb>, <cUser>,             ;
                      <cPwd>, <nFlags>, <cDriverName>, <cSchema>, <cCharSet> )
 
    * Importar DBF para SQL  && Rossine 23/01/09

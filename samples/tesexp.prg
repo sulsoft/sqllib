@@ -47,7 +47,7 @@ SQL CONNECT ON "localhost" ;
       DATABASE "rossine" ;
            LIB "PGSQL" ;
         SCHEMA "public" ;
-          INTO nConn  
+          INTO nConn
 
 if !SQL_FILE( "arq001" )
    aFiles := { "arq001.dbf", "arq002.dbf", "arq003.dbf" }

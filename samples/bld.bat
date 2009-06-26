@@ -1,4 +1,7 @@
 @echo off
+
+call envhrba.bat BCC
+
 if "%1" == "" goto ERRO_1
 if exist %1.EXE del %1.EXE
 
@@ -20,3 +23,6 @@ goto EXIT
    goto EXIT
 
 :EXIT
+
+call envhrbd.bat
+

@@ -92,11 +92,11 @@ FUNCTION SL_CONN( cHost, cPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema, cCh
 ********************
 
    LOCAL xPointer  
-	LOCAL cRddFunc
+   LOCAL cRddFunc
    LOCAL nResult
-	LOCAL nSysID
+   LOCAL nSysID
    
-   DEFAULT cPort    TO "0"
+   DEFAULT cPort    TO "5432"
    DEFAULT cSchema  TO "" 
    DEFAULT cCharSet TO ""
    DEFAULT cHost    TO s_cHost

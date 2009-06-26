@@ -51,7 +51,7 @@
  * Mesmo procedimento da rotina acima adaptada para índices
  */
 FUNCTION SL_INDEXE( Index, pConn, cTagName )
-      LOCAL SQL, Conn, Schema, Ind, Id, Result
+      LOCAL cSql, aConn, Schema, Ind, Id, Result
 
       IF Index == NIL
          RETURN .F.
@@ -60,17 +60,17 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
       End
 
       IF pConn == NIL
-         Conn := SL_GETCONNINFO()
+         aConn := SL_GETCONNINFO()
       ELSE
-         Conn := SL_GETCONNINFO( pConn )
+         aConn := SL_GETCONNINFO( pConn )
       End
 
-      IF VALTYPE( Conn ) != 'A' 
+      IF VALTYPE( aConn ) != 'A' 
          RETURN .F.
       End
       
-      Schema := Conn[SL_CONN_SCHEMA]   
-      Id     := Conn[SL_CONN_SYSTEMID]
+      Schema := aConn[SL_CONN_SCHEMA]   
+      Id     := aConn[SL_CONN_SYSTEMID]
       
       /* Convetermos o nome da tabela */
       Ind := SQLParse( Index )
@@ -80,26 +80,26 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
        */
       DO CASE
       CASE ( ID == ID_MYSQL )
-         SQL := SQLPARAMS( 'SELECT indexfile FROM `\?` WHERE indexfile = ?', { SL_INDEX, Ind},Id)
+         cSql := SQLPARAMS( 'SELECT indexfile FROM `\?` WHERE indexfile = ?', { SL_INDEX, Ind},Id)
 
       CASE ( ID == ID_POSTGRESQL )
-         SQL := SQLPARAMS( 'SELECT indexfile FROM "\?"."\?" WHERE indexfile = ?', { Schema, SL_INDEX, Ind },Id)
+         cSql := SQLPARAMS( 'SELECT indexfile FROM "\?"."\?" WHERE indexfile = ?', { Schema, SL_INDEX, Ind },Id)
 
       OTHERWISE
          RETURN .F.
       End
 
       IF cTagName != NIL
-         SQL += " AND indextag = " + SQLStr( ID_PREFIX + SQLParse( cTagName ) )
+         cSql += " AND indextag = " + SQLStr( ID_PREFIX + SQLParse( cTagName ) )
       End
 
-      SQL += ' LIMIT 1'
+      cSql += ' LIMIT 1'
 
       /*
        * Executamos o SQL com esta função q retorna um ARRAY
        * com o result de nossa query ...
        */
-      Ind    := SQLArray( SQL,, Conn,, ID )
+      Ind    := SQLArray( cSql,, aConn,, ID )
       Result := Len( Ind ) <> 00
    RETURN Result
 
@@ -123,7 +123,7 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
  *                    momento.
  */
 FUNCTION SL_TABLE( Table, pConn )
-      LOCAL SQL, Conn, Schema, Tab, Id, Result
+      LOCAL cSql, aConn, Schema, Tab, Id, Result
 
       IF Table == NIL
          RETURN .F.
@@ -132,17 +132,17 @@ FUNCTION SL_TABLE( Table, pConn )
       End
 
       IF pConn == NIL
-         Conn := SL_GETCONNINFO()
+         aConn := SL_GETCONNINFO()
       ELSE
-         Conn := SL_GETCONNINFO( pConn )
+         aConn := SL_GETCONNINFO( pConn )
       End
 
-      IF VALTYPE( Conn ) != 'A' 
+      IF VALTYPE( aConn ) != 'A' 
          RETURN .F.
       End
       
-      Schema := Conn[SL_CONN_SCHEMA]   
-      Id     := Conn[SL_CONN_SYSTEMID]
+      Schema := aConn[SL_CONN_SCHEMA]   
+      Id     := aConn[SL_CONN_SYSTEMID]
       
       /* Convetermos o nome da tabela */
       Tab := SQLParse( Table )
@@ -152,10 +152,10 @@ FUNCTION SL_TABLE( Table, pConn )
        */
       DO CASE
       CASE ( ID == ID_MYSQL )
-         SQL := "SHOW TABLES LIKE '"+Tab+"'"
+         cSql := "SHOW TABLES LIKE '"+Tab+"'"
 
       CASE ( ID == ID_POSTGRESQL )
-         SQL := "SELECT tablename FROM pg_tables WHERE schemaname = '"+Schema+"' AND tablename = '"+Tab+"' LIMIT 1"
+         cSql := "SELECT tablename FROM pg_tables WHERE schemaname = '"+Schema+"' AND tablename = '"+Tab+"' LIMIT 1"
 
       OTHERWISE
          RETURN .F.
@@ -165,7 +165,7 @@ FUNCTION SL_TABLE( Table, pConn )
        * Executamos o SQL com esta função q retorna um ARRAY
        * com o result de nossa query ...
        */
-      Tab    := SQLArray( SQL,, Conn,, ID )
+      Tab    := SQLArray( cSql,, aConn,, ID )
       Result := Len( Tab ) <> 00
    RETURN Result
 
@@ -184,38 +184,62 @@ FUNCTION SL_TAG( cTagName, Index, pConn )
  */
 FUNCTION SL_DATABASE( cDB, pConn )
 
-      LOCAL SQL, Conn, Id, Res, Ind
-
+      local cSql, Id, Res, Ind
+      local lNew  := .F.
+      local aConA := SL_GETCONNINFO()      && Rossine 25/06/09
+      local cHost := SL_GETCONNPARAMS()[1] && Rossine 25/06/09
+      local cUser := SL_GETCONNPARAMS()[2] && Rossine 25/06/09
+      local cPass := SL_GETCONNPARAMS()[3] && Rossine 25/06/09
+      local cDriv := SL_GETCONNPARAMS()[4] && Rossine 25/06/09
+      local aConn
+      
       IF cDB == NIL
          RETURN .F.
       ELSE
-         cDB := StrTran( Alltrim(cDB), "*", "%" )
+         cDB := StrTran( lower(Alltrim(cDB)), "*", "%" )
       End
 
       IF pConn == NIL
-         Conn := SL_GETCONNINFO()
+         aConn := SL_GETCONNINFO()
       ELSE
-         Conn := SL_GETCONNINFO( pConn )
+         aConn := SL_GETCONNINFO( pConn )
       End
 
-      IF VALTYPE( Conn ) != 'A' 
+**msgstop( "cHost: " + cHost + CRLF + ;
+**         "cUser: " + cUser + CRLF + ;
+**         "cPass: " + cPass + CRLF + ;
+**         "cDriv: " + cDriv )
+
+      IF VALTYPE( aConA ) != 'A'
+         SL_CONN( cHost, , "template1", cUser, cPass, , cDriv )
+         aConn := SL_GETCONNINFO()
+         lNew  := .T.
+      else
+         aConn := aConA
+      endif
+
+      IF VALTYPE( aConn ) != 'A' 
          RETURN .F.
       End
       
-**      Schema := Conn[SL_CONN_SCHEMA]   
-      Id     := Conn[SL_CONN_SYSTEMID]
+**      Schema := aConn[SL_CONN_SCHEMA]   
+      Id := aConn[SL_CONN_SYSTEMID]
       
       /*
        * Montamos o comando SQL com base no driver atual
        */
       DO CASE
       CASE ( ID == ID_MYSQL )
-         SQL := "SHOW DATABASES LIKE '"+alltrim(cDB)+"'"
+         cSql := "SHOW DATABASES LIKE '" + cDB + "'"
 
       CASE ( ID == ID_POSTGRESQL )
-         SQL := "SELECT datname FROM pg_database WHERE datname = '"+alltrim(cDB)+"' ORDER BY datname"
+         cSql := "SELECT datname FROM pg_database WHERE datname = '" + cDB + "' ORDER BY datname"
 
       OTHERWISE
+         if valtype( aConA ) != "U"
+            SL_DISCONN()
+            SL_SetConnection( aConA[SL_CONN_HANDLE] )
+         endif
          RETURN .F.
       End
 
@@ -223,8 +247,17 @@ FUNCTION SL_DATABASE( cDB, pConn )
        * Executamos o SQL com esta função q retorna um ARRAY
        * com o result de nossa query ...
        */
-      Ind := SQLArray( SQL,, Conn,, ID )
+      Ind := SQLArray( cSql,, aConn,, ID )
       Res := Len( Ind ) <> 00
+
+      if lNew  && Rossine 25/06/09
+         SL_DISCONN()
+      endif
+   
+      if valtype( aConA ) != "U"  && Rossine 25/06/09
+         SL_SetConnection( aConA[SL_CONN_HANDLE] )
+      endif
+
     RETURN Res
 *#endif
 
@@ -248,45 +281,61 @@ function SL_DELETETABLE( cTableName, cSchema )
 function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCreate )
 ********************
 
-   LOCAL cONN, Id, Res, aConAnt := SL_GETCONNINFO(), cSql
+   local aConn, Id, Res, aConA := SL_GETCONNINFO(), cSql
+   local lNew := .F.  && Rossine 25/06/09
 
+   HB_SYMBOL_UNUSED( cHost )
    HB_SYMBOL_UNUSED( nPort )
+   HB_SYMBOL_UNUSED( cUser )
+   HB_SYMBOL_UNUSED( cPwd )
+   HB_SYMBOL_UNUSED( cDriverName )
    HB_SYMBOL_UNUSED( cSchema )
-   
-   SL_CONN( cHost, , "template1" , cUser, cPwd, , cDriverName )
 
-   Conn := SL_GETCONNINFO()
-
-   IF VALTYPE( Conn ) != 'A' 
+   IF cDB == NIL
       RETURN .F.
+   ELSE
+      cDB := StrTran( lower(Alltrim(cDB)), "*", "%" )
    End
-   
-   Id     := Conn[SL_CONN_SYSTEMID]
 
+   IF VALTYPE( aConA ) != 'A'
+      SL_CONN( cHost, , "template1", cUser, cPwd, , cDriverName )
+      aConn := SL_GETCONNINFO()
+      lNew  := .T.
+      IF VALTYPE( aConn ) != 'A' 
+         RETURN .F.
+      End
+   else
+      aConn := aConA
+   endif
+   
    if lCreate .and. SL_DATABASE( cDB )
       msgstop( "Banco de dados já existe !!!" )
-      SL_DISCONN( SL_GETCONN() )
-
-      if valtype( aConAnt ) != "U"
-         SL_SetConnection( aConAnt[SL_CONN_HANDLE] )
+**      SL_DISCONN( SL_GETCONN() )  Rossine 25/06/09 ???
+      if valtype( aConA ) != "U"
+         SL_DISCONN()
+         SL_SetConnection( aConA[SL_CONN_HANDLE] )
       endif
       return .F.
    endif
+
+   Id := aConn[SL_CONN_SYSTEMID]
+
    /*
     * Montamos o comando SQL com base no driver atual
     */
    DO CASE
    CASE ( ID == ID_MYSQL )
-        cSql := iif( lCreate, "create", "drop" ) + " database " + alltrim(cDB)
+        cSql := iif( lCreate, "create", "drop" ) + " database " + cDB
 
    CASE ( ID == ID_POSTGRESQL )
-        cSql := iif( lCreate, "create", "drop" ) + " database " + alltrim(cDB)    && + " WITH OWNER = " + cUser
+        cSql := iif( lCreate, "create", "drop" ) + " database " + cDB    && + " WITH OWNER = " + cUser
 
    OTHERWISE
-      if valtype( aConAnt ) != "U"
-         SL_SetConnection( aConAnt[SL_CONN_HANDLE] )
+**      SL_DISCONN( SL_GETCONN() )  Rossine 25/06/09 ???
+      if valtype( aConA ) != "U"
+         SL_DISCONN()
+         SL_SetConnection( aConA[SL_CONN_HANDLE] )
       endif
-      SL_DISCONN( SL_GETCONN() )
       RETURN .F.
    End
 
@@ -295,15 +344,16 @@ function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCre
     * com o result de nossa query ...
     */
 
-   SQLArray( cSql,, Conn,, ID )
+   SQLArray( cSql,, aConn,, ID )
 
    Res := SL_DATABASE( cDB )
 
-   SL_DISCONN()
+   if lNew  && Rossine 25/06/09
+      SL_DISCONN()
+   endif
 
-   if valtype( aConAnt ) != "U"
-      SL_SetConnection( aConAnt[SL_CONN_HANDLE] )
+   if valtype( aConA ) != "U"
+      SL_SetConnection( aConA[SL_CONN_HANDLE] )
    endif
 
 return Res
- 

@@ -64,14 +64,12 @@ msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
          SL_GETCONNPARAMS()[3] + CRLF + ;
          SL_GETCONNPARAMS()[4] )
 
-/*
 msgstop( "vou criar o database 'demo'" + CRLF + ;
          "Ele existe ?: " + SL_ToString( SL_DATABASE( "demo" ) ) )
 
    SQL CREATE DATABASE "demo" INTO lRet
 
 msgstop( "Conseguiu  criar 'demo' ? " + SL_ToString( lRet ) )
-*/
 
    SQL CONNECT DATABASE "demo" ;
                  SCHEMA "public" ;
@@ -393,4 +391,89 @@ exit procedure EuPorUltimo
 FUNCTION SHOWRECNO()
    DEBUG recno(), status, cod, desc,eof(), bof(), found()
    ?     recno(), status, cod, desc,eof(), bof(), found()
-   RETURN
+   RETURN
+
+
+#ifndef FWVERSION
+   
+   function msgyesno( msg, tit )   
+   if tit != nil
+      tit := cvaltochar(tit)
+   else
+      tit := procname(1) + "(" + alltrim( str( procline(1) )) + ")"
+   end            
+   return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), tit, 0x00000004 ) == 6
+
+   function msgstop(msg,tit)
+   if tit != nil
+   else
+      tit := procname(1) + "(" + alltrim( str( procline(1) )) + ")"
+   end         
+   return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), cvaltochar(tit), 0x00000030 )
+
+   function msgerror(msg,tit)
+   if tit != nil
+   else
+      tit := procname(1) + "(" + alltrim( str( procline(1) )) + ")"
+   end         
+   return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), cvaltochar(tit), 0x00000010 )
+   
+   function msginfo(msg,tit)
+   if tit != nil
+      tit := cvaltochar( tit )
+   else
+      tit := procname(1) + "(" + alltrim( str( procline(1) )) + ")"
+   end         
+   return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), tit, 0x00000020 )
+   /*
+    * Para o caso dele nao usar FW e/ou estiver testando em modo console
+    * Vailton @ 11/11/2008 - 21:58:53 
+    */
+   function VerArray( aArray )
+   local x := HB_VALTOSTR( aArray )   
+      memoedit(x)
+   return NIL
+   
+   function cValToChar( uVal )
+      local cType := ValType( uVal )
+      do case
+         case cType == "C" .or. cType == "M"
+              return uVal
+   
+         case cType == "D"
+              return DToC( uVal )
+   
+         case cType == "L"
+              return If( uVal, ".T.", ".F." )
+   
+         case cType == "N"
+              return AllTrim( Str( uVal ) )
+   
+         case cType == "B"
+              return "{|| ... }"   
+
+         case cType == "U"
+              return "NIL"
+   
+         case cType == "A"
+              uVal := HB_VALTOSTR( uVal )
+              
+              IF Left( uVal, 2 ) == 'E"' .and. At( "\r\n", uVal )<>0
+                 uVal := StrTran( Substr( uVal, 3 ), '\r\n', Chr(10) )
+              End
+              return uVal
+   
+         case cType == "O"
+              uVal := HB_VALTOSTR( uVal )
+              
+              IF Left( uVal, 2 ) == 'E"' .and. At( "\r\n", uVal )<>0
+                 uVal := StrTran( Substr( uVal, 3 ), '\r\n', Chr(10) )
+              End
+              return uVal
+   
+         otherwise
+              return ""
+      endcase
+   
+   return nil
+
