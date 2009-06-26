@@ -160,24 +160,18 @@ function Main()
 
    SET _3DLOOK  ON
 
-   cHost := "localhost"
-   cUser := "postgres"
-   cPass := "postgres"
-
-   SQL CONN PARAMS TO HOST cHost ;
-                      USER cUser ;
-                  PASSWORD cPass ;
+   SQL CONN PARAMS TO HOST "localhost" ;
+                      USER "postgres"  ;
+                  PASSWORD "postgres"  ;
                        VIA "PGSQL"
 
-msgstop( "existe demosqllib ?: " + cvaltochar(SL_DATABASE( "DEMOSQLLIB" )) )  && aqui sempre está retornando .F.
-
-**   if !SL_DATABASE( "demosqllib" )
-   if !SL_DATABASE( "DEMOSQLLIB" )
+   if !SL_DATABASE( "demosqllib" )
       SQL CREATE DATABASE "demosqllib" INTO lRet
-msgstop( "lRet: " + cvaltochar(lRet) )
+      IF !lRet
+         msgstop( "Não foi possível criar a tabela <demosqllib>" )
+         QUIT
+      End
    endif
-
-msgstop( "existe demosqllib ?:" + cvaltochar(SL_DATABASE( "demosqllib" )) )  && aqui sempre está retornando .F.
 
    SQL CONNECT DATABASE "demosqllib" ;
                  SCHEMA "public" ;
@@ -275,7 +269,7 @@ function BrwClients()
 
 *   @ 3, 0 XBROWSE oBrw OF oClients ALIAS "customer" AUTOCOLS LINES CELL && FASTEDIT
 
-    @ 3, 0 XBROWSE oBrw of oClients alias alias() AUTOCOLS
+*    @ 3, 0 XBROWSE oBrw of oClients alias alias() AUTOCOLS
 /*
    oBrw := TXBrowse():New( oClients )
    oBrw:SetRDD()
@@ -296,17 +290,16 @@ function BrwClients()
    oBrw:nRowHeight               := 22
    oBrw:lRecordSelector          := .F.
    oBrw:bKeyChar                 := { | nKey | If( nKey == VK_ESCAPE, oClients:End(), NIL ) }   
-*/
    oBrw:CreateFromCode()
    oClients:oClient := oBrw
+*/
 
-/*
    @ 2, 0 LISTBOX oBrw FIELDS OF oClients ;
       SIZE 500, 500 ;
       ON CHANGE ChangeClient()
 
    oClients:SetControl( oBrw )
-*/
+
 
    ACTIVATE WINDOW oClients VALID( oClients := nil, .t. )        // We destroy the object
 
