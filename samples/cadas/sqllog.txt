@@ -1,0 +1,132 @@
+24/06/2009 09:39:00 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:39:01 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:39:02 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:42:02 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:42:03 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:42:03 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:48:28 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:48:29 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:48:29 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:50:09 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:50:10 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:50:10 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:52:26 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:52:27 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:52:27 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:53:24 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:53:27 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:53:27 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:54:30 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:54:32 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:54:32 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:55:27 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:55:31 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:55:48 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 09:56:14 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:56:17 SQLLIB/8000: could not connect to server: Connection refused (0x0000274D/10061)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 5432?
+24/06/2009 09:56:18 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 10:11:42 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 10:12:55 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 11:21:49 SQLLIB/8000: could not translate host name "template1" to address: Unknown host
+24/06/2009 11:21:52 SQLLIB/8000: could not translate host name "template1" to address: Unknown host
+24/06/2009 11:21:54 SQLLIB/8000: could not translate host name "demosqllib" to address: Unknown host
+24/06/2009 11:21:54 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 11:23:16 SQLLIB/8000: could not translate host name "demosqllib" to address: Unknown host
+24/06/2009 11:23:16 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 11:23:33 SQLLIB/8000: could not translate host name "demosqllib" to address: Unknown host
+24/06/2009 11:23:36 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 11:23:48 SQLLIB/8000: could not translate host name "demosqllib" to address: Unknown host
+24/06/2009 11:23:49 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 11:27:25 SQLLIB/2000: Can't locate a client connection to any server. Use SQL CONNECTION command before to continue.
+24/06/2009 13:44:08 SQLLIB/8000: missing "=" after "ê¬D" in connection info string
+24/06/2009 13:46:10 SQLLIB/8000: missing "=" after "ê¬D" in connection info string
+24/06/2009 13:53:59 SQLLIB/8000: missing "=" after "ê¬D" in connection info string
+24/06/2009 13:54:17 SQLLIB/8000: missing "=" after "ê¬D" in connection info string
+24/06/2009 14:00:43 SQLLIB/8000: missing "=" after "ê¬D" in connection info string
+24/06/2009 14:12:39 SQLLIB/8000: Erro conexao como banco de dados demosqllib
+24/06/2009 15:42:34 SQLLIB/8000: Erro conexao como banco de dados demosqllib
+24/06/2009 15:46:06 SQLLIB/8000: Erro conexao como banco de dados demosqllib
+24/06/2009 15:47:04 SQLLIB/8000: Erro conexao como banco de dados demosqllib
+24/06/2009 15:47:43 SQLLIB/8000: Erro conexao como banco de dados demosqllib
+24/06/2009 16:07:23 SQLLIB/8000: Erro conexao como banco de dados demosqllib
+25/06/2009 13:57:22 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 13:57:23 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 13:57:50 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 13:57:51 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:13:29 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:13:46 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:13:46 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:13:47 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:13:48 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:14:29 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:14:34 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:14:34 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:14:34 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:14:35 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?
+25/06/2009 14:17:56 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
+	Is the server running on host "localhost" and accepting
+	TCP/IP connections on port 0?

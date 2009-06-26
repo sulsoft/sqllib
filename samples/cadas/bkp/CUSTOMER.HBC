@@ -1,0 +1,28 @@
+{win}gt=gtwin
+prgflags=-I.\..\..\include\
+prgflags=-P
+prgflags=-DSL_DEBUG
+libpaths=.\..\..\lib\
+#run=yes
+libs=sqllib
+libs=libpq
+
+#------------------[ Bibliotecas Fivewin ]----------------#
+
+libs=\fwh\lib\fiveh.lib
+libs=\fwh\lib\fivehc.lib
+
+#-----------------[ Bibliotecas Harbour ]-----------------#
+
+libs=hbwin.lib
+libs=hbct.lib
+libs=xhb.lib
+libs=rddads.lib
+
+#-----------------[ Bibliotecas Borland ]-----------------#
+
+libs=c:\bcc55\lib\psdk\msimg32.lib
+
+#----------------#
+# Final de fluxo #
+#----------------#
