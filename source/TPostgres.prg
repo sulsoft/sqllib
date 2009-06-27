@@ -104,7 +104,6 @@ CLASS TPQServer
     METHOD   DeleteTable( cTable  )
     METHOD   SetVerbosity(num)    INLINE PQsetErrorVerbosity( ::pDb, iif( num >= 0 .and. num <= 2, num, 1 )  )
 
-
     //DESTRUCTOR Destroy
 ENDCLASS
 
