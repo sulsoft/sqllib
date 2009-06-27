@@ -1,8 +1,8 @@
 #include "FiveWin.ch"
 #include "xbrowse.ch"
-#include "Customer.ch" 
+#include "Customer.ch"
 
-#include "SQLLIB.ch" 
+#include "SQLLIB.ch"
 
 REQUEST SQLLIB
 REQUEST PGSQL
