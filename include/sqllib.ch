@@ -66,7 +66,7 @@ REQUEST SQLLIB
    #command SELECT SCHEMA <cSchemaName>         => SL_SetSchema( <(cSchemaName)> )
    #command SELECT SYSTEM SCHEMA <cSchemaName>  => SL_SetSystemSchema( <(cSchemaName)> )
 
-   * Seta os parametros para o BD
+   * Seta os parametros para o Banco de dados
   #command SQL CONN PARAMS TO HOST <cHost>                                ;
                               USER <cUser>                                ;
                           PASSWORD <cPwd>                                 ;
@@ -74,33 +74,7 @@ REQUEST SQLLIB
                                                                        => ;
                    SL_CONNPARAMS( <cHost>, <cUser>, <cPwd>, <cDriverName> )
 
-   * Cria o BD com parametros separados
-   #command SQL CREATE DATABASE <cDb>                                ;
-                [ HOST <cHost> ]                                     ;
-                [ USER <cUser> ]                                     ;
-                [ PASSWORD <cPwd> ]                                  ;
-                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]             ;
-                [ PORT <nPort> ]                                     ;
-                [ SCHEMA <cSchema> ]                                 ;
-                [ INTO <lRet> ]                                      ;
-                                                                  => ;
-       [ <lRet> := ] SL_CREATEDB( <cHost>, <nPort>, <cDb>, <cUser>,  ;
-                     <cPwd>, <cDriverName>, <cSchema>, .T. )
-
-   * Deleta um BD com parametros separados
-   #command SQL DELETE DATABASE <cDb>                                ;
-                [ HOST <cHost> ]                                     ;
-                [ USER <cUser> ]                                     ;
-                [ PASSWORD <cPwd> ]                                  ;
-                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]             ;
-                [ PORT <nPort> ]                                     ;
-                [ SCHEMA <cSchema> ]                                 ;
-                [ INTO <lRet> ]                                      ;
-                                                                  => ;
-       [ <lRet> := ] SL_CREATEDB( <cHost>, <nPort>, <cDb>, <cUser>,  ;
-                     <cPwd>, <cDriverName>, <cSchema>, .F. )
-
-   * Conecta no BD com parametros separados
+   * Conecta a um Banco de Dados
    #command SQL CONNECT [ ON <cHost> ]                                      ;
                         [ PORT <nPort> ]                                    ;
                         [ DATABASE <cDb> ]                                  ;
@@ -114,6 +88,32 @@ REQUEST SQLLIB
                                                                          => ;
        [ <nCnn> := ] SL_CONN( <cHost>, <nPort>, <cDb>, <cUser>,             ;
                      <cPwd>, <nFlags>, <cDriverName>, <cSchema>, <cCharSet> )
+
+   * Cria um Banco de Dados
+   #command SQL CREATE DATABASE <cDb>                                ;
+                [ HOST <cHost> ]                                     ;
+                [ USER <cUser> ]                                     ;
+                [ PASSWORD <cPwd> ]                                  ;
+                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]             ;
+                [ PORT <nPort> ]                                     ;
+                [ SCHEMA <cSchema> ]                                 ;
+                [ INTO <lRet> ]                                      ;
+                                                                  => ;
+       [ <lRet> := ] SL_CREATEDB( <cHost>, <nPort>, <cDb>, <cUser>,  ;
+                     <cPwd>, <cDriverName>, <cSchema>, .T. )
+
+   * Deleta um Banco de Dados
+   #command SQL DELETE DATABASE <cDb>                                ;
+                [ HOST <cHost> ]                                     ;
+                [ USER <cUser> ]                                     ;
+                [ PASSWORD <cPwd> ]                                  ;
+                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]             ;
+                [ PORT <nPort> ]                                     ;
+                [ SCHEMA <cSchema> ]                                 ;
+                [ INTO <lRet> ]                                      ;
+                                                                  => ;
+       [ <lRet> := ] SL_CREATEDB( <cHost>, <nPort>, <cDb>, <cUser>,  ;
+                     <cPwd>, <cDriverName>, <cSchema>, .F. )
 
    * Importar DBF para SQL  && Rossine 23/01/09
    #command SQL IMPORT DBF <aFiles>                                         ;
@@ -139,12 +139,13 @@ REQUEST SQLLIB
                                                                          => ;
          [ <aRet> := ] SL_EXPORT_FILES( <aFiles>, <cVia>, <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockCopy> )
 
+   * Deleta uma Tabela
    #command SQL DELETE TABLE <cTable> => SL_DELETETABLE( cTable )  && Rossine 23/01/09
 
-   * Conecta no DB apartir de uma string * * * S.R. LIKE STYLE * * *
+   * Conecta no Banco de Dados apartir de uma string * * * S.R. LIKE STYLE * * *
    #command SQL CONNECT <cConn> [INTO <nCnn>] => [<nCnn> := ] SL_CONNPARSE( <cConn> )
    
-   * Desconectar-se do DB
+   * Desconecta do Banco de Dados
    #command SQL DISCONNECT [FROM] <nHandle> => SL_DISCONN( <nHandle> )
    #command SQL DISCONNECT [<lAll:ALL>]     => SL_DISCONN( <.lAll.> )
    

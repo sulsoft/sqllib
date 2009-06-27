@@ -24,136 +24,6 @@ EXTERNAL PGSQL
 EXTERNAL DBFCDX
 EXTERNAL HB_LANG_PT
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static oWnd, oClients, oClient, oName, oAddress, oState, oSalary
 static cName, oBrw, cAddress, cState, nSalary
 static oBtnUp, oBtnDn, oBtnEd, oBtnCa, oBtnRe, oBtnNe, oBtnDe
@@ -175,30 +45,24 @@ function Main()
 
 
 
-   cHost := "localhost"
-   cUser := "postgres"
-   cPass := "postgres"
 
 
 
+   SL_CONNPARAMS( "localhost", "postgres", "postgres", "PGSQL" )
 
-   SL_CONNPARAMS( cHost, cUser, cPass, "PGSQL" )
-
-msgstop( "existe demosqllib ?: " + cvaltochar(SL_DATABASE( "DEMOSQLLIB" )) )
-
-
-   if !SL_DATABASE( "DEMOSQLLIB" )
+   if !SL_DATABASE( "demosqllib" )
       lRet := SL_CREATEDB(,, "demosqllib",,,,, .T. )
-msgstop( "lRet: " + cvaltochar(lRet) )
+      IF !lRet
+         msgstop( "Não foi possível criar a tabela <demosqllib>" )
+         __Quit()
+      End
    endif
-
-msgstop( "existe demosqllib ?:" + cvaltochar(SL_DATABASE( "demosqllib" )) )
 
 
 
    nConn := SL_CONN(,, "demosqllib",,,,, "public", )
 
-   IF (nConn == 00)
+   IF nConn = 0
       msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
       __Quit()
    End
@@ -212,12 +76,17 @@ msgstop( "existe demosqllib ?:" + cvaltochar(SL_DATABASE( "demosqllib" )) )
 
    dbUseArea( .F., "SQLLIB", "Customer", "customer", if( .F. .OR. .T., !.T., NIL ), .F. )
 
+
+   dbCreateIndex( "_TMP", "FIRST", {|| FIRST}, if( .F., .T., NIL ) )
+
+
    dbUseArea( .T., "SQLLIB", "sales", "sales", if( .F. .OR. .T., !.T., NIL ), .F. )
 
    dbSelectArea( "customer" )
 
-
-
+   SQL_DEBUGINIT( .T. )
+   customer->( WBrowse() )
+   SQL_DEBUGINIT( .F. )
 
 
 
@@ -290,7 +159,6 @@ function BrwClients()
 
 
 
-    oBrw := XbrowseNew( oClients, 3, 0,,,,,,,,,,,,,, .F., alias(),, .F.,, .F., nil, .F., .T. ,,,,, .F., .F., .F., .F. )
 
 
 
@@ -312,16 +180,17 @@ function BrwClients()
 
 
 
-   oBrw:CreateFromCode()
-   oClients:oClient := oBrw
 
 
 
 
 
 
+   oBrw := TWBrowse():New( 2, 0, 500, 500,,,, oClients,,,, {|| ChangeClient()},,,,,,,, .F.,, .F.,, .F.,,, )
 
+   oClients:SetControl( oBrw )
 
+   dbgotop()
 
    oClients:Activate(, oClients:bLClicked, oClients:bRClicked, oClients:bMoved, oClients:bResized, oClients:bPainted, oClients:bKeyDown, oClients:bInit,,,,,,,,, {||( oClients := nil, .T. )},, oClients:bLButtonUp )
 
@@ -387,12 +256,12 @@ return nil
 
 function NEWREG
 
-customer->( dbappend() )
-customer->( dbcommit() )
+   customer->( dbappend() )
+   customer->( dbcommit() )
 
-oBrw:GoBottom()
+   oBrw:GoBottom()
 
-oBrw:refresh()
+   oBrw:refresh()
 
 return nil
 
@@ -402,10 +271,13 @@ function DELREG
 
    msgrun( "", , { || .T. } )
 
-customer->( dbdelete() )
-customer->( dbcommit() )
+   SQL_DEBUGINIT( .T. )
+   customer->( dbdelete() )
+   SQL_DEBUGINIT( .F. )
 
-oBrw:refresh()
+   customer->( dbcommit() )
+
+   oBrw:refresh()
 
 return nil
 
@@ -452,14 +324,14 @@ return nil
 
 function RECORD
 
-      customer->First  := cName
-      customer->Street := cAddress
-      customer->State  := cState
-      customer->salary := nSalary
+   customer->First  := cName
+   customer->Street := cAddress
+   customer->State  := cState
+   customer->salary := nSalary
 
-      oBrw:DrawSelect()
+   oBrw:DrawSelect()
 
-      CANCEL()
+   CANCEL()
 
 return nil
 

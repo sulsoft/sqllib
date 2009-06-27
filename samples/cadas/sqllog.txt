@@ -130,3 +130,24 @@
 25/06/2009 14:17:56 SQLLIB/8000: could not connect to server: Cannot assign requested address (0x00002741/10049)
 	Is the server running on host "localhost" and accepting
 	TCP/IP connections on port 0?
+26/06/2009 10:22:28 (SELECT * FROM (SELECT "first", "last", "street", "city", "state", "zip", "hiredate", "married", "age", "salary", "notes", "sl_deleted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST"<='Frank               '  AND "sl_rowid" <= 7 ) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50) TMP1)
+ UNION 
+(SELECT * FROM (SELECT "first", "last", "street", "city", "state", "zip", "hiredate", "married", "age", "salary", "notes", "sl_deleted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST" <'Frank               ' ) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50) TMP2) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50
+26/06/2009 10:22:28 SQLLIB/1200: ERROR:  column "FIRST" does not exist
+LINE 1: ...eted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST"<='...
+                                                             ^
+
+26/06/2009 10:22:52 (SELECT * FROM (SELECT "first", "last", "street", "city", "state", "zip", "hiredate", "married", "age", "salary", "notes", "sl_deleted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST"<='Frank               '  AND "sl_rowid" <= 7 ) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50) TMP1)
+ UNION 
+(SELECT * FROM (SELECT "first", "last", "street", "city", "state", "zip", "hiredate", "married", "age", "salary", "notes", "sl_deleted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST" <'Frank               ' ) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50) TMP2) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50
+26/06/2009 10:22:52 SQLLIB/1200: ERROR:  column "FIRST" does not exist
+LINE 1: ...eted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST"<='...
+                                                             ^
+
+26/06/2009 10:23:54 (SELECT * FROM (SELECT "first", "last", "street", "city", "state", "zip", "hiredate", "married", "age", "salary", "notes", "sl_deleted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST"<='Frank               '  AND "sl_rowid" <= 7 ) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50) TMP1)
+ UNION 
+(SELECT * FROM (SELECT "first", "last", "street", "city", "state", "zip", "hiredate", "married", "age", "salary", "notes", "sl_deleted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST" <'Frank               ' ) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50) TMP2) ORDER BY "FIRST" DESC, "sl_rowid" DESC LIMIT         50
+26/06/2009 10:23:54 SQLLIB/1200: ERROR:  column "FIRST" does not exist
+LINE 1: ...eted", "sl_rowid" FROM "public"."customer" WHERE ("FIRST"<='...
+                                                             ^
+

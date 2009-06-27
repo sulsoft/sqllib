@@ -9,136 +9,6 @@ REQUEST PGSQL
 REQUEST DBFCDX
 REQUEST HB_LANG_PT
 
-/*
----------------------------------------------------------------------------------------------------------------
-
-1o Problema: (Resolvido)
-
-* Tratar nome de tabelas maiusculas / minusculas
-
-Ex: digamos que eu tenha o seguinte banco de dados "demosqllib" e eu faça o seguinte teste:
-    if SL_DATABASE( "Demosqllib" )
-    endif
-    Veja que digitei "Demosqllib" com "D" maiusculo, neste caso nao está achando a tabela.
-
----------------------------------------------------------------------------------------------------------------
-
-2o Problema: (Resolvido)
-
-* A função SL_DATABASE() quando não está trabalhando corretamente quando o BD não está conectado.
-
-Veja o exemplo abaixo:
-
-function main
- 
-   if !SL_DATABASE( "demosqllib" ) <<- Veja que aqui que eu ainda não estabeleci uma conexão com o postgres
-      SQL CREATE DATABASE "demosqllib" INTO lRet
-   endif
-
-   SQL CONNECT ON cHost ;
-             USER cUser ;
-         PASSWORD cPass ;
-         DATABASE "demosqllib" ;  <<--- ... E para me coenctar ao BD eu preciso que a tabela já exista.
-              LIB "PGSQL" ;                 
-           SCHEMA "public" ;
-             INTO nConn  
-
-eturn NIL
-
-   Pergunta: Teria como eu me conectar ao postgres sem ter a necessidade de me conectar a um BD ? Porque aí 
-             acho que a função SL_DATABASE funcionaria corretamente. Tipo assim:
-
-function main
- 
-   SQL CONNECT ON cHost ;  && Veja que aqui não especifiquei o "DATABASE"
-             USER cUser ;
-         PASSWORD cPass ;
-              LIB "PGSQL" ;                 
-           SCHEMA "public" ;
-             INTO nConn  
-
-   if !SL_DATABASE( "demosqllib" ) <<- Acho que assim retornaria .T.
-      SQL CREATE DATABASE "demosqllib" INTO lRet
-   endif
-
-return NIL
-
-.. Ou existiria uma forma melhor de se fazer isto ?
-
----------------------------------------------------------------------------------------------------------------
-
-3o Problema:
-
-dbappend() - nao esta incluindo o registro na tabela
-
----------------------------------------------------------------------------------------------------------------
-
-4o Problema:
-
-dbdelete() - nao esta excluindo o registro da tabela
-
----------------------------------------------------------------------------------------------------------------
-
-5o Problema:
-
-o xBrowse do Fivewin não está funcionando.
-
----------------------------------------------------------------------------------------------------------------
-
-6o Problema:
-   
-   Ao editar uma tabela e gravar "Record", e ao sair da tela dá o erro abaixo:
-    
-   Error occurred at: 10/06/2009, 16:17:43
-   Error description: Error BASE/1132  Erro de limite: acesso de array
-   Args:
-     [   1] = A   
-     [   2] = N   13
-
-Stack Calls
-===========
-   Called from: sl_wabase.prg => SL_GETVALUE_WA(769)
-   Called from: sl_wabase.prg => SL_BUILDWHERESTR(2965)
-
----------------------------------------------------------------------------------------------------------------
-
-7o Problema:
-
-   Não está respeitando a variavel "FWVERSION", sempre usa a "msgstop" da sqllib e não do fivewin.
-
----------------------------------------------------------------------------------------------------------------
-
-8o Problema:
-
-   Ao movimentar no browse, ele fica mostrando estas mensagens na janela do DOS que chamei o programa. 
-   Como desativar isto ?
-
-WARNING:  there is no transaction in progress
-row number 0 is out of range 0..-1
-row number 0 is out of range 0..-1
-row number 0 is out of range 0..-1
-row number 0 is out of range 0..-1
-row number 0 is out of range 0..-1
-row number 0 is out of range 0..-1
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-C:\sqllib\samples\cadas>CUSTOMER
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-WARNING:  there is no transaction in progress
-row number 0 is out of range 0..-1
-WARNING:  there is no transaction in progress
-
----------------------------------------------------------------------------------------------------------------
-*/
-
 static oWnd, oClients, oClient, oName, oAddress, oState, oSalary
 static cName, oBrw, cAddress, cState, nSalary
 static oBtnUp, oBtnDn, oBtnEd, oBtnCa, oBtnRe, oBtnNe, oBtnDe
@@ -177,7 +47,7 @@ function Main()
                  SCHEMA "public" ;
                    INTO nConn  
 
-   IF (nConn == 00)
+   IF nConn = 0
       msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
       QUIT
    End
@@ -191,16 +61,21 @@ function Main()
 
    USE Customer ALIAS "customer" via "SQLLIB" exclusive
 
+*   SQL_DEBUGINIT( .T. )
+   index on FIRST to _TMP
+*   SQL_DEBUGINIT( .F. )
+
    USE sales alias "sales" via "SQLLIB" NEW exclusive
 
    SELECT customer
 
-**msgstop( rddsetdefault() )
-**msgstop( rddsetdefault( "SQLLIB" ) )
-**msgstop( rddsetdefault() )
+   SQL_DEBUGINIT( .T. )
+   customer->( browse() )
+   SQL_DEBUGINIT( .F. )
+
 
    DEFINE WINDOW oWnd TITLE "Reporting tools" MDI ;
-      MENU BuildMenu() COLOR "N/W"
+     MENU BuildMenu() COLOR "N/W"
 
    DEFINE BUTTONBAR oBar OF oWnd SIZE 60, 60 2007
 
@@ -299,8 +174,9 @@ function BrwClients()
       ON CHANGE ChangeClient()
 
    oClients:SetControl( oBrw )
-
-
+   
+   dbgotop()
+   
    ACTIVATE WINDOW oClients VALID( oClients := nil, .t. )        // We destroy the object
 
 return nil
@@ -365,12 +241,12 @@ return nil
 
 function NEWREG
 
-customer->( dbappend() )
-customer->( dbcommit() )
-
-oBrw:GoBottom()
-
-oBrw:refresh()
+   customer->( dbappend() )
+   customer->( dbcommit() )
+   
+   oBrw:GoBottom()
+   
+   oBrw:refresh()
 
 return nil
 
@@ -379,12 +255,15 @@ return nil
 function DELREG
 
    msgrun( "", , { || .T. } )
-
-customer->( dbdelete() )
-customer->( dbcommit() )
-
-oBrw:refresh()
-
+   
+   SQL_DEBUGINIT( .T. )
+   customer->( dbdelete() )
+   SQL_DEBUGINIT( .F. )
+   
+   customer->( dbcommit() )
+   
+   oBrw:refresh()
+   
 return nil
 
 //----------------------------------------------------------------------------//
@@ -430,14 +309,14 @@ return nil
 
 function RECORD
 
-      customer->First  := cName
-      customer->Street := cAddress
-      customer->State  := cState
-      customer->salary := nSalary
-          
-      oBrw:DrawSelect()
-      
-      CANCEL()
+   customer->First  := cName
+   customer->Street := cAddress
+   customer->State  := cState
+   customer->salary := nSalary
+       
+   oBrw:DrawSelect()
+   
+   CANCEL()
    
 return nil
 
@@ -489,4 +368,3 @@ function GoReg( cTipo )
 return nil
 
 //----------------------------------------------------------------------------//
-
