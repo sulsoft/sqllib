@@ -1,0 +1,152 @@
+Lista de Erros/Pendencias feita em 27/06/09 (Por Rossine)
+===========================================
+
+---------------------------------------------------------------------------------------------------------------
+
+1o Problema: (RESOLVIDO)
+
+* Tratar nome de tabelas maiusculas / minusculas - OK
+
+Ex: digamos que eu tenha o seguinte banco de dados "demosqllib" e eu faça o seguinte teste:
+    if SL_DATABASE( "Demosqllib" )
+    endif
+    Veja que digitei "Demosqllib" com "D" maiusculo, neste caso nao está achando a tabela.
+
+---------------------------------------------------------------------------------------------------------------
+
+2o Problema: (RESOLVIDO)
+
+* A função SL_DATABASE() quando não está trabalhando corretamente quando o BD não está conectado. - OK
+
+Veja o exemplo abaixo:
+
+function main
+ 
+   if !SL_DATABASE( "demosqllib" ) <<- Veja que aqui que eu ainda não estabeleci uma conexão com o postgres
+      SQL CREATE DATABASE "demosqllib" INTO lRet
+   endif
+
+   SQL CONNECT ON cHost ;
+             USER cUser ;
+         PASSWORD cPass ;
+         DATABASE "demosqllib" ;  <<--- ... E para me coenctar ao BD eu preciso que a tabela já exista.
+              LIB "PGSQL" ;                 
+           SCHEMA "public" ;
+             INTO nConn  
+
+return NIL
+
+   Pergunta: Teria como eu me conectar ao postgres sem ter a necessidade de me conectar a um BD ? Porque aí 
+             acho que a função SL_DATABASE funcionaria corretamente. Tipo assim:
+
+function main
+ 
+   SQL CONNECT ON cHost ;  && Veja que aqui não especifiquei o "DATABASE"
+             USER cUser ;
+         PASSWORD cPass ;
+              LIB "PGSQL" ;                 
+           SCHEMA "public" ;
+             INTO nConn  
+
+   if !SL_DATABASE( "demosqllib" ) <<- Acho que assim retornaria .T.
+      SQL CREATE DATABASE "demosqllib" INTO lRet
+   endif
+
+return NIL
+
+.. Ou existiria uma forma melhor de se fazer isto ?
+
+---------------------------------------------------------------------------------------------------------------
+
+3o Problema:
+
+dbappend() - nao esta incluindo o registro na tabela
+
+---------------------------------------------------------------------------------------------------------------
+
+4o Problema:
+
+dbdelete() - nao esta excluindo o registro da tabela. No PGAdimin3 o campo "sl_deleted" é marcado com "T"
+             mas no browse ele não é excluido no ato da exclusão e quando se entra novamente na tela do browse, 
+             o registro deletado tambem continua lá.
+
+---------------------------------------------------------------------------------------------------------------
+
+5o Problema:
+
+o xBrowse do Fivewin não está funcionando.
+
+---------------------------------------------------------------------------------------------------------------
+
+6o Problema:
+   
+   Ao editar uma tabela e gravar "Record", e ao sair da tela dá o erro abaixo:
+    
+   Error occurred at: 10/06/2009, 16:17:43
+   Error description: Error BASE/1132  Erro de limite: acesso de array
+   Args:
+     [   1] = A   
+     [   2] = N   13
+
+Stack Calls
+===========
+   Called from: sl_wabase.prg => SL_GETVALUE_WA(769)
+   Called from: sl_wabase.prg => SL_BUILDWHERESTR(2965)
+
+---------------------------------------------------------------------------------------------------------------
+
+7o Problema:
+
+   Não está respeitando a variavel "FWVERSION", sempre usa a "msgstop" da sqllib e não do fivewin.
+
+---------------------------------------------------------------------------------------------------------------
+
+8o Problema:
+
+   Ao movimentar no browse, ele fica mostrando estas mensagens na janela do DOS que chamei o programa. 
+   Como desativar isto ?
+
+WARNING:  there is no transaction in progress
+row number 0 is out of range 0..-1
+row number 0 is out of range 0..-1
+row number 0 is out of range 0..-1
+row number 0 is out of range 0..-1
+row number 0 is out of range 0..-1
+row number 0 is out of range 0..-1
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+C:\sqllib\samples\cadas>CUSTOMER
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+WARNING:  there is no transaction in progress
+row number 0 is out of range 0..-1
+WARNING:  there is no transaction in progress
+
+---------------------------------------------------------------------------------------------------------------
+
+9º ESTUDAR
+
+Temos que estudar a variavel "START 58", em que situacoes ou situação que ela deve voltar para "1"
+
+CREATE SEQUENCE sqlindexes_sl_rowid_seq
+  INCREMENT 1
+  MINVALUE 1
+  MAXVALUE 9223372036854775807
+  START 58
+  CACHE 1;
+ALTER TABLE sqlindexes_sl_rowid_seq OWNER TO postgres;
+
+---------------------------------------------------------------------------------------------------------------
+
+10º criar chamadas dentro do programa SL_WAFILE.PRG para SL_PGSQL.PRG e as funções abaixo:
+
+SL_INDEXE, SL_DATABASE, SL_TABLE, SL_CREATEDB
+
+---------------------------------------------------------------------------------------------------------------
