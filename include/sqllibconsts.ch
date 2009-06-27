@@ -46,7 +46,9 @@
  * If you do not wish that, delete this exception notice.
  */
 
-//#define SQL_DEBUG
+#ifndef SQL_DEBUG
+   #define SQL_DEBUG
+#endif
 
 #ifndef _SQLLIB_CONSTS_CH
    #define _SQLLIB_CONSTS_CH
@@ -65,7 +67,7 @@
                                    
    #define SL_LOG_FILENAME         "sqllog.txt"
    #define SL_INDEX                "sl$indexes"
-   #define ID_PREFIX               "IDX_"
+   #define ID_PREFIX               "idx_"  && Rossine 27/06/09
    
    #define SL_TIMER_RECCOUNT       15
    
