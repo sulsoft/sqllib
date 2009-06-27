@@ -1,6 +1,6 @@
 #include "FiveWin.ch"
 #include "xbrowse.ch"
-#include "Customer.ch"
+#include "Customer.ch"  
 
 #include "SQLLIB.ch"
 
