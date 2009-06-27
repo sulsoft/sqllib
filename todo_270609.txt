@@ -150,3 +150,13 @@ ALTER TABLE sqlindexes_sl_rowid_seq OWNER TO postgres;
 SL_INDEXE, SL_DATABASE, SL_TABLE, SL_CREATEDB
 
 ---------------------------------------------------------------------------------------------------------------
+
+11º nao esntendi por que deu este erro
+ 
+sl_wafile.prg(269) Warning W0032  Variable 'ACONN' is assigned but not used in function 'SL_DATABASE(203)'
+
+sl_wafile.prg(269) Warning W0032  Variable 'ACONN' is assigned but not used in function 'SL_DATABASE(205)'
+
+ dentro de sqllib.hbc tive voltar aqui na minha maquina w3 para w0 só para conseguir compilar, depois voce olha aí o que pode ser, nao consegui identificar aqui.
+
+---------------------------------------------------------------------------------------------------------------
