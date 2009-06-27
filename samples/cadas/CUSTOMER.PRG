@@ -69,10 +69,10 @@ function Main()
 
    SELECT customer
 
-   SQL_DEBUGINIT( .T. )
-   go top
-   customer->( browse() )
-   SQL_DEBUGINIT( .F. )
+*   SQL_DEBUGINIT( .T. )
+*   go top
+*   customer->( browse() )
+*   SQL_DEBUGINIT( .F. )
 
    DEFINE WINDOW oWnd TITLE "Reporting tools" MDI ;
      MENU BuildMenu() COLOR "N/W"
