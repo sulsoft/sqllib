@@ -52,7 +52,6 @@
 static aSystemDrivers  := NIL
 
 FUNCTION SQLRegisterDrv( nSysID, cRddName )
-
    LOCAL n, aFuncs
    
    DEBUG_ARGS
@@ -102,7 +101,6 @@ FUNCTION SQLRegisterDrv( nSysID, cRddName )
           aSystemDrivers[ nSysID, n ] := __DYNSN2SYM( aFuncs[n] + "_" + cRddName )
       End
    End
-   
    RETURN nil
    
 ************************
@@ -110,9 +108,7 @@ static function SL_INIT( nRDD )
 ************************
  
    USRRDD_RDDDATA( nRDD, nil )
-
-   DEBUG_ARGS
-
+ 
 return SUCCESS
 
 ************************
@@ -120,8 +116,6 @@ static function SL_EXIT( nRDD )  && Rossine 05/11/08
 ************************
 
    HB_SYMBOL_UNUSED( nRDD )
-
-   DEBUG_ARGS
 
 return SUCCESS
 
@@ -131,9 +125,6 @@ return SUCCESS
  */
 STATIC;
 FUNCTION SL_GetCurrentTime()
-
-   DEBUG_ARGS
-
    RETURN VAL(  STRZERO(  Year( Date() ),4 ) + ;
                 STRZERO( Month( Date() ),2 ) + ;
                 STRZERO(   Day( Date() ),2 ) + ;
@@ -146,8 +137,6 @@ static function SL_NEW( nWA )
    local aWAData := Array( WA_SIZE )
    local aConn   := SL_GETCONNINFO()
    local oConn   := TSL_CONNECTION():New( aConn )
-
-   DEBUG_ARGS
 
    IF valtype( aConn ) == 'U' 
       SL_ERROR( 2000, "Can't locate a client connection to any server. Use SQL CONNECTION command before to continue." )
@@ -209,8 +198,6 @@ static function SL_CREATE( nWA, aOpenInfo )  && XBASE - DBCREATE()
    LOCAL aWAData := USRRDD_AREADATA( nWA )
    LOCAL nResult
 
-   DEBUG_ARGS
-
    aWAData[ WA_TABLENAME ] := aOpenInfo[ UR_OI_NAME ]
    
    nResult := HB_ExecFromArray( { FSL_CREATE( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, aOpenInfo } )
@@ -223,8 +210,6 @@ static function SL_CREATEFIELDS( nWA, aStruct )
 
    LOCAL aWAData := USRRDD_AREADATA( nWA )
                  
-   DEBUG_ARGS
-
    HB_ExecFromArray( { FSL_CREATEFLDS( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, aStruct } )
 
    return SUCCESS
@@ -236,8 +221,6 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
    LOCAL aWAData := USRRDD_AREADATA( nWA )
    LOCAL aField, nResult, nTotalFields, n
    local s_aStruct
-
-   DEBUG_ARGS
 
    nResult := HB_ExecFromArray( { FSL_OPEN( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, aOpenInfo  } )
 
@@ -282,8 +265,6 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
 static function SL_CLOSE( nWA )  && XBASE - DBCLOSE()
 *************************
  
-   DEBUG_ARGS
-
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    endif
@@ -304,8 +285,6 @@ function SL_PKFIELD( nWA )
 ***********************
 
    LOCAL aWAData 
-
-   DEBUG_ARGS
    
    IF     valtype( nWA ) == "U"
           aWAData := USRRDD_AREADATA( Select() )
@@ -332,8 +311,6 @@ static function SL_GOTOID( nWA, nRecord )  && XBASE - DBGOTO()
 
    LOCAL aWAData := USRRDD_AREADATA( nWA )
  
-   DEBUG_ARGS
-
    IF SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    End
@@ -352,8 +329,8 @@ static function SL_GOTOID( nWA, nRecord )  && XBASE - DBGOTO()
       return FAILURE
    End
 
-   aWAData[ WA_BOF ]   := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
-   aWAData[ WA_EOF ]   := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
+   aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
+   aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    aWAData[ WA_FOUND ] := False
    
    return SUCCESS
@@ -367,8 +344,6 @@ static function SL_GOTOP( nWA )  && XBASE - DBGOTOP()
 
    LOCAL aWAData := USRRDD_AREADATA( nWA )
   
-   DEBUG_ARGS
-
    IF SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    End
@@ -402,8 +377,6 @@ static function SL_GOBOTTOM( nWA, nRecords )  && XBASE - DBGOBOTTOM()
 
    local aWAData := USRRDD_AREADATA( nWA )
  
-   DEBUG_ARGS
-
    IF SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    End
@@ -442,8 +415,6 @@ static function SL_GOBOTTOM( nWA, nRecords )  && XBASE - DBGOBOTTOM()
 
 FUNCTION SL_UpdateFlags( nWA, aWAData )
 
-   DEBUG_ARGS
-
    USRRDD_SETBOF( nWA, aWAData[ WA_BOF ] )
    USRRDD_SETEOF( nWA, aWAData[ WA_EOF ] )
    USRRDD_SETFOUND( nWA, aWAData[ WA_FOUND ] )
@@ -473,8 +444,6 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
    nLimit  := aWAData[ WA_PACKET_SIZE ]
    cLimit  := " LIMIT " + STR( nLimit )
 
-   DEBUG_ARGS
-
    /* SQL RDD bug! *
    DEBUG aWAData[WA_LAST_PACKSIZE] 
    IF aWAData[WA_LAST_PACKSIZE] == NIL; nLimit :=  32; End
@@ -488,7 +457,7 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
 
 //      Com UNIONs isto não vai funcionar...
 //      IF nOffSet != 00
-//         cLimit += " OFFSET " + STR( nOffSet )
+//         cLimit += " OFFSET " + STR( nOffSet ) 
 //      End
    IF Empty( aRules )
       cWhere := SL_BuildWhereStr( nWA, aWAData, .T., aRules, nDirection )
@@ -508,9 +477,7 @@ FUNCTION SL_FETCH( nWA, aWAData, nDirection )
       
       cSQL += ") ORDER BY " + cOrderBy + cLimit
    End
-   
-   DEBUG cSQL
-   
+
    IF nDirection == MS_DOWN
       nOptions := EU_IGNORE_FIRST + EU_EOF_ON_EMPTY
    ELSE
@@ -534,10 +501,10 @@ function SL_SKIPRAW( nWA, nRecords )  && XBASE - DBSKIP()
    LOCAL nDirection
    LOCAL lInverse
 
-   DEFAULT nRecords := 1  && Rossine 07/10/08
-
-*   DEBUG_ARGS
+ * DEBUG_ARGS
    DEBUG iif( nRecords<0, "retrocedendo ", "avancando " ) + alltrim( str( nRecords )) + ' regs     ----  Posição atual: '+  alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ]))
+      
+   DEFAULT nRecords := 1  && Rossine 07/10/08
 
    IF SL_GOCOLD( nWA ) != SUCCESS
       RETURN FAILURE
@@ -585,7 +552,7 @@ function SL_SKIPRAW( nWA, nRecords )  && XBASE - DBSKIP()
 DEBUG "MS_DOWN: Ele está AVANÇANDO no dados!", nRecords
       nDirection := MS_DOWN
 
-      IF ( aWAData[ WA_BUFFER_POS ] + nRecords ) <= aWAData[ WA_BUFFER_ROWCOUNT ]
+      IF ( aWAData[ WA_BUFFER_POS ] + nRecords) <= aWAData[ WA_BUFFER_ROWCOUNT ]
          aWAData[ WA_BUFFER_POS ] += nRecords
          aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
@@ -593,7 +560,6 @@ DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWADat
          //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @aWAData[ WA_RECNO ], .T. )
 
          aWAData[ WA_FOUND ] := aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
-
          RETURN SL_UpdateFlags( nWA, aWAData )
       End
 
@@ -615,7 +581,6 @@ DEBUG "MS_UP: Ele está VOLTANDO no buffer!", nRecords
          aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_UP: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
          aWAData[ WA_FOUND ] := aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
-
          RETURN SL_UpdateFlags( nWA, aWAData )
       End
 
@@ -683,8 +648,6 @@ static function SL_BOF( nWA, lBof )  && XBASE - BOF()
  
    lBof := aWAData[ WA_BOF ]
    
-   DEBUG_ARGS
-
    USRRDD_SETBOF( nWA, lBof )  && Rossine 28/12/08
    
 return SUCCESS
@@ -708,8 +671,6 @@ static function SL_DELETED( nWA, lDeleted )  && XBASE - DBDELETED()
    local aWAData := USRRDD_AREADATA( nWA )
    local nRecNo  := 0
 
-   DEBUG_ARGS
-
    SL_RECNO( nWA, @nRecNo )
 
    lDeleted := HB_ExecFromArray( { FSL_DELETED( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, nRecno } )
@@ -723,8 +684,6 @@ static function SL_DELETE( nWA )    && XBASE - DBDELETE()
    local aWAData := USRRDD_AREADATA( nWA )
    local nRecNo := 0
 
-   DEBUG_ARGS
-
    SL_RECNO( nWA, @nRecNo )
 
    HB_ExecFromArray( { FSL_DELETE( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, nRecno } )
@@ -737,17 +696,12 @@ return SUCCESS
 STATIC;
 FUNCTION SL_RECNO( nWA, nRecNo )   && XBASE - RECNO()
     ** Evitamos ter 2 funções com o mesmo código!
-
-   DEBUG_ARGS
-
    RETURN SL_RECID( nWA, @nRecNo )
 
 ******************
 STATIC;
 FUNCTION SL_RECID( nWA, nRecNo )   && XBASE - RECNO()
    LOCAL aWAData := USRRDD_AREADATA( nWA )
-
-   DEBUG_ARGS
 
    IF aWAData[ WA_EOF ]
       IF SL_RECCOUNT( nWA, @nRecNo ) == SUCCESS   // Simulate xBase EOF() - 25/05/2009 - 15:06:38
@@ -771,8 +725,6 @@ FUNCTION SL_RECCOUNT( nWA, nRecords )  && XBASE - LASTREC() / RECCOUNT()
    LOCAL nExpires := aWAData[ WA_RECCOUNT_EXPIRES ]
    LOCAL nNow     := SL_GetCurrentTime()
 
-   DEBUG_ARGS
-
    IF nNow <= ( nExpires + SL_TIMER_RECCOUNT )
       * Use cache here!
       DEBUG "Using cache here -->",aWAData[ WA_RECCOUNT ]
@@ -795,8 +747,6 @@ function SL_GETVALUE_WA( nWA, nField, xValue, lHidden )  && XBASE - FIELDGET()
    local aWAData, bEmpty
    local s_aStruct
    
-   DEBUG_ARGS
-
    IF ValType( nWA ) == 'A'
       aWAData := nWA
       nWA     := Select()
@@ -865,9 +815,6 @@ static function SL_PUTVALUE( nWA, nField, xValue )   && XBASE - FIELDPUT()
     * Check if a temporary buffer already exists. (Vailton)
     * 16/09/2008 - 07:49:55
     */
-
-   DEBUG_ARGS
-
    IF aWAData[ WA_BUFFER_ARR ] == NIL
       IF SQLBUFFER_CREATE( aWAData ) != SUCCESS
          ** Check any error here! (Especially if this function is written in C)
@@ -906,8 +853,6 @@ static function SL_APPEND( nWA, lUnLockAll )  && XBASE - DBAPPEND()
 
    HB_SYMBOL_UNUSED( lUnLockAll )
 
-   DEBUG_ARGS
-
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    endif
@@ -922,12 +867,10 @@ static function SL_APPEND( nWA, lUnLockAll )  && XBASE - DBAPPEND()
    aWAData[ WA_RECNO ]         := aWAData[ WA_RECCOUNT ]             && Rossine 07/10/08
 
    /* Create a new buffer for current area*/
-**   aWAData[ WA_BUFFER_ROWCOUNT ]:= 1 // One line... for Append values only
-   aWAData[ WA_BUFFER_ROWCOUNT ]:= aWAData[ WA_RECCOUNT ] && Rossine 26/06/09
+   aWAData[ WA_BUFFER_ROWCOUNT ]:= 1 // One line... for Append values only
    SQLBUFFER_CREATE( aWAData )
  
-**   aWAData[ WA_BUFFER_POS ]     := 1
-   aWAData[ WA_BUFFER_POS ]     := aWAData[ WA_RECCOUNT ] && Rossine 26/06/09
+   aWAData[ WA_BUFFER_POS ]     := 1
 *   msgstop( "dbAppend()", "SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
  
 return SUCCESS
@@ -938,8 +881,6 @@ static function SL_FLUSH( nWA )  && XBASE - DBCOMMIT()
 
    local aWAData := USRRDD_AREADATA( nWA )
    
-   DEBUG_ARGS
-
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    endif
@@ -960,8 +901,6 @@ static function SL_GOCOLD( nWA )
 
    local aWAData := USRRDD_AREADATA( nWA )
  
-   DEBUG_ARGS
-
    if !aWAData[ WA_RECORDCHANGED ]
       return SUCCESS
    endif
@@ -975,8 +914,6 @@ static function SL_RAWLOCK( nWA, nAction, nRecNo )
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( nAction )
    HB_SYMBOL_UNUSED( nRecNo )
-
-   DEBUG_ARGS
  
 return SUCCESS
  
@@ -985,8 +922,6 @@ static function SL_INFO( nWA, nTypo, aList  )  && XBASE - dbrlocklist()
 ************************
  
    local aWAData := USRRDD_AREADATA( nWA )
-
-   DEBUG_ARGS
 
    HB_SYMBOL_UNUSED( nTypo )
    HB_SYMBOL_UNUSED( aList )
@@ -1003,8 +938,6 @@ static function SL_LOCK( nWA, aLockInfo )  && XBASE - DBRLOCK()
    local aWAData := USRRDD_AREADATA( nWA )
    local nResult, xRecId, i
    local lRet, nRecno := iif( aLockInfo[ UR_LI_RECORD ] = NIL, aWAData[ WA_RECNO ], aLockInfo[ UR_LI_RECORD ] )
-
-   DEBUG_ARGS
 
    lRet := HB_ExecFromArray( { FSL_LOCK( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, nRecno, s_aMyLocks } )
 
@@ -1110,8 +1043,6 @@ static function SL_UNLOCK( nWA, xRecID )   && XBASE - DBUNLOCK()
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( xRecID )
 
-   DEBUG_ARGS
-
 return SUCCESS
    
 #ifdef _OFF_   
@@ -1148,8 +1079,6 @@ static function SL_SETFILTER( nWA, aFilterInfo )
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( aFilterInfo )
   
-   DEBUG_ARGS
-  
 return SUCCESS
 
 ******************************* 
@@ -1157,8 +1086,6 @@ static function SL_CLEARFILTER( nWA )
 *******************************
 
    HB_SYMBOL_UNUSED( nWA )
-
-   DEBUG_ARGS
  
 return SUCCESS
  
@@ -1167,8 +1094,6 @@ static function SL_PACK( nWA )  && XBASE - __DBPACK()
 ************************
 
    local aWAData := USRRDD_AREADATA( nWA )
-
-   DEBUG_ARGS
 
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
@@ -1184,8 +1109,6 @@ static function SL_ZAP( nWA )  && XBASE - __DBZAP()
 
    local aWAData := USRRDD_AREADATA( nWA )
  
-   DEBUG_ARGS
-
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    endif
@@ -1203,8 +1126,6 @@ static function SL_SETLOCATE( nWA, aScopeInfo )
 
    local aWAData := USRRDD_AREADATA( nWA )
  
-   DEBUG_ARGS
-
    aScopeInfo[ UR_SI_CFOR ] := SQLTranslate( aWAData[ WA_LOCATEFOR ] )
  
    aWAData[ WA_SCOPEINFO ] := aScopeInfo
@@ -1218,8 +1139,6 @@ static function SL_LOCATE( nWA, lContinue )
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( lContinue )
 
-   DEBUG_ARGS
-
    //local aWAData    := USRRDD_AREADATA( nWA )
  
    // USRRDD_SETFOUND( nWA, ! oRecordSet:EOF )
@@ -1232,9 +1151,6 @@ static function SL_CLEARREL( nWA )
 ****************************
 
    HB_SYMBOL_UNUSED( nWA )
-
-   DEBUG_ARGS
-
 //   local aWAData := USRRDD_AREADATA( nWA )
 //   local nKeys := 0, cKeyName
 
@@ -1247,9 +1163,6 @@ static function SL_RELAREA( nWA, nRelNo, nRelArea )
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( nRelNo )
    HB_SYMBOL_UNUSED( nRelArea )
-
-   DEBUG_ARGS
-
 //   local aWAData := USRRDD_AREADATA( nWA )
 
 return SUCCESS
@@ -1261,9 +1174,6 @@ static function SL_RELTEXT( nWA, nRelNo, cExpr )
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( nRelNo )
    HB_SYMBOL_UNUSED( cExpr )
-
-   DEBUG_ARGS
-
 //   local aWAData := USRRDD_AREADATA( nWA )
 
 return SUCCESS
@@ -1274,9 +1184,6 @@ static function SL_SETREL( nWA, aRelInfo )
 
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( aRelInfo  )
-
-   DEBUG_ARGS
-
 //   local aWAData := USRRDD_AREADATA( nWA )
 //   local cParent := Alias( aRelInfo[ UR_RI_PARENT ] )
 //   local cChild  := Alias( aRelInfo[ UR_RI_CHILD ] )
@@ -1385,8 +1292,6 @@ STATIC ;
 FUNCTION SL_ORDLSTADD( nWA, aOrderInfo )
    LOCAL aWAData := USRRDD_AREADATA( nWA )
 
-   DEBUG_ARGS
-
 /* DBORDERINFO
 #define UR_ORI_BAG            1
 #define UR_ORI_TAG            2
@@ -1415,8 +1320,6 @@ static function SL_ORDLSTCLEAR( nWA )
 
    local aWAData := USRRDD_AREADATA( nWA )
  
-   DEBUG_ARGS
-
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    endif
@@ -1428,8 +1331,6 @@ return SUCCESS
 ********************************
 static function SL_ORDLSTDELETE( nWA, aOrderInfo )
 ********************************
-
-   DEBUG_ARGS
 
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
@@ -1456,8 +1357,6 @@ FUNCTION SL_ORDCREATE( nWA, aOrderCreateInfo )
    LOCAL oError
    LOCAL aOrderInfo
    LOCAL i,j
-
-   DEBUG_ARGS
 
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
@@ -1498,7 +1397,7 @@ FUNCTION SL_ORDCREATE( nWA, aOrderCreateInfo )
       End
 
     // Nome dos Campos
-       AADD(Fields, lower( aKeys[i] ) ) && Rossine 27/06/09
+       AADD(Fields, aKeys[i] )
     // Sintaxe em Clipper para este campo ser convertido em CARACTER
        AADD(Keys  , SL_FLD2CHAR( aStruct[j] ))
        AADD(Sizes , aStruct[j,DBS_LEN] )
@@ -1537,8 +1436,6 @@ static function SL_ORDDESTROY( nWA, aOrderInfo )
 
    local aWAData := USRRDD_AREADATA( nWA ), lResult
  
-   DEBUG_ARGS
-
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    endif
@@ -1559,8 +1456,6 @@ FUNCTION SL_ORDINFO( nWA, nIndex, aOrderInfo )  && Rossine 07/10/08
    LOCAL aWAData := USRRDD_AREADATA( nWA )
    LOCAL nResult := SUCCESS
    LOCAL aIndex, nPos, nCount
-
-   DEBUG_ARGS
 
    IF SL_GOCOLD( nWA ) != SUCCESS  && Rossine 08/01/09
       RETURN FAILURE
@@ -1715,8 +1610,6 @@ FUNCTION SL_ORDLSTFOCUS( nWA, aOrderInfo )  && XBASE - DBSETORDER() / OrdSetFocu
    LOCAL aWAData := USRRDD_AREADATA( nWA )
    LOCAL nOrder, cTag
 
-   DEBUG_ARGS
-
    cTag := aOrderInfo[ UR_ORI_TAG ]
    
    IF ValType( cTag ) == "N"
@@ -1733,9 +1626,6 @@ FUNCTION SL_ORDLSTFOCUS( nWA, aOrderInfo )  && XBASE - DBSETORDER() / OrdSetFocu
 #ifdef F
 STATIC;
 FUNCTION SL_SEEK()
-
-   DEBUG_ARGS
-
    RETURN SUCCESS
 #else
 STATIC;
@@ -2031,8 +1921,6 @@ static function SL_FOUND( nWA, lFound )  && XBASE - FOUND()
 
    local aWAData := USRRDD_AREADATA( nWA )
 
-   DEBUG_ARGS
-
 **   HB_SYMBOL_UNUSED( nWA )
 **   HB_SYMBOL_UNUSED( lFound )
 
@@ -2048,8 +1936,6 @@ function SQLLIB_GETFUNCTABLE( pFuncCount, pFuncTable, pSuperTable, nRddID )
 
    local cSuperRDD := nil  /* NO SUPER RDD */
    local aSQLFunc[ UR_METHODCOUNT ]
-
-   DEBUG_ARGS
 
 /*
  Movement and positioning methods
@@ -2210,8 +2096,6 @@ init procedure SQLLIB_INIT
  * Registra o nosso RDD   
    rddRegister( "SQLLIB", RDT_FULL )
    
-   DEBUG_ARGS
-
 return 
 
 *************************
@@ -2220,8 +2104,6 @@ static function SL_ALIAS( nWA, cAlias )  && Rossine 29/12/08
    
    local aWAData := USRRDD_AREADATA( nWA )
    
-   DEBUG_ARGS
-
    cAlias := aWAData[ WA_ALIAS ]   && Tive que fazer assim porque a variavel "cAlias" chega aqui vazia.
 
 return SUCCESS
@@ -2231,8 +2113,6 @@ static function SL_GETFIELDSIZE( nDBFFieldType, nSQLFieldSize )  && Rossine 07/1
 ********************************
 
    local nDBFFieldSize := 0
-
-   DEBUG_ARGS
 
    do case
  
@@ -2262,8 +2142,6 @@ return nDBFFieldSize
 function SQLTranslate( cExpr )
 *********************
 
-   DEBUG_ARGS
-
    if Left( cExpr, 1 ) == '"' .and. Right( cExpr, 1 ) == '"'
       cExpr := SubStr( cExpr, 2, Len( cExpr ) - 2 )
    endif
@@ -2290,8 +2168,6 @@ function SL_GETFIELDNAMES( aWAData )
    LOCAL cFields   := ""
    LOCAL n
    
-   DEBUG_ARGS
-
    for n = 1 TO Len( s_aStruct )
       cFields += cRddSep + s_aStruct[ n, DBS_NAME ] + cRddSep + ", "
    next
@@ -2306,8 +2182,6 @@ static function GetFieldEmptyValues( aWAData, lRecNo )
    local cRddSep   := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    local s_aStruct := aWAData[ WA_STRUCT ]
  
-   DEBUG_ARGS
-
    for n = 1 to Len( s_aStruct )
       if lRecNo
          cValues += cRddSep + Space( s_aStruct[ n ][ DBS_LEN ] ) + cRddSep + ", "
@@ -2329,8 +2203,6 @@ return cValues
 ****************************
 function SQLGetFullTableName( aWAData )
 ****************************
-
-   DEBUG_ARGS
 
 return HB_ExecFromArray( { FSL_GETFULLTABLE( aWAData[ WA_SYSTEMID ] ), aWAData } )
  
@@ -2363,8 +2235,6 @@ static function SL_WRITERECORD( nWA )
  * local lApp    := aWAData[ WA_APPEND ]
    local aBuffer, nRow, nRecNo := 0
    
-   DEBUG_ARGS
-
    IF aWAData[ WA_BUFFER_ARR ] == NIL
       return SUCCESS
    endif
@@ -2400,8 +2270,6 @@ static function SL_RECINFO( nWA, nRecord, nInfoType, uInfo )  && Rossine 07/10/0
    local aWAData := USRRDD_AREADATA( nWA )
    local lDeleted
    
-   DEBUG_ARGS
-
    do case
    case nInfoType == UR_DBRI_DELETED  && OK
 
@@ -2447,8 +2315,6 @@ static function SL_FIELDNAME( nWA, nField, cFieldName ) && XBASE - FIELDNAME()
    local s_aStruct := aWAData[ WA_STRUCT ]
    local nResult   := SUCCESS
 
-   DEBUG_ARGS
-
    #IfnDef __XHARBOUR__
    BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
       cFieldName := s_aStruct[ nField ][ DBS_NAME ]
@@ -2475,8 +2341,6 @@ static function SL_FIELDINFO( nWA, nField, nInfoType, uInfo )  && Rossine 07/10/
 
    local aWAData   := USRRDD_AREADATA( nWA )
    local s_aStruct := aWAData[ WA_STRUCT ]
-
-   DEBUG_ARGS
 
    do case
    case nInfoType == DBS_NAME
@@ -2546,8 +2410,6 @@ function SL_CurrentServer  && Rossine 07/10/08
 
 local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
 
-   DEBUG_ARGS
-
 return aWAData[ WA_POINTER ]
 
 *************************
@@ -2558,8 +2420,6 @@ local lRet, oQuery
 
 DEFAULT cMsg := "Não foi possível realizar a operação baixo: "
 DEFAULT lMsg := .T.
-
-   DEBUG_ARGS
 
 HB_ExecFromArray( { FSL_EXECQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @oQuery, @lRet } )
 
@@ -2578,13 +2438,8 @@ return !lRet
 **************************
 function SL_QuickQuery( aWAData, cQuery )  && Rossine 07/10/08
 **************************
-
 local temp  // Funcionava sem isto aqui??? Como ???    o_O
-
-   DEBUG_ARGS
-
    HB_ExecFromArray( { FSL_QUICKQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @temp } )
-
 return temp
 
 **********************
@@ -2592,8 +2447,6 @@ function SL_Commit  && Rossine 07/10/08
 **********************
 
 local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
-
-   DEBUG_ARGS
 
 return HB_ExecFromArray( { FSL_COMMIT( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
@@ -2603,15 +2456,11 @@ function SL_Rollback  && Rossine 07/10/08
 
 local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
 
-   DEBUG_ARGS
-
 return HB_ExecFromArray( { FSL_ROLLBACK( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
 *************************
 function SL_DataToSql( cData )  && Rossine 07/10/08
 *************************
-
-   DEBUG_ARGS
 
 return "'" + cData + "'"
 
@@ -2623,8 +2472,6 @@ local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
 
 DEFAULT lAll := .F.
 
-   DEBUG_ARGS
-
 return HB_ExecFromArray( { FSL_CLEARINDEX( aWAData[ WA_SYSTEMID ] ), aWAData, lAll } )
 
 **************************
@@ -2633,15 +2480,11 @@ function SL_StartTrans
 
 local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
 
-   DEBUG_ARGS
-
 return HB_ExecFromArray( { FSL_STARTTRANS( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
 ************************
 function SL_EndTrans( aWAData )  && Rossine 07/10/08
 ************************
-
-   DEBUG_ARGS
 
 return HB_ExecFromArray( { FSL_ENDTRANS( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
@@ -2754,8 +2597,6 @@ FUNCTION SL_ComplexCheck( cChave, aCampos )
    LOCAL lComplex:= FALSE
    LOCAL lFunc,lInFunc
    
-   DEBUG_ARGS
-
    b := 0
    c := 1
    d := ''
@@ -2822,8 +2663,6 @@ function SL_DELETETABLE( cTableName, cSchema )
    HB_SYMBOL_UNUSED( cTableName )
    HB_SYMBOL_UNUSED( cSchema )
 
-   DEBUG_ARGS
-
    msginfo( 'ajustar isto!!!' )
 return .f.
 //   local aInfo := SL_GETCONNINFO( snConnHandle )
@@ -2840,8 +2679,6 @@ FUNCTION SL_PARSEKEY( cKey, bIsComplex, aFields )
       LOCAL aExp
       LOCAL aResult := {}
       LOCAL lComplex:= FALSE
-
-   DEBUG_ARGS
 
       b := 0
       c := 1
@@ -2940,8 +2777,6 @@ FUNCTION SL_PARSEKEY( cKey, bIsComplex, aFields )
 FUNCTION SL_FLD2CHAR( aFieldInfo )
       LOCAL d,l,n,t,r
 
-   DEBUG_ARGS
-
       d := aFieldInfo[ DBS_DEC  ]
       l := aFieldInfo[ DBS_LEN  ]
       n := aFieldInfo[ DBS_NAME ]
@@ -2973,8 +2808,6 @@ FUNCTION SL_BuildOrderBy( aWAData, nDirection )
    
    DEFAULT nDirection   TO MS_DOWN
    
-   DEBUG_ARGS
-
    cOrderBy := ""
    cSep     := SQLSYS_SEP( aWAData[WA_SYSTEMID] )
    
@@ -2999,7 +2832,6 @@ FUNCTION SL_BuildOrderBy( aWAData, nDirection )
                   iif( lDown, ' DESC, ', ' ASC, ' )
    End
    cOrderBy += cSep + SL_PKFIELD( aWAData ) + cSep + iif( lDown, ' DESC', ' ASC' )
-
    RETURN cOrderBy
 
 /*
@@ -3018,7 +2850,6 @@ FUNCTION SL_BuildWhereRules( aWAData, nDirection )
    End
    
    aCurrIdx := aWAData[ WA_INDEX, aWAData[ WA_INDEX_CURR ] ]
-
    nFCount  := Len( aCurrIdx[ IDX_FIELDS ] )       
    aValues  := Array( nFCount )
    ID       := aWAData[ WA_SYSTEMID ]
@@ -3074,7 +2905,7 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
    LOCAL aValues
    LOCAL nFCount
    LOCAL cWhere  := '('
-
+   
    DEBUG nWA, lFirst, aDefaultRules, nDirection
 
    ID  := aWAData[ WA_SYSTEMID ]
@@ -3172,7 +3003,6 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
 STATIC ;
 FUNCTION SQL_ANY2SEEK( uField, bTrim, cAdd, bSoft, cType )
    LOCAL t,x
-
    DEBUG uField, VALTYPE(uField)
 
    x := VALTYPE( uField )

@@ -74,4 +74,3 @@ Pendencias para a versão 0.02
 	Suporte para MT - ao add/del uma conexao, travar com MUTEX
 
    Documentar todas as msgs de erro geradas pela RDD.
-

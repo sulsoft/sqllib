@@ -505,4 +505,4 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
       /**/
    
    return nil
-#endif
+#endif

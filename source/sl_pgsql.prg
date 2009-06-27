@@ -66,9 +66,6 @@ function PGSQL
     * mais profissional de fragmentar o c¢digo e poder dividir o RDD em modulos.
     * Vailton - 14/12/2008 - 18:27:14
     */
-
-   DEBUG_ARGS
-
    PGSQL_REGISTER_INFO()
 
 return ID_POSTGRESQL
@@ -81,8 +78,6 @@ return ID_POSTGRESQL
 function POSTGRESQL
 *******************
 
-   DEBUG_ARGS
-
 RETURN PGSQL()   
 /*
  * Efetua uma conex∆o com o banco PostgreSQL e retorna o ponteiro da conexao
@@ -91,9 +86,10 @@ RETURN PGSQL()
 *********************
 function SQLLIB_PGSQL( cHost, nPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema, cCharSet )
 *********************
-
    LOCAL oSql
    
+*  TRACE "SQLLIB_PGSQL( ", cHost, nPort, cDb, cUser, cPwd, nFlags, cRddName, " )"
+
    HB_SYMBOL_UNUSED( NFLAGS )
    HB_SYMBOL_UNUSED( CRDDNAME )
    HB_SYMBOL_UNUSED( CCHARSET )
@@ -102,8 +98,6 @@ function SQLLIB_PGSQL( cHost, nPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema
    DEFAULT nPort   to 0
    DEFAULT cDb     to "template1"
    DEFAULT cSchema to "public"
-
-   DEBUG_ARGS
    
    nPort  := IIF( nPort == 0, 5432, nPort )
 
@@ -133,25 +127,23 @@ function SQLLIB_PGSQL( cHost, nPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema
  * Fecha a conex∆o com o banco de dados PostgreSQL representada pelo objeto oSQL
  * 13/12/2008 - 00:28:01
  */
-*************************
+*****************************
 function SL_DISCONN_PGSQL( oSQL )
-*************************
-
-      DEBUG_ARGS
+*****************************
 
       oSQL : QueryEx( "COMMIT" )
       oSQL : QueryEx( "COMMIT" )
       oSQL : Close()
-
+               
    RETURN .T.
 
 /*
  * Abre uma tabela j† existente
  * 18/12/2008 - 18:56:16
  */
-**********************
+***********************
 function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
-**********************
+***********************
 
    LOCAL oSql        := aWAData[ WA_POINTER ]
    LOCAL nConn       := oSQL:pDB
@@ -166,8 +158,6 @@ function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
 
    HB_SYMBOL_UNUSED( nWA )
 
-   DEBUG_ARGS
-   
    IF Empty( cSchema )
       cSchema := "public"
    End
@@ -225,9 +215,9 @@ function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
 * apenas retornar os  resultado ao SQLLIB indicando sucesso ou n„o da operaÁ„o.
 * 18/12/2008 - 13:08:55
 ********************************************************************************
-************************
+*************************
 function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
-************************
+*************************
 
    LOCAL cSql, cSequenceField 
 
@@ -242,8 +232,6 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    HB_SYMBOL_UNUSED( nWA )
    HB_SYMBOL_UNUSED( aOpenInfo )
 
-   DEBUG_ARGS
-   
    IF Empty( cSchema )
       cSchema := "public"
    End
@@ -312,9 +300,9 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    End
    RETURN SUCCESS
 
-****************************
+*****************************
 function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
-****************************
+*****************************
 
    LOCAL aField
    LOCAL cType
@@ -326,8 +314,6 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
 
    HB_SYMBOL_UNUSED( nWA )
 
-   DEBUG_ARGS
-   
    AAdd( aStruct, { SL_COL_DELETED, "C",  1, 0 } ) // to emulate DBF deleted value
  
    cSQL := ""
@@ -478,9 +464,9 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
  * Run a specific query and updates the internal flags.
  * 22/12/2008 - 15:48:28
  */
-****************************
+***********************************
 function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
-****************************
+***********************************
 
    LOCAL oConn   := aWAData[ WA_CONNECTION ]
    LOCAL lAdjust := .F.
@@ -489,7 +475,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    LOCAL nStatus
    LOCAL xOldKey, xNewKey
 
-   DEBUG_ARGS
+   DEBUG nWa, cQuery, nDirection, nOptions
 
  * IF aWAData[ WA_RESULT_DIRECTION ] == MS_NONE
    IF (nDirection == MS_DOWN) .OR. (nDirection == MS_UP)
@@ -506,9 +492,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    nStatus := PQresultstatus( pResult )
    
    IF nStatus != PGRES_TUPLES_OK
-
-      DEBUG_ARGS
-
+      DEBUG
       PQClear( pResult )
 
     * Check for any error
@@ -600,13 +584,11 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    RETURN SL_UpdateFlags( nWA, aWAData )
 
-************************
+*************************
 function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
-************************
+*************************
 
-  LOCAL cSQL
-
-  DEBUG_ARGS
+   LOCAL cSQL
 
   cSQL := SQLPARAMS( aWAData[ WA_SL_GOTOID ], { AllTrim( Str( nRecNo ) ) }, ID_POSTGRESQL )
   
@@ -618,14 +600,9 @@ function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
  * TODO: Convert this routine into a C function to turn it faster ************** 
  * 22/12/2008 - 14:13:07
  */       
-***********************
 FUNCTION SL_GOTOP_PGSQL( nWa, aWAData )
-***********************
-
    LOCAL cSQL 
-
-  DEBUG_ARGS
-
+    
    cSQL := SQLParams( "\? ORDER BY \? LIMIT \? ",; 
                       { aWAData[ WA_SL_GOTOP ], ;
                         SL_BUILDORDERBY( aWAData, MS_DOWN ), ;
@@ -639,14 +616,9 @@ FUNCTION SL_GOTOP_PGSQL( nWa, aWAData )
  * Perform DbGoTop() on current WA
  * 22/01/2009 - 12:07:04
  */       
-**************************
 FUNCTION SL_GOBOTTOM_PGSQL( nWa, aWAData ) && DbGoBottom()
-**************************
-
    LOCAL cSQL
    
-   DEBUG_ARGS
-
    cSQL := SQLParams( "\? ORDER BY \? LIMIT \? ",; 
                       { aWAData[ WA_SL_GOBOTTOM ], ;
                         SL_BUILDORDERBY( aWAData, MS_UP ), ;
@@ -656,14 +628,12 @@ FUNCTION SL_GOBOTTOM_PGSQL( nWa, aWAData ) && DbGoBottom()
             
   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_UP, EU_IGNORE_NONE )
 
-*************************
+**************************
 function SL_DELETED_PGSQL( nWa, aWAData, nRecno )
-*************************
+**************************
 
 local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 local cSql
-
-  DEBUG_ARGS
 
 cSql := "SELECT " + cRddSep + SL_COL_DELETED + cRddSep + " FROM " + SQLGetFullTableName( aWAData ) + ;
         ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) )
@@ -676,30 +646,25 @@ cSql := "SELECT " + cRddSep + SL_COL_DELETED + cRddSep + " FROM " + SQLGetFullTa
 
 return iif( !set( _SET_DELETED ) .and. SL_QuickQuery( aWAData, cSql ) = "T", .T., .F. )  && Rossine 07/10/08
 
-************************
+*************************
 function SL_DELETE_PGSQL( nWa, aWAData, nRecno )
-************************
+*************************
 
 local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 local cSql
 
-  DEBUG_ARGS
-  
 cSql :=iif( set( _SET_DELETED ), "UPDATE " + SQLGetFullTableName( aWAData ) + " SET " + cRddSep + SL_COL_DELETED + cRddSep + " = 'T'" + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ), ;
                                  "delete from " + SQLGetFullTableName( aWAData ) + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ) )
-  DEBUG cSql
 
 return SL_ExecQuery( aWAData, cSql )
 
-**************************
+***************************
 function SL_RECCOUNT_PGSQL( nWa, aWAData )
-**************************   
+***************************   
    LOCAL cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    LOCAL cField  := cRddSep + SL_PKFIELD( nWA ) + cRddSep
    LOCAL cTemp   := '0'
    LOCAL cSql
-
-  DEBUG_ARGS
 
    cSql := 'SELECT ' + cField +;
            ' FROM '  + SQLGetFullTableName( aWAData ) + ;
@@ -714,16 +679,14 @@ function SL_RECCOUNT_PGSQL( nWa, aWAData )
  * Retrieve a value from original buffer
  * 22/12/2008 - 16:56:02
  */
-**************************
+***************************
 function SL_GETVALUE_PGSQL( nWa, aWAData, nField, lHidden )
-**************************
+***************************
 
    LOCAL aField, nRow
    
    DEFAULT lHidden TO .F.
-
-  DEBUG_ARGS
-
+   
    /* Include hidden fields? */
    IF !lHidden
       nField := Atail( aWAData[ WA_STRUCT, nField ] )
@@ -731,22 +694,20 @@ function SL_GETVALUE_PGSQL( nWa, aWAData, nField, lHidden )
    
    aField := aWAData[ WA_REAL_STRUCT, nField ]
    nRow   := aWAData[ WA_BUFFER_POS ]
-
+   
    IF Valtype( aWAData[ WA_RESULT ] ) == 'P'
       RETURN PQGetValueEx( nWA, aWAData[ WA_RESULT ], nRow, nField, aField )
    End
 
    RETURN nil
 
-**************************
+***************************
 function SL_PUTVALUE_PGSQL( nWa, aWAData, xValue, nField )
-**************************
+***************************
 
 local cSql
 local s_aStruct := aWAData[ WA_STRUCT ]
 local cRddSep   := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
-
-  DEBUG_ARGS
 
 cSql := "UPDATE " + SQLGetFullTableName( aWAData ) + " SET "
 cSql += cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep + " = "
@@ -783,13 +744,11 @@ cSql += AllTrim( Str( aWAData[WA_RECNO] ) )
 
 return SL_ExecQuery( aWAData, cSql )
 
-**********************
+***********************
 function SL_INFO_PGSQL( nWa, aWAData )
-**********************
+***********************
 
 local cSql
-
-  DEBUG_ARGS
 
    HB_SYMBOL_UNUSED( nWA )
 **   cSql := "select * from pg_locks"
@@ -826,14 +785,12 @@ cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrow
 
 return SL_QuickQuery( aWAData, cSql )
 
-**********************
+***********************
 function SL_LOCK_PGSQL( nWa, aWAData, nRecno, s_aMyLocks )
-**********************
+***********************
 
 local cSql,n
 local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
-
-  DEBUG_ARGS
 
 **   cSql := "select waiting from pg_stat_activity where waiting = 't' and current_query = 'SELECT * FROM " + SQLGetFullTableName( aWAData ) + ' where ' + cRddSep + SL_PKFIELD( nWA ) + cRddSep + ' = ' + alltrim(str(aWAData[ WA_RECNO ])) + " FOR UPDATE'"
 **   cSql := "select * from pg_stat_activity" && where current_query = 'SELECT * FROM " + SQLGetFullTableName( aWAData ) + ' where ' + cRddSep + SL_PKFIELD( nWA ) + cRddSep + ' = ' + alltrim(str(aWAData[ WA_RECNO ])) + " FOR UPDATE'"
@@ -888,28 +845,24 @@ endif
 
 return SL_ExecQuery( aWAData, cSql, , .F. )
 
-**********************
+***********************
 function SL_PACK_PGSQL( nWa, aWAData )
-**********************
+***********************
 
    LOCAL cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    LOCAL cSql
-
-  DEBUG_ARGS
 
    HB_SYMBOL_UNUSED( nWA )
    cSql := "DELETE FROM " + SQLGetFullTableName( aWAData ) + " where " + cRddSep + SL_COL_DELETED + cRddSep + " = 'T'" &&  // __dbPack()"
 
 return SL_ExecQuery( aWAData, cSql )
 
-*********************
+**********************
 function SL_ZAP_PGSQL( nWa, aWAData )
-*********************
+**********************
 
 local cSql, cSequenceField := "sequencia_" + SL_PKFIELD( nWa )
  
-  DEBUG_ARGS
-
 **   msgstop( cSql, "cSql ZAP SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
 
 cSql := "DELETE FROM " + SQLGetFullTableName( aWAData ) && + " // __dbZap()"
@@ -930,24 +883,20 @@ cSql := 'VACUUM FULL ANALYZE ' + SQLGetFullTableName( aWAData )
 
 return SL_ExecQuery( aWAData, cSql )
 
-***************************
+****************************
 function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSizes, aTypes )
-***************************
-
+****************************
    LOCAL aValues
-   LOCAL cSql
-   LOCAL cIdx
-   LOCAL cBag
-   LOCAL cTag
-   LOCAL lDesc
-   LOCAL n
+	LOCAL cSql
+	LOCAL cIdx
+	LOCAL cBag
+	LOCAL cTag
+	LOCAL lDesc
+	LOCAL n
    LOCAL pSQL 		:= aWAData[ WA_POINTER ]:pDB
    LOCAL nVersion := aWAData[ WA_VERSION  ]
    LOCAL oError
    LOCAL aOrderInfo
-   local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
-
-  DEBUG_ARGS
 
    // Add ID_PREFIX to void conflit with reserved words (vailton - 15/01/2009 - 22:08:54)
    cIdx := ID_PREFIX + lower(aOrderCreateInfo [UR_ORCR_BAGNAME]) // + iif( empty( aOrderCreateInfo [UR_ORCR_TAGNAME] ), "", "_" ) + lower(aOrderCreateInfo [UR_ORCR_TAGNAME])
@@ -994,7 +943,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 			 cSql += " ASC "
 		 End
 
- 		 IF nVersion > 080300
+  		 IF nVersion > 080300
 		 	cSql += " NULLS FIRST" + iif( n < len(aFields), ",", "" )
 		 ELSE
 		 	cSql += iif( n < len(aFields), ",", "" )
@@ -1002,23 +951,11 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    End
    
    cSql += " )"
-
-   DEBUG aOrderCreateInfo [UR_ORCR_CONDINFO]
-
-   if set( _SET_DELETED ) && Rossine 27/06/09
-      cSql += " WHERE " + cRddSep + SL_COL_DELETED + cRddSep + " = ' '"
-   endif
-
+   
    if valtype( aOrderCreateInfo [UR_ORCR_CONDINFO] ) == "A" .and. !empty( aOrderCreateInfo [UR_ORCR_CONDINFO,DBOI_CONDITION] )
-      if !set( _SET_DELETED ) && Rossine 27/06/09
-         cSql += " WHERE "
-      else
-         cSql += " AND "
-      endif
+      cSql += " WHERE "
       cSql += lower( SQLTranslate( aOrderCreateInfo [UR_ORCR_CONDINFO,DBOI_EXPRESSION] ) )
    endif   
-   
-   DEBUG cSql   
    
    PGSQL_QUERY_LOG( pSQL, cSql,, True, True )
    
@@ -1057,9 +994,9 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    
    RETURN SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo ) 
 
-****************************
+*****************************
 function SL_ORDDESTROY_PGSQL( nWa, aWAData, aOrderInfo )
-****************************
+*****************************
 
    LOCAL cSql
    LOCAL aIndex
@@ -1068,8 +1005,6 @@ function SL_ORDDESTROY_PGSQL( nWa, aWAData, aOrderInfo )
    LOCAL lRet := .F.
    
    HB_SYMBOL_UNUSED( nWA )
-
-   DEBUG_ARGS
    
    cTag := aOrderInfo[ UR_ORI_TAG ]
    
@@ -1110,10 +1045,7 @@ return lRet
  * Open a existing index into current WA
  * 15/01/2009 - 19:55:13
  */
-***************************
 FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
-***************************
-
    LOCAL cFile := aOrderInfo[ UR_ORI_BAG ] 
    LOCAL cTag  := aOrderInfo[ UR_ORI_TAG ]
    LOCAL aIndexes
@@ -1124,8 +1056,6 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
    
    HB_SYMBOL_UNUSED( nWA )
    
-   DEBUG_ARGS
-
    cSQL := 'SELECT * FROM "' + aWAData[ WA_SCHEMA ] + '"."' + SL_INDEX
    cSQL += '" WHERE IndexFile = '
    cSQL += "'" + ID_PREFIX + cFile + "' "
@@ -1183,9 +1113,9 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
    End   
    RETURN SUCCESS
 
-*****************************
+******************************
 function SL_WRITERECORD_PGSQL( nWa, aWAData )
-*****************************
+******************************
    
    local cRddSep   := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    local lApp      := aWAData[ WA_APPEND ]
@@ -1198,9 +1128,6 @@ function SL_WRITERECORD_PGSQL( nWa, aWAData )
    local nRow
    
    HB_SYMBOL_UNUSED( nWA )
-   
-   DEBUG_ARGS
-   
    if lApp
       cSql := "INSERT INTO " + SQLGetFullTableName( aWAData ) + " ( "
    else
@@ -1290,16 +1217,14 @@ function SL_WRITERECORD_PGSQL( nWa, aWAData )
    
 return SL_ExecQuery( aWAData, cSql )
 
-****************************
+********************************
 FUNCTION SL_QuickQuery_PGSQL( aWAData, cQuery, xResult )
-****************************
+********************************
 
 local pQuery, temp, aTemp, x, y   
 local oSql := aWAData[ WA_POINTER ]
 
 **memowrit( "sql.txt", cQuery )
-
-  DEBUG_ARGS
 
 pQuery := PQexec( oSql:pDB, cQuery )
 if PQresultstatus( pQuery ) == PGRES_TUPLES_OK
@@ -1326,13 +1251,11 @@ PQclear( pQuery )
 return NIL       
 
 /* Pega resultado de uma sequence */   
-********************
+*********************
 function SL_Sequence( Sequence_name )  && Rossine 07/10/08
-********************
+*********************
 
 local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
-
-  DEBUG_ARGS
 
 return Val( SL_QuickQuery( aWAData, "SELECT nextval(" + SL_DataToSql( sequence_name ) + ")" ) )
 
@@ -1340,13 +1263,11 @@ return Val( SL_QuickQuery( aWAData, "SELECT nextval(" + SL_DataToSql( sequence_n
    #define PQTRANS_INTRANS  2
 #endif
 
-****************************
+********************************
 function SL_STARTTRANS_PGSQL( aWAData )  && Rossine 07/10/08
-****************************
+********************************
 
 local oSql := aWAData[ WA_POINTER ]
-
-  DEBUG_ARGS
 
 if PQtransactionstatus( oSql:pDB ) != PQTRANS_INTRANS
    oSql:StartTransaction()
@@ -1354,26 +1275,20 @@ endif
 
 return NIL
 
-**************************
+******************************
 function SL_ENDTRANS_PGSQL( aWAData )  && Rossine 07/10/08
-**************************
+******************************
 
 local oSql := aWAData[ WA_POINTER ]
-
-  DEBUG_ARGS
 
 SL_COMMIT()
 
 return ( PQtransactionstatus( oSql:pDB ) == PQTRANS_INTRANS )          
 
-****************************
+********************************
 function SL_CLEARINDEX_PGSQL( aWAData, lAll )
-****************************
-
    LOCAL aIndex, cSql, n
    
-  DEBUG_ARGS
-
    cSql := "select indextag from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX
    
    if !lAll
@@ -1391,23 +1306,19 @@ function SL_CLEARINDEX_PGSQL( aWAData, lAll )
    
 return NIL
 
-**************************
+******************************
 function SL_ROLLBACK_PGSQL( aWAData )
-**************************
+******************************
 
 local oSql := aWAData[ WA_POINTER ]
-
-  DEBUG_ARGS
 
 return oSql:rollback()
    
-***************************
+*******************************
 function SL_EXECQUERY_PGSQL( aWAData, cQuery, oQuery, lRet )
-***************************
+*******************************
 
 local oSql := aWAData[ WA_POINTER ]
-
-  DEBUG_ARGS
 
 oQuery                   := oSql:Execute( cQuery )
 lRet                     := oQuery:neterr()
@@ -1415,45 +1326,38 @@ aWAData[ WA_POINTER ]    := oSql       // TODO: Faz setindo isto aqui???  (( o_O
 
 return NIL
 
-*******************************
+***********************************
 function SL_ExecQuery_MSG_PGSQL( oQuery, cMsg, cQuery )
-*******************************
+***********************************
 
    HB_SYMBOL_UNUSED( oQuery )
    HB_SYMBOL_UNUSED( cMsg )
    HB_SYMBOL_UNUSED( cQuery )
    
-  DEBUG_ARGS
-
-
 *msgstop( cMsg + CRLF + cQuery + CRLF + CRLF + ;
 *         "        <<< MENSAGEM DE ERRO >>>" + CRLF + oQuery:ErrorMsg(), "AtenÁ„o - Proc: " /* + PROCESSO() */ )
 
 return NIL
 
-*******************************
+***********************************
 function SL_ExecQuery_DES_PGSQL( oQuery )
-*******************************
-
-  DEBUG_ARGS
+***********************************
 
 oQuery:destroy()
 
 return NIL
 
-************************
+****************************
 function SL_COMMIT_PGSQL( aWAData )
-************************
+****************************
 
 local oSql := aWAData[ WA_POINTER ]
 
-  DEBUG_ARGS
-
 return oSql:Commit()
 
-**********************
+***********************
 function SL_SEEK_PGSQL( nWa, aWAData, lSoftSeek, cKey, lFindLast )
-**********************
+***********************
 
    local s_aStruct := aWAData[ WA_STRUCT ]
    local cRddSep   := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
@@ -1464,9 +1368,7 @@ function SL_SEEK_PGSQL( nWa, aWAData, lSoftSeek, cKey, lFindLast )
    HB_SYMBOL_UNUSED( nWa )
    HB_SYMBOL_UNUSED( lSoftSeek )
    HB_SYMBOL_UNUSED( lFindLast )
-
-  DEBUG_ARGS
-
+   
    cKeyTmp := cKey
    
    if len( aIndexKey ) > 0
@@ -1492,7 +1394,7 @@ function SL_SEEK_PGSQL( nWa, aWAData, lSoftSeek, cKey, lFindLast )
    endif
    
    cSql := "select * from " + SQLGetFullTableName( aWAData ) + " where " + cFields + " and " + ;
-                              cRddSep + SL_COL_DELETED + cRddSep + " = ' '" && order by " + iif( lFindLast, "DESC", "ASC" ) + " NULLS FIRST"
+                              cRddSep + "sl_deleted" + cRddSep + " = ' '" && order by " + iif( lFindLast, "DESC", "ASC" ) + " NULLS FIRST"
    
    aRet := SL_QuickQuery( aWAData, cSql )
 
@@ -1502,9 +1404,9 @@ return iif( len(aRet) > 0, { .T., val(aRet[1,aWAData[ WA_FLD_RECNO ]]) } , { .F.
  * Executa o SQL e retorna um ARRAY
  */
 
-**************************
+******************************
 function SL_PGSQL_SQLARRAY( pConn, cSQL, aFieldNames, lAssoc )
-**************************
+******************************
 
    LOCAL aResult := {}
    LOCAL aInfo
@@ -1585,13 +1487,11 @@ function SL_PGSQL_SQLARRAY( pConn, cSQL, aFieldNames, lAssoc )
 
    RETURN aResult
 
-******************************
+*******************************
 function SL_GETFIELDTYPE_PGSQL( cSqlFieldType )   && Rossine 23/12/08
-******************************
+*******************************
 
    local nDBFFieldType := 0
-
-  DEBUG_ARGS
  
    do case
       case cSqlFieldType $ [C,CHAR]  && Rossine 22/10/08
@@ -1613,17 +1513,15 @@ function SL_GETFIELDTYPE_PGSQL( cSqlFieldType )   && Rossine 23/12/08
  
 return nDBFFieldType
 
-******************************
+*******************************
 function SL_GETFULLTABLE_PGSQL( aWAData )
-******************************
-
-  DEBUG_ARGS
+*******************************
 
 return '"' + aWAData[ WA_SCHEMA ] + '"."' + aWAData[ WA_TABLENAME ] + '"'
 
-*****************************
+******************************
 function SL_DELETETABLE_PGSQL( snConnHandle, cTableName, cSchema )
-*****************************
+******************************
 
    local lRet  := .F.
    local oSql  := SL_GETCONNINFO( snConnHandle )[SL_CONN_POINTER]
@@ -1633,8 +1531,6 @@ function SL_DELETETABLE_PGSQL( snConnHandle, cTableName, cSchema )
    local cSequenceField 
    
    DEFAULT cSchema := "public"
-
-  DEBUG_ARGS
 
    /* Aqui o RDD deve converter o nome do arquivo para um formato correto dentro do BD */
    cTableName := SQLAdjustFn( cTableName )
