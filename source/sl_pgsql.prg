@@ -941,7 +941,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    LOCAL cTag
    LOCAL lDesc
    LOCAL n
-   LOCAL pSQL       := aWAData[ WA_POINTER ]:pDB
+   LOCAL pSQL 		:= aWAData[ WA_POINTER ]:pDB
    LOCAL nVersion := aWAData[ WA_VERSION  ]
    LOCAL oError
    LOCAL aOrderInfo
@@ -987,18 +987,18 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    /* Montamos o comando SQL */      
    FOR n = 1 TO Len(aFields)
        cSql += '"' + lower( aFields[n] ) + '"' 
-       
-       IF lDesc
-           cSql += " DESC "
-         ELSEIF nVersion > 080300
-          cSql += " ASC "
-       End
+		 
+		 IF lDesc
+		 	 cSql += " DESC "
+  		 ELSEIF nVersion > 080300
+			 cSql += " ASC "
+		 End
 
-        IF nVersion > 080300
-          cSql += " NULLS FIRST" + iif( n < len(aFields), ",", "" )
-       ELSE
-          cSql += iif( n < len(aFields), ",", "" )
-       End
+ 		 IF nVersion > 080300
+		 	cSql += " NULLS FIRST" + iif( n < len(aFields), ",", "" )
+		 ELSE
+		 	cSql += iif( n < len(aFields), ",", "" )
+		 End
    End
    
    cSql += " )"

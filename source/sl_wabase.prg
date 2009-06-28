@@ -1729,15 +1729,6 @@ FUNCTION SL_ORDLSTFOCUS( nWA, aOrderInfo )  && XBASE - DBSETORDER() / OrdSetFocu
    aWAData[ WA_INDEX_CURR ] := nOrder
    return SUCCESS
 
-************************
-#ifdef F
-STATIC;
-FUNCTION SL_SEEK()
-
-   DEBUG_ARGS
-
-   RETURN SUCCESS
-#else
 STATIC;
 FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    LOCAL aWAData  := USRRDD_AREADATA( nWA )
@@ -1753,8 +1744,13 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    LOCAL nIndexKeyLength            // Total lenght of indexkey() value
    LOCAL bIsCustom
    LOCAL cType                      // Valtype() for current value for seek
-   LOCAL SQL                        // Final where statement
+   LOCAL cWhere
+   LOCAL cOrderBy
+   LOCAL cLimit
+   LOCAL nLimit
+   LOCAL cSQL                       // Final where statement
    LOCAL aValues                    // uKey parsed into converted values
+   LOCAL aRules                     // Logical rules to find a record
    LOCAL i,p                        // Temporary memvars
 
    DEBUG_ARGS
@@ -1786,7 +1782,11 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    ForceSoftSeek  := FALSE
    bNexted        := TRUE
    bIsCustom      := FALSE
-   SQL            := ''
+   cWhere         := ''
+   cOrderBy       := SL_BUILDORDERBY( aWAData, MS_DOWN )
+   nLimit         := aWAData[ WA_PACKET_SIZE ]
+   cLimit         := " LIMIT " + STR( nLimit )
+   cSQL           := ''
 
    DEBUG aCurrIdx
    DEBUG aFields
@@ -1872,6 +1872,13 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
           AAdd( aValues, Substr( uKey, 01, aCurrIdx[ IDX_KEYSIZES, i] ) )
           uKey := Substr( uKey, aCurrIdx[ IDX_KEYSIZES, i] +1 )
 
+        * Add str sep to date
+          IF aField[ DBS_TYPE ] == 'D'
+             IF Len( Atail( aValues ) ) == 8
+                aValues[ Len( aValues ) ]:= "'" + Atail( aValues ) + "'"
+             End
+          End
+
           DEBUG "#" + SQLNTrim(i) + " Field: ", aCurrIdx[ IDX_FIELDS, i], ;
                   "Type:" , aField[ DBS_TYPE ], ;
                   "Size:" , Str( aCurrIdx[ IDX_KEYSIZES, i], 3 ), ;
@@ -1881,8 +1888,34 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
       
       DEBUG "Parsed keys --->", aValues
 
+    * Need to find an exact query?
       IF !ForceSoftSeek .AND. !bSoftSeek
-         * Find an exact query!
+         DEBUG "* Find an exact query!"
+         
+       * TEST ONE:
+         aRules  := SL_BuildWhereRules( aWAData, MS_SEEK )
+         DEBUG aRules
+
+         aRules[1] := aValues
+         DEBUG aRules
+
+         IF Empty( aRules )
+            cWhere := SL_BuildWhereStr( nWA, aWAData, .T., aRules, MS_SEEK )
+         ELSE
+            cWhere := SL_BuildWhereStr( nWA, aWAData, .T., aRules, MS_SEEK )
+            cSQL   := "(SELECT * FROM (" + aWAData[ WA_SL_GOTOP ] + " WHERE " + cWhere + " ORDER BY " + cOrderBy + cLimit + ") TMP1"
+
+            i := 1
+
+            WHILE !Empty( aRules[2] )
+                i++
+                cWhere := SL_BuildWhereStr( nWA, aWAData, .F., aRules, MS_SEEK )
+                cSQL += ")" + CRLF + ' UNION ' + CRLF
+                cSQL += "(SELECT * FROM (" + aWAData[ WA_SL_GOTOP ] + " WHERE " + cWhere + " ORDER BY " + cOrderBy + cLimit + ") TMP" + alltrim(str(i))
+            End
+
+            cSQL += ") ORDER BY " + cOrderBy + cLimit
+         End
       End
    End
 
@@ -1907,10 +1940,10 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
          IF ( aField[DBS_TYPE] $ 'CM' )
 
             IF ( uKey == "" )
-               SQL += '1=1'; p:=1
+               cWhere += '1=1'; p:=1
                
             ELSE
-               SQL += cFieldN + ' LIKE '
+               cWhere += cFieldN + ' LIKE '
 
                /*
                 * Implementamos SOFT SEEK, tipo: SEEK 'JOAA' faz
@@ -1918,20 +1951,20 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
                 * 21/12/2006 11:03:55
                 */
                IF p == 00
-                  DEBUG "SQL += SQL_ANY2SEEK( ",uKey,",",bSoftSeek,",",aField[DBS_TYPE]," )"
+                  DEBUG "cWhere += SQL_ANY2SEEK( ",uKey,",",bSoftSeek,",",aField[DBS_TYPE]," )"
 
                   IF bIsCustom
                      uKey := Transform( uKey, "" )
                   End
 
                   IF VALTYPE( uKey ) == aField[DBS_TYPE]
-                     SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek, aField[DBS_TYPE] )
+                     cWhere += SQL_ANY2SEEK( uKey,,, bSoftSeek, aField[DBS_TYPE] )
                   ELSE
-                     SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek, NIL )
+                     cWhere += SQL_ANY2SEEK( uKey,,, bSoftSeek, NIL )
                   End
 
                   IF bNexted
-                     SQL += ' OR ' + cRddSep + aField[DBS_NAME] + cRddSep + ' >= '
+                     cWhere += ' OR ' + cRddSep + aField[DBS_NAME] + cRddSep + ' >= '
                   ELSE
                      p := 1
                   End
@@ -1940,50 +1973,50 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
 
          ELSEIF ( aField[DBS_TYPE] == 'D' )
             IF Empty( uKey )
-               SQL += '1=1'; p:=1
+               cWhere += '1=1'; p:=1
             ELSE
-               SQL += cRddSep + aField[DBS_NAME] + cRddSep
-               SQL += '>='
+               cWhere += cRddSep + aField[DBS_NAME] + cRddSep
+               cWhere += '>='
             End
          ELSE
-            SQL += cFieldN + '>='
+            cWhere += cFieldN + '>='
             bSoftSeek := .F.
          End
       ELSE
-         SQL += cFieldN
+         cWhere += cFieldN
 
          IF ( ValType( uKey ) == 'D' .or. aField[DBS_TYPE] == 'D' ) .and. Empty( uKey )
-            SQL += ' IS NULL OR ' + cFieldN + " = '" + SL_NULLDATE + "'"
+            cWhere += ' IS NULL OR ' + cFieldN + " = '" + SL_NULLDATE + "'"
             p := 1
          ELSE
-            SQL += '='
+            cWhere += '='
          End
       End
 
       IF p == 00
-         DEBUG "SQL += SQL_ANY2SEEK( ",uKey,",",bSoftSeek,",",aField[DBS_TYPE]," )"
+         DEBUG "cWhere += SQL_ANY2SEEK( ",uKey,",",bSoftSeek,",",aField[DBS_TYPE]," )"
 
          IF bIsCustom
             uKey := Transform( uKey, "" )
          End
 
          IF VALTYPE( uKey ) == aField[DBS_TYPE]
-            SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek, aField[DBS_TYPE] )
+            cWhere += SQL_ANY2SEEK( uKey,,, bSoftSeek, aField[DBS_TYPE] )
          ELSE
-            SQL += SQL_ANY2SEEK( uKey,,, bSoftSeek )
+            cWhere += SQL_ANY2SEEK( uKey,,, bSoftSeek )
          End
       End
-   End
-   
-   DEBUG "WHERE final:", SQL
-   
-   SQL := aWAData[ WA_SL_GOTOP ] + ;
-            " WHERE " + SQL + ;
-            " ORDER BY " + SL_BUILDORDERBY( aWAData, MS_DOWN ) + ;
-            " LIMIT 1" //+ SQLNTrim(aWAData[ WA_PACKET_SIZE ])
 
-   DEBUG "SQL final:", SQL
-   IF PGSQL_ExecAndUpdate( nWa, aWAData, SQL, MS_DOWN, EU_IGNORE_NONE + EU_EOF_ON_EMPTY ) != SUCCESS
+      DEBUG "WHERE final:", cWhere
+
+      cSQL := aWAData[ WA_SL_GOTOP ] + ;
+               " WHERE " + cWhere + ;
+               " ORDER BY " + cOrderBy + ;
+               " LIMIT 1" //+ SQLNTrim(aWAData[ WA_PACKET_SIZE ])
+   End
+
+   DEBUG "SQL final:", cSQL
+   IF PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_NONE + EU_EOF_ON_EMPTY ) != SUCCESS
       RETURN FAILURE
    End
    
@@ -1994,8 +2027,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
       USRRDD_SETFOUND( nWA, aWAData[ WA_FOUND ] )
    End
    RETURN SUCCESS
-#endif
-   
+
 /*
 
 **   HB_SYMBOL_UNUSED( nWA )
@@ -3007,8 +3039,12 @@ FUNCTION SL_BuildOrderBy( aWAData, nDirection )
  * 19/03/2009 - 18:31:04
  */   
 FUNCTION SL_BuildWhereRules( aWAData, nDirection )
-   LOCAL aCurrIdx, aRules, aValues
-   LOCAL nFCount, ID, i, p
+   LOCAL lSeek := (( nDirection == MS_SEEK ))
+   LOCAL aCurrIdx
+   LOCAL aRules
+   LOCAL aValues
+   LOCAL nFCount
+   LOCAL ID, i, p
 
    DEBUG nDirection
    
@@ -3018,18 +3054,23 @@ FUNCTION SL_BuildWhereRules( aWAData, nDirection )
    End
    
    aCurrIdx := aWAData[ WA_INDEX, aWAData[ WA_INDEX_CURR ] ]
-
    nFCount  := Len( aCurrIdx[ IDX_FIELDS ] )       
-   aValues  := Array( nFCount )
    ID       := aWAData[ WA_SYSTEMID ]
 
 #ifdef SL_DEBUG
    IF ( nDirection == MS_DOWN )
       DEBUG "Estamos descendo no recorset..."
+   ELSEIF ( nDirection == MS_SEEK )
+      DEBUG "Estamos localizando um registro no recorset..."
    ELSE
       DEBUG "Estamos subindo no recorset..."
    End
 #endif   
+ * On Seek we have to find next value... 27/06/2009 - 23:59:59
+   IF lSeek
+      nDirection := MS_DOWN
+   End
+
    aRules := {}
    
    FOR i := 1 TO nFCount - 2
@@ -3044,28 +3085,35 @@ FUNCTION SL_BuildWhereRules( aWAData, nDirection )
       AADD( aRules, IIF( nDirection == MS_DOWN, ' >', ' <' ) )
    End
 
-   DEBUG "Regras concluídas ..:", aRules      
-   
-   FOR i := 1 TO nFCount
-     * Get index fieldname position
-       p := aCurrIdx[ IDX_FIELDPOS, i ]  
-       
-       SL_GETVALUE_WA( aWAData, p, @aValues[i] )
-       DEBUG "Valor original ..:", aValues[i]
+   DEBUG "Regras concluídas ..:", aRules
 
-       aValues[i] := SQLITEM2STR( aValues[i], ID )
-       DEBUG "Valor convertido :", aValues[i]  
+   IF lSeek
+      * Don't convert any value! - 28/06/2009 - 00:01:27
+   ELSE
+      aValues := Array( nFCount )
+
+      FOR i := 1 TO nFCount
+        * Get index fieldname position
+          p := aCurrIdx[ IDX_FIELDPOS, i ]
+
+          SL_GETVALUE_WA( aWAData, p, @aValues[i] )
+          DEBUG "Valor original ..:", aValues[i]
+
+          aValues[i] := SQLITEM2STR( aValues[i], ID )
+          DEBUG "Valor convertido :", aValues[i]
+      End
    End
 
    DEBUG "Valores convertidos :", aValues
-   RETURN { aValues, aRules } 
+   RETURN { aValues, aRules }
 
 /*
  * Monta as informações básicas para a montagem da clausula WHERE no comando SQL 
  * 19/03/2009 - 18:31:04
  */   
 FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
-   LOCAL ID, sep, fld, pos, typ, i
+   LOCAL lSeek   := (( nDirection == MS_SEEK ))
+   LOCAL cWhere  := '('
    LOCAL aCurrIdx
    LOCAL aFields
    LOCAL szRecno
@@ -3073,13 +3121,27 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
    LOCAL aRules
    LOCAL aValues
    LOCAL nFCount
-   LOCAL cWhere  := '('
+   LOCAL ID, sep, fld, pos, typ, i
 
    DEBUG nWA, lFirst, aDefaultRules, nDirection
 
    ID  := aWAData[ WA_SYSTEMID ]
    sep := SQLSYS_SEP( ID )
 
+#ifdef SL_DEBUG
+   IF ( nDirection == MS_DOWN )
+      DEBUG "Estamos descendo no recorset..."
+   ELSEIF ( nDirection == MS_SEEK )
+      DEBUG "Estamos localizando um registro no recorset..."
+   ELSE
+      DEBUG "Estamos subindo no recorset..."
+   End
+#endif
+ * On Seek we have to find next value... 27/06/2009 - 23:59:59
+   IF lSeek
+      nDirection := MS_DOWN
+   End
+   
    IF aWAData[ WA_INDEX_CURR ] == 0 .OR. Empty( aDefaultRules )
       *
    ELSE  
@@ -3097,7 +3159,6 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
          ELSE
             aFill( aRules, '<=' )
          End
-         
       ELSE
          aRules := aDefaultRules[2]
       End
@@ -3117,7 +3178,7 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
             IF typ == 'C'
                cWhere += fld + aRules[i] + "'" + aValues[i] + "' "
             ELSE
-               cWhere += fld + aRules[i] +aValues[i] + ' '
+               cWhere += fld + aRules[i] + aValues[i] + ' '
             End
          End
          
@@ -3127,12 +3188,10 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
       End
    End
       
-   IF lFirst .OR. aWAData[ WA_INDEX_CURR ] == 0
+   IF ( lFirst .OR. aWAData[ WA_INDEX_CURR ] == 0 )
       szRecno := AWAData[ WA_REAL_STRUCT, AWAData[ WA_FLD_RECNO ], DBS_NAME ]
-//DEBUG AWAData[ WA_REAL_STRUCT ]
-//DEBUG AWAData[ WA_FLD_RECNO ]
       SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @CurrRowId, .T. )
-      
+
       IF aWAData[ WA_INDEX_CURR ] == 0
          // Havia um BUG aqui antes que não testava o conteudo desta variavel,
          // foi ajustado em 25/05/2009 - 10:49:06 - vailton
@@ -3147,7 +3206,7 @@ FUNCTION SL_BuildWhereStr( nWA, aWAData, lFirst, aDefaultRules, nDirection )
          ELSE
             cWhere += ' AND ' + sep + szRecno + sep + ' <= ' + SQLITEM2STR( CurrRowId ) +' )'
          End
-      End                              
+      End
    ELSE
       cWhere += ")"
       

@@ -40,6 +40,7 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto EXIT
 
 :ERRO_1
+
    @echo.
    @echo.
    @echo Atencao, copie a seguinte DLL para dentro dessa pasta: LIBPQ.DLL
@@ -85,3 +86,4 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto EXIT
    
 :EXIT
+
