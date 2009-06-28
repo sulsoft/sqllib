@@ -150,3 +150,20 @@ ALTER TABLE sqlindexes_sl_rowid_seq OWNER TO postgres;
 SL_INDEXE, SL_DATABASE, SL_TABLE, SL_CREATEDB
 
 ---------------------------------------------------------------------------------------------------------------
+
+11º Rossine, reveja este trecho do codigo em SL_ORDCREATE_PGSQL() que necessita
+de sua atençaõ:
+
+   DEBUG aOrderCreateInfo [UR_ORCR_CONDINFO]
+
+   //
+   // Rossine qual a vantagem de se fazer um filtro deste tipo direto no indice,
+   // se o programador pode desabilitar o SET DELETED e ainda assim tentar localizar
+   // algum registro na tabela? Sinceramente acho isto algo de funcionalidade duvidosa
+   // ....
+   // TODO: Revisar a necessidade deste IF
+   //
+
+   if set( _SET_DELETED ) && Rossine 27/06/09
+      cSql += " WHERE " + cRddSep + SL_COL_DELETED + cRddSep + " = ' '"
+   endif

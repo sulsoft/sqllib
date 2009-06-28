@@ -995,15 +995,28 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 		 End
 
  		 IF nVersion > 080300
-		 	cSql += " NULLS FIRST" + iif( n < len(aFields), ",", "" )
+		 	cSql += " NULLS FIRST, "
 		 ELSE
-		 	cSql += iif( n < len(aFields), ",", "" )
+		 	cSql += ","
 		 End
    End
    
-   cSql += " )"
+   // Sem esta linha abaixo os indices gerados de nada ajudaram, visto que o
+   // banco de dados sempre irá necessitar dos dados ordenados pela posicao
+   // correta do registro e sendo assim, terá que reorganizar os dados na
+   // memoria... 28/06/2009 - 01:51:17
+   cSql += " " + AWAData[ WA_REAL_STRUCT, AWAData[ WA_FLD_RECNO ], DBS_NAME ] +;
+           " )"
 
    DEBUG aOrderCreateInfo [UR_ORCR_CONDINFO]
+
+   //
+   // Rossine qual a vantagem de se fazer um filtro deste tipo direto no indice,
+   // se o programador pode desabilitar o SET DELETED e ainda assim tentar localizar
+   // algum registro na tabela? Sinceramente acho isto algo de funcionalidade duvidosa
+   // ....
+   // TODO: Revisar a necessidade deste IF
+   //
 
    if set( _SET_DELETED ) && Rossine 27/06/09
       cSql += " WHERE " + cRddSep + SL_COL_DELETED + cRddSep + " = ' '"

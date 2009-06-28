@@ -1891,7 +1891,20 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
     * Need to find an exact query?
       IF !ForceSoftSeek .AND. !bSoftSeek
          DEBUG "* Find an exact query!"
+       * TEST ONE:
+         aRules  := Array( 2 )
+         aRules[1] := aValues
+         aRules[2] := Array( Len( aValues ) )
          
+         aFill( aRules[2], '=' )
+         DEBUG aRules
+         
+         cWhere := SL_BuildWhereStr( nWA, aWAData, .F., aRules, MS_SEEK )
+         cSQL   := aWAData[ WA_SL_GOTOP ] + ;
+                    " WHERE "    + cWhere + ;
+                    " ORDER BY " + cOrderBy + ;
+                    " LIMIT 1"
+      ELSE
        * TEST ONE:
          aRules  := SL_BuildWhereRules( aWAData, MS_SEEK )
          DEBUG aRules
@@ -1901,6 +1914,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
 
          IF Empty( aRules )
             cWhere := SL_BuildWhereStr( nWA, aWAData, .T., aRules, MS_SEEK )
+            // ??? Testar isto !!!
          ELSE
             cWhere := SL_BuildWhereStr( nWA, aWAData, .T., aRules, MS_SEEK )
             cSQL   := "(SELECT * FROM (" + aWAData[ WA_SL_GOTOP ] + " WHERE " + cWhere + " ORDER BY " + cOrderBy + cLimit + ") TMP1"
