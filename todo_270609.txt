@@ -167,3 +167,18 @@ de sua atençaõ:
    if set( _SET_DELETED ) && Rossine 27/06/09
       cSql += " WHERE " + cRddSep + SL_COL_DELETED + cRddSep + " = ' '"
    endif
+
+---------------------------------------------------------------------------------------------------------------
+
+12º Vailton, você achou algum problema na função SL_DELETETABLE() ? (RESOLVIDO em 29/06/09 por Rossine)
+    Porque tinha uma mensagem lá: msginfo( 'ajustar isto!!!' ) 
+
+---------------------------------------------------------------------------------------------------------------
+
+13º Criar a função SL_DELETEINDEX() (CRIADA em 29/06/09 por Rossine)
+
+---------------------------------------------------------------------------------------------------------------
+
+14º A função Recno() está retornando números errados. Obs: Ver Exemplo "samples\DEMO01.PRG"
+
+---------------------------------------------------------------------------------------------------------------
