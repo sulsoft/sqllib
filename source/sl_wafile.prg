@@ -59,11 +59,7 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
          Index := ID_PREFIX + StrTran( Alltrim(Index), "*", "%" ) && Rossine 29/06/09 - Incluido <ID_PREFIX + >
       End
 
-      IF pConn == NIL
-         aConn := SL_GETCONNINFO()
-      ELSE
-         aConn := SL_GETCONNINFO( pConn )
-      End
+      aConn := SL_GETCONNINFO( pConn )
 
       IF VALTYPE( aConn ) != 'A' 
          RETURN .F.
@@ -131,11 +127,7 @@ FUNCTION SL_TABLE( Table, pConn )
          Table := StrTran( Alltrim(Table), "*", "%" )
       End
 
-      IF pConn == NIL
-         aConn := SL_GETCONNINFO()
-      ELSE
-         aConn := SL_GETCONNINFO( pConn )
-      End
+      aConn := SL_GETCONNINFO( pConn )
 
       IF VALTYPE( aConn ) != 'A' 
          RETURN .F.
