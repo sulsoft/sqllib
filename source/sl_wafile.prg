@@ -56,7 +56,7 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
       IF Index == NIL
          RETURN .F.
       ELSE
-         Index := StrTran( Alltrim(Index), "*", "%" )
+         Index := ID_PREFIX + StrTran( Alltrim(Index), "*", "%" ) && Rossine 29/06/09 - Incluido <ID_PREFIX + >
       End
 
       IF pConn == NIL
@@ -357,3 +357,114 @@ function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCre
    endif
 
 return Res
+
+***********************
+function SL_DELETETABLE( cTableName, cSchema, pConn )  && Rossine 29/06/09
+***********************
+
+local aConn, cSequenceField, nConn, lError, lRet  := .F., Id
+
+   DEFAULT cSchema := "public"
+ 
+   DEBUG_ARGS
+
+   IF cTableName == NIL
+      RETURN .F.
+   ELSE
+      cTableName := StrTran( Alltrim(cTableName), "*", "%" )
+   End
+
+   cTableName := SQLAdjustFn( cTableName )
+
+   IF pConn == NIL
+      aConn := SL_GETCONNINFO()
+   ELSE
+      aConn := SL_GETCONNINFO( pConn )
+   End
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN .F.
+   End
+
+   nConn := aConn[ SL_CONN_POINTER ]
+   Id    := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        if SL_DELETEINDEX( cTableName, cSchema, pConn )
+           cSequenceField := cTableName + "_" + SL_COL_RECNO
+           cSql   := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
+           Ind    := SQLArray( cSql,, aConn,, ID )
+           lError := Len( Ind ) <> 00
+           if !lError
+              cSQL   := 'DROP TABLE "' + cSchema + '"."' + cTableName + '"'
+              Ind    := SQLArray( cSql,, aConn,, ID )
+              lError := Len( Ind ) <> 00
+              if !lError
+                 lRet := .T.
+              endif
+           endif
+        endif
+   OTHERWISE
+      RETURN .F.
+   End
+   
+return lRet
+
+***********************
+function SL_DELETEINDEX( cIndexname, cSchema, pConn ) && Rossine 29/06/09
+***********************
+
+local aConn, lError, nConn, lRet  := .F., Id, Ind
+
+   DEFAULT cSchema := "public"
+ 
+   DEBUG_ARGS
+
+   IF cIndexname == NIL
+      RETURN .F.
+   ELSE
+      cIndexname := StrTran( Alltrim(cIndexname), "*", "%" )
+   End
+
+   cIndexName := SQLAdjustFn( cIndexName )
+
+   IF pConn == NIL
+      aConn := SL_GETCONNINFO()
+   ELSE
+      aConn := SL_GETCONNINFO( pConn )
+   End
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN .F.
+   End
+
+   nConn := aConn[ SL_CONN_POINTER ]
+   Id    := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        cSql  := "DELETE FROM " + cSchema + "." + SL_INDEX + " where " + ;
+                                            '"indexfile" = ' + "'" + ID_PREFIX + cIndexname + "'"
+        Ind   := SQLArray( cSql,, aConn,, ID )
+        lRet  := Len( Ind ) = 00
+
+   OTHERWISE
+      RETURN .F.
+   End
+   
+return lRet
