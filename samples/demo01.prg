@@ -18,10 +18,10 @@ function Main()
    SET AUTOPEN  OFF
    SET AUTORDER TO 1
 
-   USE Customer ALIAS "DBFCust" via "DBFCDX" exclusive new
+   USE "cadas\Customer" ALIAS "DBFCust" via "DBFCDX" exclusive new
 
    cls
-   ? "Destroy index <DBFCust> ?: " + hb_valtostr( ferase( "_tmp.cdx" ) )
+   ? "Destroy index <DBFCust> ?: " + iif( ferase( "_tmp.cdx" ) = 0, "Sim", "Nao" )
    ? "index <DBFCust> exist ?: " + hb_valtostr( file( "_tmp.cdx" ) )
 
    index on FIRST                        tag tag_first     to _TMP && Order 1
@@ -86,13 +86,13 @@ function Main()
 *   endif
    
    if !SL_FILE( "customer" )
-      aFiles := { "Customer.dbf" }
+      aFiles := { "cadas\Customer.dbf" }
       SQL IMPORT DBF aFiles VIA "DBFCDX" PACK INTO lRet
    else
       lRet := .T.
    endif
 
-   USE Customer ALIAS "SQLCust" via "SQLLIB" exclusive new
+   USE "Customer" ALIAS "SQLCust" via "SQLLIB" exclusive new
 
    cls 
 
