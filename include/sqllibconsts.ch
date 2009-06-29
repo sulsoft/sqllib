@@ -265,9 +265,8 @@
    #define DSL_ENDTRANS         30
    #define DSL_GETFIELDTYPE     31   && Rossine 23/12/08
    #define DSL_GETFULLTABLE     32
-   #define DSL_DELETETABLE      33
                                  
-   #define ID_MAX_FUNCTIONS     33  
+   #define ID_MAX_FUNCTIONS     32
                                  
    #define FSL_CREATE( id )            ( aSystemDrivers[ id, DSL_CREATE           ] )
    #define FSL_CREATEFLDS( id )        ( aSystemDrivers[ id, DSL_CREATEFIELDS     ] )
@@ -301,5 +300,4 @@
    #define FSL_ENDTRANS( id )          ( aSystemDrivers[ id, DSL_ENDTRANS         ] )
    #define FSL_GETFIELDTYPE( id )      ( aSystemDrivers[ id, DSL_GETFIELDTYPE     ] )   && Rossine 23/12/08
    #define FSL_GETFULLTABLE( id )      ( aSystemDrivers[ id, DSL_GETFULLTABLE     ] )   && Rossine 03/01/09
-   #define FSL_DELETETABLE( id )       ( aSystemDrivers[ id, DSL_DELETETABLE      ] )   && Rossine 23/01/09
 #endif
