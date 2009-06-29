@@ -190,23 +190,18 @@ FUNCTION SL_DATABASE( cDB, pConn )
       ELSE
          cDB := StrTran( lower(Alltrim(cDB)), "*", "%" )
       End
-/*
-      IF pConn == NIL
-         aConn := SL_GETCONNINFO()
-      ELSE
-         aConn := SL_GETCONNINFO( pConn )
-      End
-*/
-**msgstop( "cHost: " + cHost + CRLF + ;
-**         "cUser: " + cUser + CRLF + ;
-**         "cPass: " + cPass + CRLF + ;
-**         "cDriv: " + cDriv )
 
-      aConn := SL_GETCONNINFO( pConn )
+/*
+msgstop( "cHost: " + cHost + CRLF + ;
+         "cUser: " + cUser + CRLF + ;
+         "cPass: " + cPass + CRLF + ;
+         "cDriv: " + cDriv )
+*/
 
       IF VALTYPE( aConA ) != 'A'
          SL_CONN( cHost, , "template1", cUser, cPass, , cDriv )
          lNew  := .T.
+         aConn := SL_GETCONNINFO( pConn )
       else
          aConn := aConA
       endif
@@ -294,12 +289,13 @@ function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCre
       SL_CONN( cHost, , "template1", cUser, cPwd, , cDriverName )
       aConn := SL_GETCONNINFO()
       lNew  := .T.
-      IF VALTYPE( aConn ) != 'A' 
-         RETURN .F.
-      End
    else
       aConn := aConA
    endif
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN .F.
+   End
    
    if lCreate .and. SL_DATABASE( cDB )
       msgstop( "Banco de dados já existe !!!" )
