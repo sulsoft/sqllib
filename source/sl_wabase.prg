@@ -95,8 +95,7 @@ FUNCTION SQLRegisterDrv( nSysID, cRddName )
                   "SL_STARTTRANS", ;
                   "SL_ENDTRANS", ;
                   "SL_GETFIELDTYPE", ;
-                  "SL_GETFULLTABLE", ;
-                  "SL_DELETETABLE" }
+                  "SL_GETFULLTABLE" }
 
       FOR n = 1 to len(aFuncs)
           aSystemDrivers[ nSysID, n ] := __DYNSN2SYM( aFuncs[n] + "_" + cRddName )
@@ -2814,25 +2813,25 @@ FUNCTION SL_ComplexCheck( cChave, aCampos )
        IF ( a $ '"{]'+chr(39) )
           b ++
           lComplex := TRUE
-   
+
        ELSEIF ( a $ '"}]'+chr(39) )
           b --
           lComplex := TRUE
-   
+
        ELSEIF ( a == '(' ) .OR. ; //.and. ( b == 00 )
               ( a == ',' ) .OR. ;
               ( a == ')' ) .OR. ;
               FALSE
-   
+
           lFunc := ( a == '(' )
-   
+
           d := SUBST( cChave, c, (i-c) )
           d := Upper(Alltrim( d ))
           c := i+1
-   
+
           AADD( aExp, d )
-   
-          IF (d == 'STR') .OR. ( d == 'DTOS' )
+
+          IF (d == 'STR') .OR. ( d == 'DTOS' ) .or. ( at( 'VALTOSTR', d ) > 0 )  && Rossine 29/06/09
             *Validacao por enquanto normal...
             DEBUG " * Validacao por enquanto normal...",d
             lInFunc := TRUE
@@ -2860,21 +2859,6 @@ FUNCTION SL_ComplexCheck( cChave, aCampos )
 *****************
 
 **return iif( ascan( SQLGetTables(), lower(cFile) ) > 0, .T., .F. )
-
-************************
-function SL_DELETETABLE( cTableName, cSchema )
-************************
-
-   HB_SYMBOL_UNUSED( cTableName )
-   HB_SYMBOL_UNUSED( cSchema )
-
-   DEBUG_ARGS
-
-   msginfo( 'ajustar isto!!!' )
-return .f.
-//   local aInfo := SL_GETCONNINFO( snConnHandle )
-
-//return HB_ExecFromArray( { FSL_DELETETABLE( aInfo[9] ), snConnHandle, cTableName, cSchema } )
 
 /*
  * Parse current indexkey to detect fieldnames & validate complex keys
