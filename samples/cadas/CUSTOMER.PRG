@@ -17,7 +17,7 @@ static oBtnUp, oBtnDn, oBtnEd, oBtnCa, oBtnRe, oBtnNe, oBtnDe
 
 function Main()
 
-   local oBar, aFiles, lRet, nServer, nDb
+   local oBar, aFiles, lRet, nConn, nDb
 
    HB_LANGSELECT( "PT" )
 
@@ -97,7 +97,7 @@ function Main()
 
    dbcloseall()
 
-   SQL DISCONNECT FROM nServer
+   SQL DISCONNECT FROM nConn
 
 return nil
 
