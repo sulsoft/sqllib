@@ -198,21 +198,22 @@ FUNCTION SL_DATABASE( cDB, pConn )
       ELSE
          cDB := StrTran( lower(Alltrim(cDB)), "*", "%" )
       End
-
+/*
       IF pConn == NIL
          aConn := SL_GETCONNINFO()
       ELSE
          aConn := SL_GETCONNINFO( pConn )
       End
-
+*/
 **msgstop( "cHost: " + cHost + CRLF + ;
 **         "cUser: " + cUser + CRLF + ;
 **         "cPass: " + cPass + CRLF + ;
 **         "cDriv: " + cDriv )
 
+      aConn := SL_GETCONNINFO( pConn )
+
       IF VALTYPE( aConA ) != 'A'
          SL_CONN( cHost, , "template1", cUser, cPass, , cDriv )
-         aConn := SL_GETCONNINFO()
          lNew  := .T.
       else
          aConn := aConA
@@ -362,7 +363,7 @@ return Res
 function SL_DELETETABLE( cTableName, cSchema, pConn )  && Rossine 29/06/09
 ***********************
 
-local aConn, cSequenceField, nConn, lError, lRet  := .F., Id
+local aConn, cSequenceField, lError, lRet  := .F., Id, cSql, Ind
 
    DEFAULT cSchema := "public"
  
@@ -376,25 +377,20 @@ local aConn, cSequenceField, nConn, lError, lRet  := .F., Id
 
    cTableName := SQLAdjustFn( cTableName )
 
-   IF pConn == NIL
-      aConn := SL_GETCONNINFO()
-   ELSE
-      aConn := SL_GETCONNINFO( pConn )
-   End
+   aConn      := SL_GETCONNINFO( pConn )
 
    IF VALTYPE( aConn ) != 'A' 
       RETURN .F.
    End
 
-   nConn := aConn[ SL_CONN_POINTER ]
-   Id    := aConn[SL_CONN_SYSTEMID]
+   Id := aConn[SL_CONN_SYSTEMID]
 
    /*
     * Montamos o comando SQL com base no driver atual
     */
    DO CASE
    CASE ( ID == ID_MYSQL )
-        cSql := "??"
+*        cSql := "??"
 
    CASE ( ID == ID_POSTGRESQL )
 
@@ -422,7 +418,7 @@ return lRet
 function SL_DELETEINDEX( cIndexname, cSchema, pConn ) && Rossine 29/06/09
 ***********************
 
-local aConn, lError, nConn, lRet  := .F., Id, Ind
+local aConn, lRet  := .F., Id, Ind, cSql
 
    DEFAULT cSchema := "public"
  
@@ -436,25 +432,20 @@ local aConn, lError, nConn, lRet  := .F., Id, Ind
 
    cIndexName := SQLAdjustFn( cIndexName )
 
-   IF pConn == NIL
-      aConn := SL_GETCONNINFO()
-   ELSE
-      aConn := SL_GETCONNINFO( pConn )
-   End
+   aConn := SL_GETCONNINFO( pConn )
 
    IF VALTYPE( aConn ) != 'A' 
       RETURN .F.
    End
 
-   nConn := aConn[ SL_CONN_POINTER ]
-   Id    := aConn[SL_CONN_SYSTEMID]
+   Id := aConn[SL_CONN_SYSTEMID]
 
    /*
     * Montamos o comando SQL com base no driver atual
     */
    DO CASE
    CASE ( ID == ID_MYSQL )
-        cSql := "??"
+*        cSql := "??"
 
    CASE ( ID == ID_POSTGRESQL )
 
