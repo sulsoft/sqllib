@@ -1634,45 +1634,6 @@ function SL_GETFULLTABLE_PGSQL( aWAData )
 
 return '"' + aWAData[ WA_SCHEMA ] + '"."' + aWAData[ WA_TABLENAME ] + '"'
 
-*****************************
-function SL_DELETETABLE_PGSQL( snConnHandle, cTableName, cSchema )
-*****************************
-
-   local lRet  := .F.
-   local oSql  := SL_GETCONNINFO( snConnHandle )[SL_CONN_POINTER]
-   local nConn := oSQL:pDB
-   local lError
-   local cSql
-   local cSequenceField 
-   
-   DEFAULT cSchema := "public"
-
-  DEBUG_ARGS
-
-   /* Aqui o RDD deve converter o nome do arquivo para um formato correto dentro do BD */
-   cTableName := SQLAdjustFn( cTableName )
-
-   cSql := "DELETE FROM " + cSchema + "." + SL_INDEX + " where " + ;
-                                       '"indextable" = ' + "'" + cTableName + "'"
-
-   PGSQL_QUERY_LOG( nConn, cSQL, @lError, .F., .T. )
-
-   if !lError
-      cSequenceField := cTableName + "_" + SL_COL_RECNO
-      cSql := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
-
-      PGSQL_QUERY_LOG( nConn, cSql, @lError, .F., .T. )
-      if !lError
-         cSQL := 'DROP TABLE "' + cSchema + '"."' + cTableName + '"'
-         PGSQL_QUERY_LOG( nConn, cSql, @lError, .F., .T. )
-         if !lError
-            lRet := .T.
-         endif
-      endif
-   endif
-   
-return lRet
-
 **-------------------**
 ** Final de Programa **
 **-------------------**
