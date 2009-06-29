@@ -47,50 +47,61 @@
  */
 #include "sqllibrdd.ch"
 
-FUNCTION SL_ToString( x, lLineFeed, lInherited )
-    LOCAL s := ''
-    LOCAL t := VALTYPE( x )
-    LOCAL i,j
+********************
+function SL_ToString( x, lLineFeed, lInherited, lType, cFile )
+********************
 
-    IF lInherited == NIL THEN lInherited := FALSE
-    IF lLineFeed  == NIL THEN lLineFeed  := TRUE
+    local s := ''
+    local t := valtype( x )
+    local i, j
 
-    DO CASE
-    CASE ( t == "C" )
-      s := '"' + x + '"'
-    CASE ( t == "N" )
-      s := alltrim(str( x ))
-    CASE ( t == "D" )
-      s := "CTOD('"+ DTOC(x) +"')"
-    CASE ( t == "L" )
-      s := iif( x, '.T.', '.F.' )
-    CASE ( t == "M" )
-      s := '"' + x + '"'
-    CASE ( t == "B" )
-      s := '{|| NIL } '
-    CASE ( t == "U" )
-      s := 'NIL'
-    CASE ( t == "A" )
-      s := "{"
-      j := LEN(x)
-
-      FOR i := 1 TO j
-          s += SL_ToString( x[i], TRUE )
-
-          IF ( i <> j )
-             s += ","
-          End
-
-          IF lLineFeed
-             IF ( !lInherited ) .and. VALTYPE( x[i] ) == "A" THEN;
-                s += CHR(13)+CHR(10)
-          End
-      End
-
-      s += "}"
-
-    CASE ( t == "O" )
-      s := x:ClassName()+'():New()'
-    End
-    RETURN s
+    if lLineFeed  == NIL then lLineFeed  := TRUE
+    if lInherited == NIL then lInherited := FALSE
+    if lType      == NIL then lType      := FALSE
+    if cFile      == NIL then cFile      := ""
     
+    do case
+       case ( t == "C" )
+            s := iif( lType, "[C]=", "" ) + '"' + x + '"'
+       case ( t == "N" )
+            s := iif( lType, "[N]=", "" ) + alltrim(str( x ))
+       case ( t == "D" )
+            s := iif( lType, "[D]=", "" ) + "ctod('"+ dtoc(x) +"')"
+       case ( t == "L" )
+            s := iif( lType, "[L]=", "" ) + iif( x, '.T.', '.F.' )
+       case ( t == "M" )
+            s := iif( lType, "[M]=", "" ) + '"' + x + '"'
+       case ( t == "B" )
+            s := iif( lType, "[B]=", "" ) + '{|| ... } '
+       case ( t == "U" )
+            s := iif( lType, "[U]=", "" ) + 'NIL'
+       case ( t == "A" )
+            s := iif( lType, "[A]=", "" ) + "{"
+            j := LEN(x)
+            
+            for i := 1 to j
+                s += SL_ToString( x[i], TRUE )
+                s += iif( i <> j, ",", "" )
+                if lLineFeed
+                   if ( !lInherited ) .and. valtype( x[i] ) == "A"
+                      s += CRLF
+                   endif
+                endif
+            next
+            
+            s += "}"
+       
+       case ( t == "O" )
+            if lInherited
+               && É necessário linkar \harbour\lib\xhb.lib
+               s := iif( lType, "[O]=", "" ) + hb_dumpvar( x ) + iif( lLineFeed, CRLF, "" )
+            else
+               s := iif( lType, "[O]=", "" ) + x:ClassName()+'():New()' + iif( lLineFeed, CRLF, "" )
+            endif
+    endcase
+    
+    if !empty( cFile )
+       memowrit( cFile, s )
+    endif
+    
+return s
