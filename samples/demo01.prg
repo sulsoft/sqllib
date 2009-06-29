@@ -21,7 +21,7 @@ function Main()
    USE Customer ALIAS "DBFCust" via "DBFCDX" exclusive new
 
    cls
-   ? "Destroy index <DBFCust> ?: " + hb_valtostr( filedelete( "_tmp.cdx" ) )
+   ? "Destroy index <DBFCust> ?: " + hb_valtostr( ferase( "_tmp.cdx" ) )
    ? "index <DBFCust> exist ?: " + hb_valtostr( file( "_tmp.cdx" ) )
 
    index on FIRST                        tag tag_first     to _TMP && Order 1
