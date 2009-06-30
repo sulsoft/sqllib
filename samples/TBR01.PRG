@@ -15,13 +15,14 @@ REQUEST HB_LANG_PT
 #define     FOOTSEP    CHR(205) + CHR(207) + CHR(205)
 
 FUNCTION Main( cRDD )
-   LOCAL b, column, nKey, aColors, cScreen
+
+   LOCAL b, column, nKey, cScreen, nConn, lRet
 
    cScreen := savescreen()
    
    if valtype( cRdd ) != "C" .or. .not. upper(cRdd) $ [CDX,SQL]
       clear screen
-      @10, 01 say "Para executar este exemplo, voce precisa escolher uma das duas opcoes <CDX> ou <SQL>:"
+      @10, 01 say "Para executar este exemplo, voce precisa escolher uma das duas opcoes:"
       @12, 01 say "Ex: TBR01 CDX  -> executa este exemplo usando o driver RDDCDX"
       @13, 01 say "Ex: TBR01 SQL  -> executa este exemplo usando o driver SQLLIB"
       quit
@@ -60,10 +61,7 @@ FUNCTION Main( cRDD )
          QUIT
       EndIF
       if !SL_FILE( "test" )
-         aFiles := { "test.dbf" }
-         SQL IMPORT DBF aFiles VIA "DBFCDX" PACK INTO lRet
-      else
-         lRet := .T.
+         SQL IMPORT DBF { "test.dbf" } VIA "DBFCDX" PACK
       endif
       USE test ALIAS "test" via "SQLLIB" exclusive
       SL_DELETEINDEX( "_tmp" )
@@ -71,15 +69,15 @@ FUNCTION Main( cRDD )
       USE test ALIAS "test" via "DBFCDX" exclusive
    endif
 
-   index on fld2 to _tmp
+   index on test->fld2 to _tmp
 
 *  SETCURSOR(SC_NONE)
 
    SETCOLOR("N/W")
-   SCROLL()
-   @ 2, 6 TO 22,72 DOUBLE COLOR "W+/BG"
 
-   b:= TBrowseDB( 3, 7, 21, 71 )
+   @ 2, 6 TO 21,72 DOUBLE COLOR "W+/BG"
+
+   b:= TBrowseDB( 3, 7, 20, 71 )
 
    b:colorSpec := "W+/BG,N/W,W/N,N,GR+/W,N/BG,B+/BG,GR+/BG"
 
@@ -91,12 +89,16 @@ FUNCTION Main( cRDD )
    column := TBColumnNew( "Field 1", {|| test->fld1} )
    column:footing := "First"
    b:addColumn( column )
+
    column := TBColumnNew( "Field 2", {|| test->fld2} )
    b:addColumn( column )
+
    column := TBColumnNew( "Field 3", {|| test->fld3} )
    b:addColumn( column )
+
    column := TBColumnNew( "Field 4", {|| test->fld4} )
    b:addColumn( column )
+
    column := TBColumnNew( "Field 5", {|| test->fld5} )
    column:colorBlock := { |y| iif(y <= 3, { 6, 2 }, IF(y >= 5, { 7, 2 }, { 8, 2 } )) }
    column:footing := "Last;Column"
@@ -106,41 +108,33 @@ FUNCTION Main( cRDD )
 
    DO WHILE .T.
 
-      IF ( b:colPos <= b:freeze )
+      @22, 00 say pad( "[ESC] Encerrar       [DEL] Deletar Registro         [INS] Inserir Registro", 80 )
+
+      IF b:colPos <= b:freeze
          b:colPos := b:freeze + 1
       ENDIF
 
-      DO WHILE ( !b:stabilize() )
-      ENDDO
+      ForceStable( b )
 
-      IF ( b:stable )
-         IF ( b:hitTop .OR. b:hitBottom )
+      IF b:stable
+         IF b:hitTop .OR. b:hitBottom
             TONE(87.3,1)
-            TONE(40,3.5)
-
          ENDIF
-         DO WHILE( (nKey := INKEY(.5) ) == 0 )
-            @  0, 70 SAY " " + TIME() + " "
-         ENDDO
-
-      ENDIF
-
-      // Process key
-      IF !TBMoveCursor( b, nKey )
-         IF     ( nKey == K_ESC )
-                SCROLL()
-                EXIT
-         elseif nKey = K_INS
-                TEST->( dbappend() )
-                ForceStable( b )
-                TEST->( dbgoto( TEST->( recno() ) ) )
-         ELSEIF nKey = K_DEL
-                TEST->( dbdelete() )
-                ForceStable( b )
+         nKey := INKEY(0)
+         // Process key
+         IF !TBMoveCursor( b, nKey )
+            IF     nKey == K_ESC
+                   EXIT
+            elseif nKey == K_INS
+                   TEST->( dbappend() )
+            ELSEIF nKey == K_DEL
+                   TEST->( dbdelete() )
+            ENDIF
          ENDIF
       ENDIF
 
    ENDDO
+
    restscreen(,,,,cScreen)
 
    dbcloseall()
@@ -163,36 +157,36 @@ RETURN NIL
 STATIC FUNCTION TBMoveCursor( o, nKey )
 
    LOCAL nFound
-   STATIC aKeys := ;
-       { K_DOWN      , {|obj| obj:down()},;
-         K_UP        , {|obj| obj:up()},;
-         K_PGDN      , {|obj| obj:pageDown()},;
-         K_PGUP      , {|obj| obj:pageUp()},;
-         K_CTRL_PGUP , {|obj| obj:goTop()},;
-         K_CTRL_PGDN , {|obj| obj:goBottom()},;
-         K_RIGHT     , {|obj| obj:right()},;
-         K_LEFT      , {|obj| obj:left()},;
-         K_HOME      , {|obj| obj:home()},;
-         K_END       , {|obj| obj:end()},;
-         K_CTRL_LEFT , {|obj| obj:panLeft()},;
-         K_CTRL_RIGHT, {|obj| obj:panRight()},;
-         K_CTRL_HOME , {|obj| obj:panHome()},;
-         K_CTRL_END  , {|obj| obj:panEnd()} }
+   STATIC aKeys := { K_DOWN      , {|obj| obj:down()},;
+                     K_UP        , {|obj| obj:up()},;
+                     K_PGDN      , {|obj| obj:pageDown()},;
+                     K_PGUP      , {|obj| obj:pageUp()},;
+                     K_CTRL_PGUP , {|obj| obj:goTop()},;
+                     K_CTRL_PGDN , {|obj| obj:goBottom()},;
+                     K_RIGHT     , {|obj| obj:right()},;
+                     K_LEFT      , {|obj| obj:left()},;
+                     K_HOME      , {|obj| obj:home()},;
+                     K_END       , {|obj| obj:end()},;
+                     K_CTRL_LEFT , {|obj| obj:panLeft()},;
+                     K_CTRL_RIGHT, {|obj| obj:panRight()},;
+                     K_CTRL_HOME , {|obj| obj:panHome()},;
+                     K_CTRL_END  , {|obj| obj:panEnd()} }
 
    nFound := ASCAN( aKeys, nKey )
-   IF (nFound != 0)
-      EVAL( aKeys[++nFound], o )
 
+   IF nFound != 0
+      EVAL( aKeys[++nFound], o )
    ENDIF
 
-RETURN (nFound != 0)
+RETURN nFound != 0
 
 STATIC FUNCTION ForceStable( obj )
 
    obj:refreshall()
+
    DISPBEGIN()
-   DO WHILE !obj:stabilize()
-   ENDDO
+      DO WHILE !obj:stabilize()
+      ENDDO
    DISPEND()
 
 RETURN (NIL)
