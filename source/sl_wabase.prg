@@ -924,7 +924,7 @@ static function SL_APPEND( nWA, lUnLockAll )  && XBASE - DBAPPEND()
 **   aWAData[ WA_BUFFER_ROWCOUNT ]:= 1 // One line... for Append values only
    aWAData[ WA_BUFFER_ROWCOUNT ]:= aWAData[ WA_RECCOUNT ] && Rossine 26/06/09
    SQLBUFFER_CREATE( aWAData )
- 
+
 **   aWAData[ WA_BUFFER_POS ]     := 1
    aWAData[ WA_BUFFER_POS ]     := aWAData[ WA_RECCOUNT ] && Rossine 26/06/09
 *   msgstop( "dbAppend()", "SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
@@ -2620,17 +2620,17 @@ return !lRet
 
 /* Faz querie que retorna apenas 1 valor de coluna */
 
-**************************
+**********************
 function SL_QuickQuery( aWAData, cQuery )  && Rossine 07/10/08
-**************************
+**********************
 
-local temp  // Funcionava sem isto aqui??? Como ???    o_O
+local xtemp
 
    DEBUG_ARGS
 
-   HB_ExecFromArray( { FSL_QUICKQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @temp } )
+   HB_ExecFromArray( { FSL_QUICKQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @xtemp } )
 
-return temp
+return xtemp
 
 **********************
 function SL_Commit  && Rossine 07/10/08
