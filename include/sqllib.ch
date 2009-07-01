@@ -125,7 +125,8 @@ REQUEST SQLLIB
                        [ EVERY <nEvery> ]                                   ;
                        [ APPENDEVAL <bBlockApp> ]                           ;
                                                                          => ;
-         [ <lRet> := ] SL_IMPORT_FILES( <aFiles>, <cVia>, <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockApp> )
+         [ <lRet> := ] SL_IMPORT_FILES( <aFiles>, <cVia>, <.lPack.>, <.lDelete.>, ;
+                                        <bBlock>, <nEvery>, <bBlockApp> )
 
    * Exportar SQL para DBF  && Rossine 23/01/09
    #command SQL EXPORT DBF [ <aFiles> ]                                     ;
@@ -190,7 +191,7 @@ REQUEST SQLLIB
             [INTO <aStruct>]   =>         ;
                                           ;
       AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
-                        <"cType">   ,;             // 2ø Tipo do campo, minimo 1¦ letra
+                        <cType>     ,;             // 2ø Tipo do campo, minimo 1¦ letra
                         <nSize>     ,;             // 3ø Tamanho do campo
                         iif(<.nDec.>, <nDec>, 0),; // 4ø Casas decimais
                            <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
@@ -208,10 +209,10 @@ REQUEST SQLLIB
              INTO <aStruct>   => ;
                                  ;
       AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
-                        <"cType">   ,;             // 2ø Tipo do campo, minimo 1¦ letra
+                          <cType>   ,;             // 2ø Tipo do campo, minimo 1¦ letra
                                   0 ,;             // 3ø Tamanho do campo
                                   0 ,;             // 4ø Casas decimais
-                           <.nn.>    ,;            // 5ø .T. indica o flag NOT NULL
+                           <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
                            <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
                            <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
                            <d>      ,;             // 8ø ExpressÆo DEFAULT para o campo
