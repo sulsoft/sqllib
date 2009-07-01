@@ -30,17 +30,18 @@ FUNCTION Main( cRDD )
 
    cRdd := upper(cRdd)
    
-   SET SCOREBOARD OFF
-   SET CONFIRM    ON
    HB_LANGSELECT( "PT" )
 
-   set date     to BRITISH
-   set deleted  ON
-   set century  ON
+   SET SCOREBOARD OFF
+   SET CONFIRM    ON
+   set date       to BRITISH
+   set deleted    ON
+   set century    ON
+   SET AUTOPEN    OFF
+   SET AUTORDER   TO 1
 
-   SET AUTOPEN  OFF
-   SET AUTORDER TO 1
-
+   CRIA_BD( "CDX" )
+   
    if cRdd == "SQL"
       SQL CONN PARAMS TO HOST "localhost" ;
                          USER "postgres"  ;
@@ -60,16 +61,19 @@ FUNCTION Main( cRDD )
          msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
          QUIT
       EndIF
-      if !SL_FILE( "test" )
+
+      CRIA_BD( "SQL" )
+
+**      if !SL_FILE( "test" )
          SQL IMPORT DBF { "test.dbf" } VIA "DBFCDX" PACK
-      endif
-      USE test ALIAS "test" via "SQLLIB" exclusive
+**      endif
       SL_DELETEINDEX( "_tmp" )
+      USE test ALIAS "test" via "SQLLIB" exclusive new
    else
-      USE test ALIAS "test" via "DBFCDX" exclusive
+      USE test ALIAS "test" via "DBFCDX" exclusive new
    endif
 
-   index on test->fld2 to _tmp
+   index on str(fld1,15,3) to _tmp
 
 *  SETCURSOR(SC_NONE)
 
@@ -86,6 +90,10 @@ FUNCTION Main( cRDD )
    b:footSep := FOOTSEP
 
    // TBColumn objects
+   column := TBColumnNew( "Sequence", {|| test->SEQU} )
+   column:footing := "SEQU"
+   b:addColumn( column )
+
    column := TBColumnNew( "Field 1", {|| test->fld1} )
    column:footing := "First"
    b:addColumn( column )
@@ -97,10 +105,6 @@ FUNCTION Main( cRDD )
    b:addColumn( column )
 
    column := TBColumnNew( "Field 4", {|| test->fld4} )
-   b:addColumn( column )
-
-   column := TBColumnNew( "Field 5", {|| test->fld5} )
-   column:colorBlock := { |y| iif(y <= 3, { 6, 2 }, IF(y >= 5, { 7, 2 }, { 8, 2 } )) }
    column:footing := "Last;Column"
    b:addColumn( column )
 
@@ -190,3 +194,48 @@ STATIC FUNCTION ForceStable( obj )
    DISPEND()
 
 RETURN (NIL)
+
+***********************
+static function CRIA_BD( cRdd )
+***********************
+
+local aStruct := { }, n
+
+* Aqui criamos a Tabela dentro do banco de dados, já com as caracteristicas "NOT NULL", "UNIQUE", "PRIMARY_KEY"
+
+SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE PRIMARY_KEY INTO aStruct
+SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE             INTO aStruct
+SQL ADD FIELD "FLD2" "C" (30, 0) NOT NULL UNIQUE             INTO aStruct
+SQL ADD FIELD "FLD3" "D" (08, 0) NOT NULL UNIQUE             INTO aStruct
+SQL ADD FIELD "FLD4" "L" (01, 0) NOT NULL UNIQUE             INTO aStruct
+
+**msgstop( SL_ToString( astruct,,,, "DUMP.TXT" ) )
+
+if cRdd == "SQL"
+   if SL_TABLE( "test" )
+      SL_DELETETABLE( "test" )
+   endif
+   dbcreate( "test", aStruct, "SQLLIB" )
+
+   USE test ALIAS "TEST" via "SQLLIB" exclusive new
+
+msgstop( SL_ToString( TEST->( dbStruct()        ), , , , "dump.txt" ), "Usando DbStruct()" )
+msgstop( SL_ToString( SL_DBSTRUCT( "test"       ), , , , "dump.txt" ), "Usando SL_DbStruct()" )
+msgstop( SL_ToString( SL_DBSTRUCT( "test",, .T. ), , , , "dump.txt" ), "Usando SL_DbStruct() com retorno <EXTEND>" )
+   
+   TEST->( dbclosearea() )
+else
+   dbcreate( "test", aStruct, "DBFCDX" )
+   USE test ALIAS "TEST" via "DBFCDX" exclusive new
+   for n = 1 to 100
+       TEST->( dbappend() )
+       TEST->SEQU := n
+       TEST->FLD1 := hb_random( 1, 1000 ) * .03
+       TEST->FLD2 := "Registro numero " + alltrim(str(n,3))
+       TEST->FLD3 := date() + n
+       TEST->FLD4 := iif( n < 50, .T., .F. )
+   next
+   TEST->( dbclosearea() )
+endif
+
+return NIL
