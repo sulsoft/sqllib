@@ -256,15 +256,8 @@ msgstop( "cHost: " + cHost + CRLF + ;
 *****************
 FUNCTION SL_FILE( cFile )
 *****************
-   RETURN SL_TABLE( cFile ) .OR. SL_INDEXE( cFile )
+   RETURN SL_TABLE( cFile ) .or. SL_INDEXE( cFile )
 
-/************************
-* TODO: REVISTAR, PQ NAO TESTEI ESTA SITUAÇÃO AINDA!!! PODE CONTER BUG .........
-function SL_DELETETABLE( cTableName, cSchema )
-************************
-   LOCAL aInfo := SL_GETCONNINFO()
-   RETURN HB_EXECFROMARRAY( { FSL_DELETETABLE( aInfo[ SL_CONN_SYSTEMID ] ), aInfo[ SL_CONN_HANDLE ], cTableName, cSchema } )
-/**/
 ********************
 function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCreate )
 ********************
@@ -381,7 +374,6 @@ local aConn, cSequenceField, lError, lRet  := .F., Id, cSql, Ind
 *        cSql := "??"
 
    CASE ( ID == ID_POSTGRESQL )
-
         if SL_DELETEINDEX( cTableName, cSchema, pConn )
            cSequenceField := cTableName + "_" + SL_COL_RECNO
            cSql   := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
@@ -397,7 +389,7 @@ local aConn, cSequenceField, lError, lRet  := .F., Id, cSql, Ind
            endif
         endif
    OTHERWISE
-      RETURN .F.
+        lRet := .F.
    End
    
 return lRet
@@ -415,7 +407,7 @@ local aConn, lRet  := .F., Id, Ind, cSql
    IF cIndexname == NIL
       RETURN .F.
    ELSE
-      cIndexname := StrTran( Alltrim(cIndexname), "*", "%" )
+      cIndexname := ID_PREFIX + StrTran( Alltrim(cIndexname), "*", "%" ) && Rossine 30/06/09 - Incluido <ID_PREFIX + >
    End
 
    cIndexName := SQLAdjustFn( cIndexName )
@@ -443,7 +435,72 @@ local aConn, lRet  := .F., Id, Ind, cSql
         lRet  := Len( Ind ) = 00
 
    OTHERWISE
-      RETURN .F.
+        lRet := .F.
    End
    
 return lRet
+
+/*
+    cField,      cType, nSize, nDec, bNull, UNIQUE, PRIMARY_KEY, xDef,                             hbType
+{ { "sequ"        ,"N",    15,    0,   .T.,    .F.,    .T.,       "0"                                 ,7},
+  { "fld1"        ,"N",    15,    3,   .T.,    .T.,    .F.,       "0"                                 ,7},
+  { "fld2"        ,"C",    30,    0,   .T.,    .T.,    .F.,       "' '::character varying"            ,1},
+  { "fld3"        ,"D",     8,    0,   .T.,    .T.,    .F.,       NIL                                 ,3},
+  { "fld4"        ,"L",     1,    0,   .T.,    .T.,    .F.,       "false"                             ,2},
+  { "sl_deleted"  ,"C",     1,    0,   .F.,    .F.,    .F.,       "' '::character varying"            ,1},
+  { "sl_rowid"    ,"N",    15,    0,   .T.,    .T.,    .F.,       "nextval('test_sl_rowid'::regclass)",7}
+}
+*/
+********************
+function SL_DBSTRUCT( cTable, pConn, lExtend ) && Rossine 30/06/09
+********************
+
+local aConn, Id, aStruct := { }, aStr := { }, n
+ 
+   DEFAULT lExtend := .F.
+   
+   DEBUG_ARGS
+
+   IF cTable == NIL
+      RETURN aStruct
+   ELSE
+      cTable := StrTran( Alltrim(cTable), "*", "%" )
+   Endif
+
+   cTable := SQLAdjustFn( cTable )
+
+   aConn  := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN aStruct
+   Endif
+
+   Id := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        aStruct := aConn[10]:TableStruct( cTable )
+        
+        if !lExtend
+           for n = 1 to len(aStruct)
+               if aStruct[n,1] != SL_COL_RECNO .and. aStruct[n,1] != SR_COL_RECNO .and. aStruct[n,1] != SL_COL_DELETED
+                  aadd( aStr, { aStruct[n,1], aStruct[n,2], aStruct[n,3], aStruct[n,4], ;
+                  	            aStruct[n,5], aStruct[n,6], aStruct[n,7] } ) 
+               endif
+           next
+        else
+           aStr := aStruct
+        endif
+        
+   OTHERWISE
+
+   Endcase
+
+return aStr
