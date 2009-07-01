@@ -336,7 +336,7 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
    aWAData[ WA_REAL_STRUCT]:= {}
 
    FOR n := 1 TO Len( aStruct ) 
-       aField := aStruct[ n ]                                  // field info
+       aField := aStruct[ n ]                                     // field info
        cType  := Upper( Left( alltrim( aField[ DBS_TYPE ] ), 1))  // fieldtype
        nLen   := aField[ DBS_LEN ]
        nDec   := aField[ DBS_DEC ]          
@@ -468,7 +468,7 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
              cConstraintPK += '"' + lower( aField[ DBS_NAME ] ) + '" '
           End
        End
-   End
+   next
 
    aWAData[ WA_TEMP,1 ] := cSQL
    aWAData[ WA_TEMP,2 ] := cConstraintPK
