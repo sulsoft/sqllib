@@ -1,13 +1,13 @@
 #include "sqllibrdd.ch"
 
 /*
- * Rotina para importar DBF para o Banco de dados
+ * Rotina para importar DBF para o Banco de dados SQL
  * 22/01/2009 - 21:12 - Rossine
  */
 
-****************************
+************************
 function SL_IMPORT_FILES( aFiles, cVia, lPack, lDelete, bBlock, nEvery, bBlockApp )
-****************************
+************************
 
 local lRet := .T.
 local cFile
@@ -22,19 +22,39 @@ DEFAULT lPack   := .F.
 DEFAULT lDelete := .F.
 DEFAULT nEvery  := 1
 
-rddsetdefault( cVia )
-
 if valtype( aFiles ) != "A"
-   wait "Arquivo(s) a ser(em) importado(s) não definido(s) !!!"
+   msgstop( "Arquivo(s) a ser(em) importado(s) não definido(s) !!!" + CRLF + CRLF + ;
+            "É necessário que se passe uma <ARRAY> definida com o(s) nome(s) do(s) arquivo(s)" + CRLF + ;
+            "a ser(em) importado(s) !!!", "Atenção" )
    return .F.
 endif
 
 if len( aFiles ) = 0
-   wait "Não há arquivos a serem importados !!!"
+   msgstop( "Não há arquivos a serem importados !!!", "Atenção" )
    return .F.
 endif
 
 asort( aFiles,,,{ |x,y| upper(x) < upper(y) } )
+
+/*
+ Aqui verificamos se os arquivos DBF a serem importados existem.
+ 30/03/2009 - 11:20 - Rossine
+*/
+
+for each cFile in aFiles
+    cFileDBF := lower(alltrim( cFile ))
+    if !file( cFileDBF )
+       msgstop( "Arquivo não existe [" + cFile + "]. Tecle ENTER...", "Atenção" )
+       lRet := .F.
+       exit
+    endif
+next
+
+if !lRet
+   return .F.
+endif
+
+rddsetdefault( cVia )
 
 for each cFile in aFiles
 
@@ -61,44 +81,49 @@ for each cFile in aFiles
     
     cFileDBF := lower(alltrim( cFile ))
     cExteDBF := substr( cFileDBF, rat( ".", cFileDBF ) )
-
+/*
     if !file( cFileDBF )
-       wait "Arquivo não existe [" + cFile + "]. Tecle ENTER..."
+       msgstop( "Arquivo não existe [" + cFile + "]. Tecle ENTER...", "Atenção" )
        lRet := .F.
        exit
     endif
-
+*/
     cFileSQL := left( cFileDBF, at( ".", cFileDBF ) - 1 )
 
     if rat( "\", cFileSQL ) > 0
        cFileSQL := substr( cFileSQL, rat( "\", cFileSQL ) + 1 )
     endif
-     
-    cFileSQL := cFileSQL
 
-    use ( cFileDBF ) alias "TMP_DBF" via cVia NEW exclusive
-    
+    if SL_TABLE( cFileSQL )
+       SL_DELETETABLE( cFileSQL )
+    endif
+
+    use ( cFileDBF ) alias "EXPORT_DBF" via (cVia) NEW exclusive
+
     if lPack
-       TMP_DBF->( __dbpack() )
+       EXPORT_DBF->( __dbpack() )
     endif
     
-    aStruct := TMP_DBF->( dbStruct() )
+    aStruct := EXPORT_DBF->( dbStruct() )
     
-    TMP_DBF->( dbCloseArea() )
+    EXPORT_DBF->( dbCloseArea() )
 
     dbCreate( cFileSQL, aStruct, "SQLLIB" )
 
-    use ( cFileSQL ) alias "TMP_SQL" via "SQLLIB" NEW exclusive
-    
-    TMP_SQL->( __dbzap() )
+    use ( cFileSQL ) alias "EXPORT_SQL" via "SQLLIB" NEW exclusive
+**    use ( cFileDBF ) alias "EXPORT_DBF" via (cVia) NEW exclusive
+
+   EXPORT_SQL->( __dbzap() )
 
     if valtype( bBlockApp ) = "B"
-       append from (cFileDBF) via cVia for eval( bBlockApp )
+       append from (cFileDBF) via (cVia) for eval( bBlockApp )
     else
-       append from (cFileDBF) via cVia
+       append from (cFileDBF) via (cVia)
+**       copy to (cFileSQL) via "SQLLIB"
     endif
-    
-    TMP_SQL->( dbCloseArea() )
+          
+    EXPORT_SQL->( dbCloseArea() )
+**    EXPORT_DBF->( dbCloseArea() )
 
     if lDelete
        aEval( Directory( strtran( cFileDBF, cExteDBF, "" ) + "*.*" ), {|a| Ferase( a[1] ) })
@@ -117,9 +142,9 @@ return lRet
  * 23/01/2009 - 09:12 - Rossine
  */
 
-****************************
+************************
 function SL_EXPORT_FILES( aFiles, cVia, lPack, lDelete, bBlock, nEvery, bBlockCopy )
-****************************
+************************
 
 local cFile, aExports := { }, nCtd := 0
 
@@ -161,21 +186,21 @@ for each cFile in aFiles
     endif
 
     if SL_file( cFile ) .and. cFile != "sl$indexes"
-       use ( cFile ) alias "TMP_SQL" via "SQLLIB" NEW exclusive
+       use ( cFile ) alias "EXPORT_SQL" via "SQLLIB" NEW exclusive
        if lPack
-          TMP_SQL->( __dbpack() )
+          EXPORT_SQL->( __dbpack() )
        endif
 
        if valtype( bBlockCopy ) = "B"
-          copy to ( cFile ) via cVia for eval( bBlockCopy )
+          copy to ( cFile ) via (cVia) for eval( bBlockCopy )
        else
-          copy to ( cFile ) via cVia
+          copy to ( cFile ) via (cVia)
        endif
        
-       TMP_SQL->( dbCloseArea() )
+       EXPORT_SQL->( dbCloseArea() )
        
        if lDelete
-          @22, 01 say pad( "Excluindo o arquivo [" + cFile + "]. Aguarde...", 80 )
+          @22, 01 say pad( "Excluindo a Tabela [" + cFile + "]. Aguarde...", 80 )
           SL_DELETETABLE( cFile )
        endif
 
