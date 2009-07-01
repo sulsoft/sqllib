@@ -373,6 +373,8 @@ METHOD TableStruct( cTable ) CLASS TPQserver
     Local hbType
     Local pConstraints
     Local cConstType
+
+** SELECT * FROM information_schema.columns WHERE table_schema='public'
             *           1           2              3                       4                       5              6              7           
     cQuery := "SELECT column_name, data_type, character_maximum_length, "+;
               "       numeric_precision, numeric_scale, column_default, is_nullable"+;
