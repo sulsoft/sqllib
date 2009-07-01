@@ -90,7 +90,7 @@ function SL_ToString( x, lLineFeed, lInherited, lType, cFile )
             next
             
             s += "}"
-       
+
        case ( t == "O" )
             if lInherited
                && É necessário linkar \harbour\lib\xhb.lib
