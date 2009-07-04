@@ -46,11 +46,11 @@
  * If you do not wish that, delete this exception notice.
  */
 
-*#IfnDef __XHARBOUR__
-*   #include "hbusrrdd.ch"
-*#else
-*   #include "usrrdd.ch"
-*#endif
+//#IfnDef __XHARBOUR__
+//   #include "hbusrrdd.ch"
+//#else
+//   #include "usrrdd.ch"
+//#endif
 
 //#ifndef _HB_USR_RDD_CH
 //   #define _HB_USR_RDD_CH
@@ -66,7 +66,9 @@ REQUEST SQLLIB
    #command SELECT SCHEMA <cSchemaName>         => SL_SetSchema( <(cSchemaName)> )
    #command SELECT SYSTEM SCHEMA <cSchemaName>  => SL_SetSystemSchema( <(cSchemaName)> )
 
-   * Seta os parametros para o Banco de dados
+  /*
+    Seta os parametros para o Banco de dados
+  */
   #command SQL CONN PARAMS TO HOST <cHost>                                ;
                               USER <cUser>                                ;
                           PASSWORD <cPwd>                                 ;
@@ -74,7 +76,9 @@ REQUEST SQLLIB
                                                                        => ;
                    SL_CONNPARAMS( <cHost>, <cUser>, <cPwd>, <cDriverName> )
 
-   * Conecta a um Banco de Dados
+   /*
+     Conecta a um Banco de Dados
+   */
    #command SQL CONNECT [ ON <cHost> ]                                      ;
                         [ PORT <nPort> ]                                    ;
                         [ DATABASE <cDb> ]                                  ;
@@ -89,33 +93,47 @@ REQUEST SQLLIB
        [ <nCnn> := ] SL_CONN( <cHost>, <nPort>, <cDb>, <cUser>,             ;
                      <cPwd>, <nFlags>, <cDriverName>, <cSchema>, <cCharSet> )
 
-   * Cria um Banco de Dados
-   #command SQL CREATE DATABASE <cDb>                                ;
-                [ HOST <cHost> ]                                     ;
-                [ USER <cUser> ]                                     ;
-                [ PASSWORD <cPwd> ]                                  ;
-                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]             ;
-                [ PORT <nPort> ]                                     ;
-                [ SCHEMA <cSchema> ]                                 ;
-                [ INTO <lRet> ]                                      ;
-                                                                  => ;
-       [ <lRet> := ] SL_CREATEDB( <cHost>, <nPort>, <cDb>, <cUser>,  ;
+   /*
+     Cria um Banco de Dados
+   */
+   #command SQL CREATE DATABASE <cDb>                                      ;
+                [ HOST <cHost> ]                                           ;
+                [ USER <cUser> ]                                           ;
+                [ PASSWORD <cPwd> ]                                        ;
+                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]                   ;
+                [ PORT <nPort> ]                                           ;
+                [ SCHEMA <cSchema> ]                                       ;
+                [ INTO <lRet> ]                                            ;
+                                                                        => ;
+       [ <lRet> := ] SL_CREATEDATABASE( <cHost>, <nPort>, <cDb>, <cUser>,  ;
                      <cPwd>, <cDriverName>, <cSchema>, .T. )
 
-   * Deleta um Banco de Dados
-   #command SQL DELETE DATABASE <cDb>                                ;
-                [ HOST <cHost> ]                                     ;
-                [ USER <cUser> ]                                     ;
-                [ PASSWORD <cPwd> ]                                  ;
-                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]             ;
-                [ PORT <nPort> ]                                     ;
-                [ SCHEMA <cSchema> ]                                 ;
-                [ INTO <lRet> ]                                      ;
-                                                                  => ;
-       [ <lRet> := ] SL_CREATEDB( <cHost>, <nPort>, <cDb>, <cUser>,  ;
+   /*
+     Deleta um Banco de Dados
+   */
+   #command SQL DELETE DATABASE <cDb>                                      ;
+                [ HOST <cHost> ]                                           ;
+                [ USER <cUser> ]                                           ;
+                [ PASSWORD <cPwd> ]                                        ;
+                [ <y:LIB,DRIVER,RDD,VIA> <cDriverName> ]                   ;
+                [ PORT <nPort> ]                                           ;
+                [ SCHEMA <cSchema> ]                                       ;
+                [ INTO <lRet> ]                                            ;
+                                                                        => ;
+       [ <lRet> := ] SL_CREATEDATABASE( <cHost>, <nPort>, <cDb>, <cUser>,  ;
                      <cPwd>, <cDriverName>, <cSchema>, .F. )
 
-   * Importar DBF para SQL  && Rossine 23/01/09
+   /*
+     Renomeia um Banco de Dados
+   */
+   #command SQL RENAME DATABASE <cDb> TO <cNewDB>                          ;
+                [ CONNECTION <pConn> ]                                     ;
+                [ INTO <lRet> ]                                         => ;
+       [ <lRet> := ] SL_RENAMEDATABASE( <cDb>, <cNewDB>, <pConn> )
+
+   /*
+     Importar DBF para SQL  && Rossine 23/01/09
+   */
    #command SQL IMPORT DBF <aFiles>                                         ;
                        [ VIA <cVia> ]                                       ;
                        [ <lPack:PACK> ]                                     ;
@@ -128,7 +146,9 @@ REQUEST SQLLIB
          [ <lRet> := ] SL_IMPORT_FILES( <aFiles>, <cVia>, <.lPack.>, <.lDelete.>, ;
                                         <bBlock>, <nEvery>, <bBlockApp> )
 
-   * Exportar SQL para DBF  && Rossine 23/01/09
+   /*
+     Exportar SQL para DBF  && Rossine 23/01/09
+   */
    #command SQL EXPORT DBF [ <aFiles> ]                                     ;
                        [ VIA <cVia> ]                                       ;
                        [ <lPack:PACK> ]                                     ;
@@ -140,13 +160,19 @@ REQUEST SQLLIB
                                                                          => ;
          [ <aRet> := ] SL_EXPORT_FILES( <aFiles>, <cVia>, <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockCopy> )
 
-   * Deleta uma Tabela
+   /*
+     Deleta uma Tabela
+   */
    #command SQL DELETE TABLE <cTable> => SL_DELETETABLE( cTable )  && Rossine 23/01/09
 
-   * Conecta no Banco de Dados apartir de uma string * * * S.R. LIKE STYLE * * *
+   /*
+     Conecta no Banco de Dados apartir de uma string * * * S.R. LIKE STYLE * * *
+   */
    #command SQL CONNECT <cConn> [INTO <nCnn>] => [<nCnn> := ] SL_CONNPARSE( <cConn> )
    
-   * Desconecta do Banco de Dados
+   /*
+     Desconecta do Banco de Dados
+   */
    #command SQL DISCONNECT [FROM] <nHandle> => SL_DISCONN( <nHandle> )
    #command SQL DISCONNECT [<lAll:ALL>]     => SL_DISCONN( <.lAll.> )
    
@@ -168,56 +194,156 @@ REQUEST SQLLIB
    #xcommand CLEAR INDEXES     => SL_ClearIndex()
    #xcommand CLEAR INDEXES ALL => SL_ClearIndex( .T. )
 
-   *
-   * Especifica QTOS registros devem ser trazidos do servidor por vez
-   * utilize a mesma fun‡Æo sem parametros para recuperar o valor atual... (default:50)
-   *
-   * Detalhe importante, use apenas ANTES de abrir o arquivo...
-   *
+   /*
+     Especifica QTOS registros devem ser trazidos do servidor por vez
+     utilize a mesma fun‡Æo sem parametros para recuperar o valor atual... (default:50)
+   
+     Detalhe importante, use apenas ANTES de abrir o arquivo...
+   */
+   
    #command SET PACKETSIZE [TO] <x>               => SL_PacketSize( <x> )
-   *
-/*
- * Novos comandos que lhe auxiliarÆo no uso da fun‡Æo DBcreate()
- * Para maiores informa‡äes, consulte estes links em portugues:
- *
- *  MySQL link: http://dev.mysql.com/doc/refman/4.1/pt/create-table.html
- *  Post  link: http://pgdocptbr.sourceforge.net/pg80/sql-createtable.html
- */
-#command SQL ADD FIELD <cFieldName> <cType>(<nSize>[, <nDec>])  ;
-            [DEFAULT <d>]                 ;
-            [<nn: NOT NULL>]               ;
-            [<u: UNIQUE>]                 ;
-            [<p: PRIMARY_KEY>]            ;
-            [INTO <aStruct>]   =>         ;
-                                          ;
-      AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
-                        <cType>     ,;             // 2ø Tipo do campo, minimo 1¦ letra
-                        <nSize>     ,;             // 3ø Tamanho do campo
-                        iif(<.nDec.>, <nDec>, 0),; // 4ø Casas decimais
-                           <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
-                           <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
-                           <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
-                           <d>      ,;             // 8ø ExpressÆo DEFAULT para o campo
-                           .F. ;                   // 9ø .T. indica campo no formato SQL
-                        } )
 
-#command SQL ADD FIELD <cFieldName> TYPE <cType> ;
-            [DEFAULT <d>]        ;
-            [<nn:NOT NULL>]       ;
-            [<u:UNIQUE>]         ;
-            [<p:PRIMARY_KEY>]    ;
-             INTO <aStruct>   => ;
-                                 ;
-      AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
-                          <cType>   ,;             // 2ø Tipo do campo, minimo 1¦ letra
-                                  0 ,;             // 3ø Tamanho do campo
-                                  0 ,;             // 4ø Casas decimais
-                           <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
-                           <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
-                           <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
-                           <d>      ,;             // 8ø ExpressÆo DEFAULT para o campo
-                           .T. ;                   // 9ø .T. indica campo no formato SQL
-                        } )
-                        
+   /*
+    * Novos comandos que lhe auxiliarÆo no uso da fun‡Æo DBcreate()
+    * Para maiores informa‡äes, consulte estes links em portugues:
+    *
+    *  MySQL link: http://dev.mysql.com/doc/refman/4.1/pt/create-table.html
+    *  Post  link: http://pgdocptbr.sourceforge.net/pg80/sql-createtable.html
+    */
+   #command SQL ADD FIELD <cFieldName> <cType>(<nSize>[, <nDec>]) ;
+               [ NEWNAME <cNewName> ]   ;
+               [ DEFAULT <d> ]          ;
+               [ <nn: NOT NULL> ]       ;
+               [ <u: UNIQUE> ]          ;
+               [ <p: PRIMARY_KEY> ]     ;
+               [ INTO <aStruct> ]    => ;
+                                        ;
+         AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
+                           <cType>     ,;             // 2ø Tipo do campo, minimo 1¦ letra
+                           <nSize>     ,;             // 3ø Tamanho do campo
+                           iif(<.nDec.>, <nDec>, 0),; // 4ø Casas decimais
+                              <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
+                              <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
+                              <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
+                              <d>      ,;             // 8ø Expressão DEFAULT para o campo
+                              .F.      ,;             // 9ø .T. indica campo no formato SQL
+                           <cNewName> } )             // 10ø Novo Nome do Campo
+   
+   #command SQL ADD FIELD <cFieldName> TYPE <cType> ;
+               [ NEWNAME <cNewName> ]   ;
+               [DEFAULT <d> ]           ;
+               [<nn:NOT NULL> ]         ;
+               [<u:UNIQUE> ]            ;
+               [<p:PRIMARY_KEY> ]       ;
+                INTO <aStruct>       => ;
+                                        ;
+         AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
+                             <cType>   ,;             // 2ø Tipo do campo, minimo 1¦ letra
+                                     0 ,;             // 3ø Tamanho do campo
+                                     0 ,;             // 4ø Casas decimais
+                              <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
+                              <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
+                              <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
+                              <d>      ,;             // 8ø ExpressÆo DEFAULT para o campo
+                              .T.      ,;             // 9ø .T. indica campo no formato SQL
+                           <cNewName> } )             // 10ø Novo Nome do Campo
+   
+   /*
+    Comando para mudar o nome de uma tabela. -  By Rossine 01/07/09
+   */
+
+   #command SQL RENAMETABLE <cOld> TO <cNew> ;
+               [ CONNECTION <pConn> ] ;
+               [ SCHEMA <cSchema> ]   ;
+               [ INTO <lRet> ]     => ;
+                                      ;
+   [ <lRet> := ] SL_RENAMETABLE( <cOld>, <cNew>, <cSchema>, <pConn> )
+   
+   /*
+    Comando para modificação da estrutura dentro do banco de dados. - By Rossine 01/07/09
+   */
+
+   #command SQL CHANGESTRUCT <cTable> WITH <aNewStruct> ;
+                    [ CONNECTION <pConn> ] ;
+                    [ SCHEMA <cSchema> ]   ;
+                    [ <u: ONLYFIELD, ONLYFIELDS> ] ;
+                    [ BACKUP [<cTableBkp>] ] ;
+                    [ INTO <lRet> ]     => ;
+                                           ;
+        [ <lRet> := ] SL_CHANGESTRUCT( <cTable>, <aNewStruct>, <pConn>, <cSchema>, <.u.>, <cTableBkp> )
+   
+   // CUIDADO: Se o parâmetro ONLYFIELD não for especificado, todas as outras colunas serão renomeadas para
+   //          colunas de backup (excluidas)
+
+   /*
+    Comando para deletar do banco de dados as colunas de backup de um determinado Schema ou tabela
+   */
+
+   #command SQL DELETE BACKUP              ;
+                    [ CONNECTION <pConn> ] ;
+                    [ SCHEMA <cSchema> ]   ;
+                    [ TABLE <cTable> ]     ;
+                    [ INTO <lRet> ]     => ;
+                                           ;
+        [ <lRet> := ] SL_DELETEBACKUP( <pConn>, <cSchema>, <cTable> )
+
+   /*
+    Comando para criar um novo sChema
+   */
+
+   #command SQL CREATE SCHEMA <cSchema>    ;
+                    [ CONNECTION <pConn> ] ;
+                    [ INTO <lRet> ]     => ;
+                                           ;
+        [ <lRet> := ] SL_CREATESCHEMA( <cSchema>, <pConn> )
+
+   /*
+    Comando para renomear um novo sChema
+   */
+
+   #command SQL RENAME SCHEMA <cSchema> TO <cNewSchema> ;
+                    [ CONNECTION <pConn> ] ;
+                    [ INTO <lRet> ]     => ;
+                                           ;
+        [ <lRet> := ] SL_RENAMESCHEMA( <cSchema>, <cNewSchema>, <pConn> )
+
+   /*
+    Comando para deletar um novo sChema
+   */
+
+   #command SQL DELETE SCHEMA <cSchema>    ;
+                    [ CONNECTION <pConn> ] ;
+                    [ INTO <lRet> ]     => ;
+                                           ;
+        [ <lRet> := ] SL_DELETESCHEMA( <cSchema>, <pConn> )
+
+   /*
+    Comando para verificar se existe um schema
+   */
+
+   #command SQL EXIST SCHEMA <cSchema>       ;
+                    [ DATABASE <cDataName> ] ;
+                    [ CONNECTION <pConn> ]   ;
+                    [ INTO <lRet> ]       => ;
+                                             ;
+        [ <lRet> := ] SL_SCHEMA( <cSchema>, <cDataName>, <pConn> )
+
+   /*
+    Comando para listar os schemas de um determinado banco de dados
+   */
+
+   #command SQL LIST SCHEMA [ <cSchema> ]    ;
+                    [ DATABASE <cDataName> ] ;
+                    [ CONNECTION <pConn> ]   ;
+                    [ INTO <aRet> ]       => ;
+                                             ;
+        [ <aRet> := ] SL_LISTSCHEMA( <cSchema>, <cDataName>, <pConn> )
+
+   #command SQL LIST DATABASE                ;
+                    [ CONNECTION <pConn> ]   ;
+                    [ INTO <aRet> ]       => ;
+                                             ;
+        [ <aRet> := ] SL_LISTSCHEMA( "", "", <pConn> )
+
    #include "sqllibconsts.ch"   
 #endif
