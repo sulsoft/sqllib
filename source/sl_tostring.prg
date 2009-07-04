@@ -48,17 +48,18 @@
 #include "sqllibrdd.ch"
 
 ********************
-function SL_ToString( x, lLineFeed, lInherited, lType, cFile )
+function SL_ToString( x, lLineFeed, lInherited, lType, cFile, lForceLineFeed )
 ********************
 
     local s := ''
     local t := valtype( x )
     local i, j
 
-    if lLineFeed  == NIL then lLineFeed  := TRUE
-    if lInherited == NIL then lInherited := FALSE
-    if lType      == NIL then lType      := FALSE
-    if cFile      == NIL then cFile      := ""
+    DEFAULT lLineFeed      := TRUE
+    DEFAULT lInherited     := FALSE
+    DEFAULT lType          := FALSE
+    DEFAULT cFile          := ""
+    DEFAULT lForceLineFeed := .F.
     
     do case
        case ( t == "C" )
@@ -72,18 +73,18 @@ function SL_ToString( x, lLineFeed, lInherited, lType, cFile )
        case ( t == "M" )
             s := iif( lType, "[M]=", "" ) + '"' + x + '"'
        case ( t == "B" )
-            s := iif( lType, "[B]=", "" ) + '{|| ... } '
+            s := iif( lType, "[B]=", "" ) + '{|| ... }'
        case ( t == "U" )
             s := iif( lType, "[U]=", "" ) + 'NIL'
        case ( t == "A" )
-            s := iif( lType, "[A]=", "" ) + "{"
-            j := LEN(x)
+            s := iif( lType, "[A]=", "" ) + "{" + iif( valtype( x[1] ) = "A" .or. lForceLineFeed, CRLF, "" )
+            j := len(x)
             
             for i := 1 to j
-                s += SL_ToString( x[i], TRUE )
+                s += iif( valtype( x[i] ) == "A", "  ", " " ) + iif( lForceLineFeed, " ", "" ) + SL_ToString( x[i], FALSE )
                 s += iif( i <> j, ",", "" )
                 if lLineFeed
-                   if ( !lInherited ) .and. valtype( x[i] ) == "A"
+                   if !lInherited .and. ( valtype( x[i] ) == "A" .or. lForceLineFeed )
                       s += CRLF
                    endif
                 endif
