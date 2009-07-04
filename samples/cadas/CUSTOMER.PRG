@@ -53,6 +53,9 @@ function Main()
    End
 
    if !SL_FILE( "customer" )
+**      USE sales alias "sales" via "DBFCDX" NEW exclusive
+**      sales->( dbappend() )
+**      sales->( dbclosearea() )
       aFiles := { "Customer.dbf", "sales.dbf" }
       SQL IMPORT DBF aFiles VIA "DBFCDX" PACK INTO lRet
    else
