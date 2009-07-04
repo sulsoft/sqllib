@@ -56,7 +56,7 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
       IF Index == NIL
          RETURN .F.
       ELSE
-         Index := ID_PREFIX + StrTran( Alltrim(Index), "*", "%" ) && Rossine 29/06/09 - Incluido <ID_PREFIX + >
+         Index := SQLAdjustFn( ID_PREFIX + StrTran( Alltrim(Index), "*", "%" ) ) && Rossine 29/06/09 - Incluido <ID_PREFIX + >
       End
 
       aConn := SL_GETCONNINFO( pConn )
@@ -119,12 +119,13 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
  *                    momento.
  */
 FUNCTION SL_TABLE( Table, pConn )
+
       LOCAL cSql, aConn, Schema, Tab, Id, Result
 
       IF Table == NIL
          RETURN .F.
       ELSE
-         Table := StrTran( Alltrim(Table), "*", "%" )
+         Table := SQLAdjustFn( StrTran( Alltrim(Table), "*", "%" ) )
       End
 
       aConn := SL_GETCONNINFO( pConn )
@@ -258,11 +259,11 @@ FUNCTION SL_FILE( cFile )
 *****************
    RETURN SL_TABLE( cFile ) .or. SL_INDEXE( cFile )
 
-********************
-function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCreate )
-********************
+**************************
+function SL_CREATEDATABASE( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCreate )
+**************************
 
-   local aConn, Id, Res, aConA := SL_GETCONNINFO(), cSql
+   local aConn, Id, Res, aConA := SL_GETCONNINFO(), cSql, Ind
    local lNew := .F.  && Rossine 25/06/09
 
    HB_SYMBOL_UNUSED( cHost )
@@ -326,9 +327,10 @@ function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCre
     * com o result de nossa query ...
     */
 
-   SQLArray( cSql,, aConn,, ID )
+   Ind := SQLArray( cSql,, aConn,, ID )
+   Res := Len( Ind ) = 00
 
-   Res := SL_DATABASE( cDB )
+**   Res := SL_DATABASE( cDB )
 
    if lNew  && Rossine 25/06/09
       SL_DISCONN()
@@ -340,6 +342,50 @@ function SL_CREATEDB( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCre
 
 return Res
 
+**************************
+function SL_RENAMEDATABASE( cDatabase, cNewDataBase, pConn )
+**************************
+
+local aConn, Id, lRet := .F., cSql
+   
+   DEFAULT cDataBase    := ""
+   DEFAULT cNewDataBase := ""
+   
+   if empty( cDataBase ) .or. empty( cNewDataBase )
+      return .F.
+   endif
+   
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN { }
+   Endif
+
+   DEBUG_ARGS
+   
+   cDataBase    := SQLAdjustFn( cDataBase )
+   cNewDataBase := SQLAdjustFn( cNewDataBase )
+   Id           := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        cSql := "ALTER DATABASE " + cDataBase + " RENAME TO " + cNewDataBase
+        lRet := SQLArray( cSql,, aConn,, ID )
+        lRet := len( lRet ) = 0
+
+   OTHERWISE
+
+   Endcase
+
+return lRet
+
 ***********************
 function SL_DELETETABLE( cTableName, cSchema, pConn )  && Rossine 29/06/09
 ***********************
@@ -348,23 +394,23 @@ local aConn, cSequenceField, lError, lRet  := .F., Id, cSql, Ind
 
    DEFAULT cSchema := "public"
  
-   DEBUG_ARGS
-
    IF cTableName == NIL
       RETURN .F.
    ELSE
       cTableName := StrTran( Alltrim(cTableName), "*", "%" )
    End
 
-   cTableName := SQLAdjustFn( cTableName )
-
-   aConn      := SL_GETCONNINFO( pConn )
+   aConn := SL_GETCONNINFO( pConn )
 
    IF VALTYPE( aConn ) != 'A' 
       RETURN .F.
    End
 
-   Id := aConn[SL_CONN_SYSTEMID]
+   DEBUG_ARGS
+
+   cSchema    := SQLAdjustFn( cSchema )
+   cTableName := SQLAdjustFn( cTableName )
+   Id         := aConn[SL_CONN_SYSTEMID]
 
    /*
     * Montamos o comando SQL com base no driver atual
@@ -402,15 +448,11 @@ local aConn, lRet  := .F., Id, Ind, cSql
 
    DEFAULT cSchema := "public"
  
-   DEBUG_ARGS
-
    IF cIndexname == NIL
       RETURN .F.
    ELSE
       cIndexname := ID_PREFIX + StrTran( Alltrim(cIndexname), "*", "%" ) && Rossine 30/06/09 - Incluido <ID_PREFIX + >
    End
-
-   cIndexName := SQLAdjustFn( cIndexName )
 
    aConn := SL_GETCONNINFO( pConn )
 
@@ -418,7 +460,11 @@ local aConn, lRet  := .F., Id, Ind, cSql
       RETURN .F.
    End
 
-   Id := aConn[SL_CONN_SYSTEMID]
+   DEBUG_ARGS
+
+   cSchema    := SQLAdjustFn( cSchema )
+   cIndexName := SQLAdjustFn( cIndexName )
+   Id         := aConn[SL_CONN_SYSTEMID]
 
    /*
     * Montamos o comando SQL com base no driver atual
@@ -459,8 +505,6 @@ local aConn, Id, aStruct := { }, aStr := { }, n
  
    DEFAULT lExtend := .F.
    
-   DEBUG_ARGS
-
    IF cTable == NIL
       RETURN aStruct
    ELSE
@@ -468,12 +512,13 @@ local aConn, Id, aStruct := { }, aStr := { }, n
    Endif
 
    cTable := SQLAdjustFn( cTable )
-
    aConn  := SL_GETCONNINFO( pConn )
 
    IF VALTYPE( aConn ) != 'A' 
       RETURN aStruct
    Endif
+
+   DEBUG_ARGS
 
    Id := aConn[SL_CONN_SYSTEMID]
 
@@ -504,3 +549,312 @@ local aConn, Id, aStruct := { }, aStr := { }, n
    Endcase
 
 return aStr
+
+***********************
+function SL_RENAMETABLE( cOld, cNew, cSchema, pConn )
+***********************
+
+local aConn, Id, lRet := .F., cSql, Ind
+   
+   DEFAULT cSchema := "public"
+
+   IF valtype( cOld ) != "C" .or. valtype( cNew ) != "C"
+      RETURN .F.
+   ELSE
+      cOld := StrTran( Alltrim(cOld), "*", "%" )
+      cNew := StrTran( Alltrim(cNew), "*", "%" )
+   Endif
+
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN .F.
+   Endif
+
+   DEBUG_ARGS
+   
+   cSchema := SQLAdjustFn( cSchema )
+   cNew    := SQLAdjustFn( cNew )
+   cOld    := SQLAdjustFn( cOld )
+   Id      := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        if SL_TABLE( cOld ) .and. !SL_TABLE( cNew )
+           cSql := 'ALTER TABLE "' + cSchema + '"."' + cOld + '" RENAME TO "' + cNew + '"'
+           Ind  := SQLArray( cSql,, aConn,, ID )
+           lRet := Len( Ind ) = 00
+        endif
+        
+   OTHERWISE
+
+   Endcase
+
+return lRet
+
+* se eu especificar somente o schema, então ele varrerá todas as tabelas daquele schema, apagando todas as colunas de backup
+* SQL DELETE BACKUP CONNECTION <pConn> SCHEMA "001" TABLE "customer"
+
+************************
+function SL_DELETEBACKUP( pConn, cSchema, cTable )
+************************
+
+   LOCAL cSql, aConn, Tab, Id, lRet := .T., aStruct, n, t, cField, aTables := { }
+
+   DEFAULT cTable  := ""
+   DEFAULT cSchema := "public"
+
+   IF cTable == NIL
+      RETURN .F.
+   ELSE
+      cTable := StrTran( Alltrim(cTable), "*", "%" )
+   End
+
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN .F.
+   End
+
+   DEBUG_ARGS
+
+   Id      := aConn[SL_CONN_SYSTEMID]
+   cSchema := SQLAdjustFn( cSchema )
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        if empty( cTable )
+           aTables := aConn[SL_CONN_POINTER]:ListTables()
+        else
+           aadd( aTables, cTable )
+        endif
+
+        for t = 1 to len(aTables)
+            cTable := aTables[t]
+            if left( cTable, 3 ) != "sl$"
+               aStruct := SL_DBSTRUCT( cTable, , .T. )
+               for n := 1 TO len( aStruct )
+                   cField := SQLAdjustFn( aStruct[n,1] ) && Nome do campo
+                   if left( cField, 7 ) == "sl$bkp_" .and. cField != SL_COL_RECNO .and. cField != SR_COL_RECNO .and. cField != SL_COL_DELETED
+                      if aStruct[n,7] && .T. indica o flag PRIMARY KEY 
+                         cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" DROP CONSTRAINT pk_' + cField + " CASCADE"
+                         Tab  := SQLArray( cSql,, aConn,, ID )
+                         lRet := Len( Tab ) = 0
+                      endif
+                      if lRet
+                         cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" DROP COLUMN ' + cField + " CASCADE"
+                         Tab  := SQLArray( cSql,, aConn,, ID )
+                         lRet := Len( Tab ) = 0
+                         if !lRet
+                            msgstop( "Não foi possível apagar a Tabela: [" + cTable + "] !!!", "Erro" )
+                            return .F.
+                         endif
+                      else
+                         msgstop( "Não foi possível apagar a <PRIMARY KEY> da Tabela : [" + cTable + "] - Campo: [" + cField + "] !!!", "Erro" )
+                         return .F.
+                      endif
+                   endif
+               next
+            endif
+        next
+
+   OTHERWISE
+      RETURN .F.
+   End
+
+return lRet
+
+************************
+function SL_CREATESCHEMA( cSchema, pConn )
+************************
+
+local aConn, Id, lRet := .F., cSql
+   
+   DEFAULT cSchema := ""
+   
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN { }
+   Endif
+
+   DEBUG_ARGS
+   
+   cSchema := SQLAdjustFn( cSchema )
+   Id      := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        cSql := "CREATE SCHEMA " + cSchema
+        lRet := SQLArray( cSql,, aConn,, ID )
+        lRet := len( lRet ) = 0
+
+   OTHERWISE
+
+   Endcase
+
+return lRet
+
+************************
+function SL_RENAMESCHEMA( cSchema, cNewSchema, pConn )
+************************
+
+local aConn, Id, lRet := .F., cSql
+   
+   DEFAULT cSchema := ""
+   DEFAULT cNewSchema := ""
+   
+   if empty( cSchema ) .or. empty( cNewSchema )
+      return .F.
+   endif
+   
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN { }
+   Endif
+
+   DEBUG_ARGS
+   
+   cSchema    := SQLAdjustFn( cSchema )
+   cNewSchema := SQLAdjustFn( cNewSchema )
+   Id         := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        cSql := "ALTER SCHEMA " + cSchema + " RENAME TO " + cNewSchema
+        lRet := SQLArray( cSql,, aConn,, ID )
+        lRet := len( lRet ) = 0
+
+   OTHERWISE
+
+   Endcase
+
+return lRet
+
+************************
+function SL_DELETESCHEMA( cSchema, pConn )
+************************
+
+
+local aConn, Id, lRet := .F., cSql
+   
+   DEFAULT cSchema := ""
+   
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN { }
+   Endif
+
+   DEBUG_ARGS
+   
+   cSchema := SQLAdjustFn( cSchema )
+   Id      := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        cSql := "DROP SCHEMA " + cSchema + " CASCADE"
+        lRet := SQLArray( cSql,, aConn,, ID )
+        lRet := len( lRet ) = 0
+
+   OTHERWISE
+
+   Endcase
+
+return lRet
+
+******************
+function SL_SCHEMA( cSchema, cDataName, pConn )
+******************
+
+DEFAULT cSchema := ""
+DEFAULT cDataName := ""
+
+return iif( ascan( SL_LISTSCHEMA( cSchema, cDataName, pConn ), { |aSchema| aSchema[2] == cSchema } ) > 0, .T., .F. )
+
+**********************
+function SL_LISTSCHEMA( cSchema, cDataName, pConn )
+**********************
+
+local aConn, Id, aRet := { }, cSql, aTmp, n
+   
+   DEFAULT cSchema   := ""
+   DEFAULT cDataName := ""
+   
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( aConn ) != 'A' 
+      RETURN { }
+   Endif
+
+   DEBUG_ARGS
+   
+   cSchema   := SQLAdjustFn( cSchema )
+   cDataName := SQLAdjustFn( cDataName )
+   Id        := aConn[SL_CONN_SYSTEMID]
+
+   /*
+    * Montamos o comando SQL com base no driver atual
+    */
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        cSql := "select a.datname, b.nspname from pg_database a, pg_namespace b" + CRLF + ;
+                " where nspname not like '%pg_%' and nspname not like '%information%'"
+        aTmp := SQLArray( cSql,, aConn,, ID )
+
+        for n = 1 to len(aTmp)
+            if empty( cDataName ) .or. aTmp[n,1] == cDataName
+               if empty( cSchema ) .or. aTmp[n,2] == cSchema
+                  aadd( aRet, aTmp[n] )
+               endif
+            endif
+        next
+        
+   OTHERWISE
+
+   Endcase
+
+return aRet
+
+**-------------------**
+** Final de Programa **
+**-------------------**
