@@ -1140,9 +1140,9 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
    DEBUG_ARGS
 
    cSQL := 'SELECT * FROM "' + aWAData[ WA_SCHEMA ] + '"."' + SL_INDEX
-   cSQL += '" WHERE IndexFile = '
-   cSQL += "'" + ID_PREFIX + cFile + "' "
-   
+   cSQL += '" WHERE IndexTable = '+ "'" + aWAData[ WA_TABLENAME ] + "'" && Incluido o nome da tabela: Rossine 03/07/09
+   cSQL += " and IndexFile = '" + ID_PREFIX + cFile + "' "
+
    IF cTag != NIL
       cSQL += " AND IndexTag = '" + cTag + "' "
    End
