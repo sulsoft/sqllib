@@ -17,7 +17,9 @@ REQUEST HB_LANG_PT
 FUNCTION Main( cRDD )
 
    LOCAL b, column, nKey, cScreen, nConn, lRet
-
+   
+   clear screen
+   
    cScreen := savescreen()
    
    if valtype( cRdd ) != "C" .or. .not. upper(cRdd) $ [CDX,SQL]
@@ -25,6 +27,7 @@ FUNCTION Main( cRDD )
       @10, 01 say "Para executar este exemplo, voce precisa escolher uma das duas opcoes:"
       @12, 01 say "Ex: TBR01 CDX  -> executa este exemplo usando o driver RDDCDX"
       @13, 01 say "Ex: TBR01 SQL  -> executa este exemplo usando o driver SQLLIB"
+      @14, 01 say ""
       quit
    endif
 
@@ -40,7 +43,7 @@ FUNCTION Main( cRDD )
    SET AUTOPEN    OFF
    SET AUTORDER   TO 1
 
-   CRIA_BD( "CDX" )
+   CRIA_TABELA( "CDX" )
    
    if cRdd == "SQL"
       SQL CONN PARAMS TO HOST "localhost" ;
@@ -57,12 +60,108 @@ FUNCTION Main( cRDD )
       SQL CONNECT DATABASE "demosqllib" ;
                     SCHEMA "public" ;
                       INTO nConn  
-      IF nConn = 0
-         msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
-         QUIT
-      EndIF
 
-      CRIA_BD( "SQL" )
+      if nConn = 0
+         msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
+         quit
+      endif
+
+      SQL RENAMETABLE "test1" TO "testa2" INTO lRet  && Aqui vai retornar .F., pois a tabela não existe
+ 
+      if !lRet
+         msginfo( "Não foi possível renomear a tabela <test1> !!!", "Atenção" )
+      endif
+
+      SQL RENAMETABLE "customer" TO "customerss" SCHEMA "public" INTO lRet
+ 
+      if !lRet
+         msginfo( "Não foi possível renomear a tabela <customer> !!!", "Atenção" )
+      endif
+
+      SQL RENAMETABLE "customerss" TO "customer" INTO lRet
+ 
+      if !lRet
+         msginfo( "Não foi possível renomear a tabela <customerss> !!!", "Atenção" )
+      endif
+
+      aStruct := { }
+      SQL ADD FIELD "FIRST"  "C" (12, 0) NEWNAME "NOME" DEFAULT "EU"        NOT NULL UNIQUE INTO aStruct
+      SQL ADD FIELD "STREET" "C" (40, 0) NEWNAME "RUA"  DEFAULT "RUA GOIAS" NOT NULL UNIQUE INTO aStruct
+
+/*
+ Aqui mudamos a estrutura da tabela e fazemos backup das COLUNAS que foram modificadas
+*/
+      SQL CHANGESTRUCT "customer" WITH aStruct INTO lRet ONLYFIELDS BACKUP "030709"
+**      SQL CHANGESTRUCT "customer" WITH aStruct INTO lRet BACKUP "030709"
+
+      if !lRet
+         msginfo( "Não foi possível mudar a estrutura da tabela <customer> !!!", "Atenção" )
+      endif
+
+/*
+ Aqui deletados as colunas de BACKUP
+*/
+      SQL DELETE BACKUP TABLE "customer" INTO lRet
+
+      if !lRet
+         msginfo( "Não foi possível apagar as colunas de BACKUP !!!", "Atenção" )
+      endif
+
+      SQL EXIST SCHEMA "public" DATABASE "demosqllib" INTO lRet
+      
+      msgstop( "schema <public> existe em <demosqllib> ?" + hb_valtostr( lRet ) )
+
+      SQL LIST DATABASE INTO lRet
+
+      msgstop( "Quais os bancos de dados que existem ? " + SL_ToString( lRet ) )
+
+      SQL LIST SCHEMA DATABASE "demosqllib" INTO lRet
+
+      msgstop( "Quais os schemas existem dentro do BD <demosqllib> ?" + SL_ToString( SL_LISTSCHEMA( , "demosqllib" ) ) )
+
+      msgstop( "Existe banco de dados <novo> ? " + hb_valtostr(SL_DATABASE( "novo" ) ) )
+
+      SQL CREATE DATABASE "novo" INTO lRet
+
+      msgstop( "Criou database <novo> ?" + hb_valtostr( lret ) )
+
+      SQL RENAME DATABASE "novo" TO "velho" INTO lRet
+
+      msgstop( "Renomeou o database <novo> para <velho> ?" + hb_valtostr( lRet ) )
+
+      SQL DELETE DATABASE "velho" INTO lRet
+
+      msgstop( "Apagou o database <velho> ?" + hb_valtostr( lRet ) )
+
+      SQL EXIST SCHEMA "teste" DATABASE "demosqllib" INTO lRet
+
+      msgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+
+      SQL CREATE SCHEMA "teste" INTO lRet
+
+      msgstop( "Criou o schema <teste> ? " + hb_valtostr( lRet ) )
+
+      SQL EXIST SCHEMA "teste" DATABASE "demosqllib" INTO lRet
+
+      msgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+
+      SQL RENAME SCHEMA "teste" TO "novo_teste" INTO lRet
+
+      MSGSTOP( "Alterou o schema <teste> para <novo_teste> ? " + hb_valtostr( lRet ) )
+
+      SQL EXIST SCHEMA "teste" DATABASE "demosqllib" INTO lRet
+
+      msgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+
+      SQL DELETE SCHEMA "novo_teste" INTO lRet
+
+      MSGSTOP( "Deletou o schema <novo_teste> ? " + hb_valtostr( lRet ) )
+
+      SQL EXIST SCHEMA "novo_teste" DATABASE "demosqllib" INTO lRet
+
+      msgstop( "Existe schema <novo_teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+
+      CRIA_TABELA( "SQL" )
 
 **      if !SL_FILE( "test" )
          SQL IMPORT DBF { "test.dbf" } VIA "DBFCDX" PACK
@@ -78,6 +177,8 @@ FUNCTION Main( cRDD )
 *  SETCURSOR(SC_NONE)
 
    SETCOLOR("N/W")
+
+   test->( dbgotop() )
 
    @ 2, 6 TO 21,72 DOUBLE COLOR "W+/BG"
 
@@ -144,6 +245,9 @@ FUNCTION Main( cRDD )
    dbcloseall()
 
    if cRdd == "SQL"
+      SetColor( "W,N" )
+      clear screen
+      @20, 00 say "Disconectando..."
       SQL DISCONNECT FROM nConn
    endif
 
@@ -195,9 +299,9 @@ STATIC FUNCTION ForceStable( obj )
 
 RETURN (NIL)
 
-***********************
-static function CRIA_BD( cRdd )
-***********************
+***************************
+static function CRIA_TABELA( cRdd )
+***************************
 
 local aStruct := { }, n
 
