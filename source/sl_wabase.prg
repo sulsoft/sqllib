@@ -978,7 +978,7 @@ static function SL_RAWLOCK( nWA, nAction, nRecNo )
    DEBUG_ARGS
  
 return SUCCESS
- 
+
 ************************
 static function SL_INFO( nWA, nTypo, aList  )  && XBASE - dbrlocklist()
 ************************
