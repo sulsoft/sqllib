@@ -169,7 +169,7 @@ FUNCTION Main( cRDD )
 
       CRIA_TABELA( "SQL" )
 
-** Para se atribuir aos campos os atributos do sql (NOT NULL / UNIQUE / PRIMARY_KEY / DEFAULT), primeiro você
+** Para se atribuir aos campos os atributos do sql (NOT NULL / UNIQUE / PRIMARY KEY / DEFAULT), primeiro você
 ** deve importar os DBF´s para dentro do SQL e depois preencher os novos atributos dos campos usando os comandos
 ** <SQL ADD FIELD> e <SQL CHANGESTRUCT> como citado abaixo:
 
@@ -179,15 +179,18 @@ FUNCTION Main( cRDD )
 **      endif
       SQL IMPORT DBF { "test.dbf" } VIA "DBFCDX" PACK
 
+* Tirar esta linha depois
+      SL_EXECQUERYEX( "delete from test where sequ = 100" )
+
       aStruct := { }
 
-      SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE PRIMARY_KEY          INTO aStruct
-      SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE PRIMARY_KEY          INTO aStruct
-      SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE                      INTO aStruct
-      SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE DEFAULT "-1.234"     INTO aStruct 
-      SQL ADD FIELD "FLD2" "C" (30, 0) NOT NULL UNIQUE DEFAULT "teste1"     INTO aStruct
-      SQL ADD FIELD "FLD3" "D" (08, 0) NOT NULL UNIQUE DEFAULT "2009-07-10" INTO aStruct
-      SQL ADD FIELD "FLD4" "L" (01, 0) NOT NULL UNIQUE DEFAULT "true"       INTO aStruct
+      SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL        PRIMARY KEY 2        INTO aStruct
+      SQL ADD FIELD "FLD1" "N" (10, 0) NOT NULL        PRIMARY KEY 1        INTO aStruct
+      SQL ADD FIELD "FLD2" "N" (12, 0)          UNIQUE                      INTO aStruct
+      SQL ADD FIELD "FLD3" "N" (10, 0) NOT NULL        DEFAULT "-123"       INTO aStruct
+      SQL ADD FIELD "FLD4" "C" (30, 0) NOT NULL        DEFAULT "teste1"     INTO aStruct
+      SQL ADD FIELD "FLD5" "D" (08, 0) NOT NULL        DEFAULT "2009-07-10" INTO aStruct
+      SQL ADD FIELD "FLD6" "L" (01, 0) NOT NULL        DEFAULT "true"       INTO aStruct
 
       SQL CHANGESTRUCT "test" WITH aStruct INTO lRet BACKUP "060709"
 
@@ -207,7 +210,7 @@ FUNCTION Main( cRDD )
       USE test ALIAS "test" via "DBFCDX" exclusive new
    endif
 
-   index on str(fld1,15,3) to _tmp
+   index on str(fld1,10,0) to _tmp
 
 *  SETCURSOR(SC_NONE)
 
@@ -234,7 +237,6 @@ FUNCTION Main( cRDD )
    b:addColumn( column )
 
    column := TBColumnNew( "Field 1", {|| test->fld1} )
-   column:footing := "First"
    b:addColumn( column )
 
    column := TBColumnNew( "Field 2", {|| test->fld2} )
@@ -244,6 +246,12 @@ FUNCTION Main( cRDD )
    b:addColumn( column )
 
    column := TBColumnNew( "Field 4", {|| test->fld4} )
+   b:addColumn( column )
+
+   column := TBColumnNew( "Field 5", {|| test->fld5} )
+   b:addColumn( column )
+
+   column := TBColumnNew( "Field 6", {|| test->fld6} )
    column:footing := "Last;Column"
    b:addColumn( column )
 
@@ -342,20 +350,25 @@ static function CRIA_TABELA( cRdd )
 
 local aStruct := { }, n
 
-* Aqui criamos a Tabela dentro do banco de dados, já com as caracteristicas "NOT NULL", "UNIQUE", "PRIMARY_KEY"
+* Aqui criamos a Tabela dentro do banco de dados, já com as caracteristicas "NOT NULL", "UNIQUE", "PRIMARY KEY"
 
-SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE PRIMARY_KEY           INTO aStruct
-SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE PRIMARY_KEY           INTO aStruct
-SQL ADD FIELD "FLD2" "C" (30, 0) NOT NULL UNIQUE DEFAULT "teste"       INTO aStruct
-SQL ADD FIELD "FLD3" "D" (08, 0) NOT NULL UNIQUE DEFAULT "2009-07-07"  INTO aStruct
-SQL ADD FIELD "FLD4" "L" (01, 0) NOT NULL UNIQUE DEFAULT "TRUE"        INTO aStruct
+SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL        PRIMARY KEY 2        INTO aStruct
+SQL ADD FIELD "FLD1" "N" (10, 0) NOT NULL        PRIMARY KEY 1        INTO aStruct
+SQL ADD FIELD "FLD2" "N" (12, 0)          UNIQUE                      INTO aStruct
+SQL ADD FIELD "FLD3" "N" (10, 0) NOT NULL        DEFAULT "-123"       INTO aStruct
+SQL ADD FIELD "FLD4" "C" (30, 0) NOT NULL        DEFAULT "teste1"     INTO aStruct
+SQL ADD FIELD "FLD5" "D" (08, 0) NOT NULL        DEFAULT "2009-07-10" INTO aStruct
+SQL ADD FIELD "FLD6" "L" (01, 0) NOT NULL        DEFAULT "true"       INTO aStruct
 
 **msgstop( SL_ToString( astruct,,,, "DUMP.TXT" ) )
 
 if cRdd == "SQL"
    if SL_TABLE( "test" )
-      SL_DELETETABLE( "test" )
+      if !SL_DELETETABLE( "test" )
+         msgstop( "Não consegui deletar a tabela <teste> !!!", "Atenção" )
+      endif
    endif
+
    dbcreate( "test", aStruct, "SQLLIB" )
 
    USE test ALIAS "TEST" via "SQLLIB" exclusive new
@@ -371,10 +384,12 @@ else
    for n = 1 to 100
        TEST->( dbappend() )
        TEST->SEQU := n
-       TEST->FLD1 := hb_random( 1, 1000 ) * .03
-       TEST->FLD2 := "Registro numero " + alltrim(str(n,3))
-       TEST->FLD3 := date() + n
-       TEST->FLD4 := iif( n < 50, .T., .F. )
+       TEST->FLD1 := n
+       TEST->FLD2 := n
+       TEST->FLD3 := hb_random( 1, 1000 ) * .03
+       TEST->FLD4 := "Registro numero " + alltrim(str(n,3))
+       TEST->FLD5 := date() + n
+       TEST->FLD6 := iif( n < 50, .T., .F. )
    next
    TEST->( dbclosearea() )
 endif
