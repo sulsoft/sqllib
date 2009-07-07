@@ -212,10 +212,10 @@ REQUEST SQLLIB
     */
    #command SQL ADD FIELD <cFieldName> <cType>(<nSize>[, <nDec>]) ;
                [ NEWNAME <cNewName> ]   ;
-               [ DEFAULT <d> ]          ;
+               [ DEFAULT <cDf> ]        ;
                [ <nn: NOT NULL> ]       ;
                [ <u: UNIQUE> ]          ;
-               [ <p: PRIMARY_KEY> ]     ;
+               [ PRIMARY KEY <nPk> ]    ;
                [ INTO <aStruct> ]    => ;
                                         ;
          AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
@@ -224,17 +224,17 @@ REQUEST SQLLIB
                            iif(<.nDec.>, <nDec>, 0),; // 4ø Casas decimais
                               <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
                               <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
-                              <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
-                              <d>      ,;             // 8ø Expressão DEFAULT para o campo
+                              <nPk>    ,;             // 7ø > 0 indica o flag PRIMARY KEY
+                              <cDf>    ,;             // 8ø Expressão DEFAULT para o campo
                               .F.      ,;             // 9ø .T. indica campo no formato SQL
                            <cNewName> } )             // 10ø Novo Nome do Campo
    
    #command SQL ADD FIELD <cFieldName> TYPE <cType> ;
                [ NEWNAME <cNewName> ]   ;
-               [DEFAULT <d> ]           ;
+               [DEFAULT <cDf> ]         ;
                [<nn:NOT NULL> ]         ;
                [<u:UNIQUE> ]            ;
-               [<p:PRIMARY_KEY> ]       ;
+               [ PRIMARY KEY <nPk> ]    ;
                 INTO <aStruct>       => ;
                                         ;
          AADD( <aStruct>, {<cFieldName>,;             // 1ø Nome do campo
@@ -243,8 +243,8 @@ REQUEST SQLLIB
                                      0 ,;             // 4ø Casas decimais
                               <.nn.>   ,;             // 5ø .T. indica o flag NOT NULL
                               <.u.>    ,;             // 6ø .T. indica o flag UNIQUE
-                              <.p.>    ,;             // 7ø .T. indica o flag PRIMARY KEY
-                              <d>      ,;             // 8ø ExpressÆo DEFAULT para o campo
+                              <nPk>    ,;             // 7ø > 0 indica o flag PRIMARY KEY
+                              <cDf>    ,;             // 8ø ExpressÆo DEFAULT para o campo
                               .T.      ,;             // 9ø .T. indica campo no formato SQL
                            <cNewName> } )             // 10ø Novo Nome do Campo
    
