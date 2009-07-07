@@ -420,7 +420,7 @@ local aConn, cSequenceField, lRet  := .F., Id, cSql
            cSequenceField := cTableName + "_" + SL_COL_RECNO
            cSql := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
            lRet := SL_EXECQUERYEX( cSql, aConn[1] )
-           if !lRet
+           if lRet
               cSQL := 'DROP TABLE "' + cSchema + '"."' + cTableName + '"'
               lRet := SL_EXECQUERYEX( cSql, aConn[1] )
            endif
@@ -522,7 +522,7 @@ local aConn, Id, aStruct := { }, aStr := { }, n
    CASE ( ID == ID_POSTGRESQL )
 
         aStruct := aConn[10]:TableStruct( cTable )
-        
+
         if !lExtend
            for n = 1 to len(aStruct)
                if aStruct[n,1] != SL_COL_RECNO .and. aStruct[n,1] != SR_COL_RECNO .and. aStruct[n,1] != SL_COL_DELETED
@@ -534,6 +534,8 @@ local aConn, Id, aStruct := { }, aStr := { }, n
            aStr := aStruct
         endif
         
+**msgstop( SL_ToString( aStr ), "Estrutura" )
+
    OTHERWISE
 
    Endcase
@@ -595,8 +597,8 @@ return lRet
 function SL_DELETEBACKUP( pConn, cSchema, cTable )
 ************************
 
-   LOCAL cSql, aConn, Id, lRet := .T., aStruct, n, t, cField, aTables := { }
-
+   LOCAL cSql, aConn, Id, lRet := .T., aStruct, n, t, cField, aTables := { }, lUniqu, nPrKey
+   
    DEFAULT cTable  := ""
    DEFAULT cSchema := "public"
 
@@ -637,9 +639,15 @@ function SL_DELETEBACKUP( pConn, cSchema, cTable )
                aStruct := SL_DBSTRUCT( cTable, , .T. )
                for n := 1 TO len( aStruct )
                    cField := SQLAdjustFn( aStruct[n,1] ) && Nome do campo
+                   lUniqu := aStruct[n,6]
+                   nPrKey := aStruct[n,7]
                    if left( cField, 7 ) == "sl$bkp_" .and. cField != SL_COL_RECNO .and. cField != SR_COL_RECNO .and. cField != SL_COL_DELETED
-                      if aStruct[n,7] && .T. indica o flag PRIMARY KEY 
-                         cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" DROP CONSTRAINT pk_' + cField + " CASCADE"
+                      if lRet .and. valtype( nPrKey ) = "N" .and. nPrKey > 0
+                         cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" DROP CONSTRAINT ' + cTable + "_" + SL_CONSTRAINT_PK + " PRIMARY KEY (" + cField + ")"
+                         lRet := SL_EXECQUERYEX( cSql, aConn[1] )
+                      endif
+                      if lRet .and. valtype( lUniqu ) = "L" .and. lUniqu
+                         cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" DROP CONSTRAINT ' + cTable + "_" + SL_CONSTRAINT_UNIQUE + "_" + cField + " UNIQUE (" + cField + ")"
                          lRet := SL_EXECQUERYEX( cSql, aConn[1] )
                       endif
                       if lRet
