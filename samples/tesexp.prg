@@ -103,3 +103,5 @@ function REGISTRO
 alert( "eval register" )
 
 return NIL
+
+//--EOF--//

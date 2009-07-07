@@ -188,3 +188,5 @@ SQLCust->( dbgotop() )
 SQLCust->( browse() )
 
 return NIL
+
+//--EOF--//

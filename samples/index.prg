@@ -171,7 +171,5 @@ exit procedure EuPorUltimo
       wait
    End
    return      
-**-------------------**
-** Final de Programa **
-**-------------------**
 
+//--EOF--//

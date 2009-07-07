@@ -393,4 +393,7 @@ exit procedure EuPorUltimo
 FUNCTION SHOWRECNO()
    DEBUG recno(), status, cod, desc,eof(), bof(), found()
    ?     recno(), status, cod, desc,eof(), bof(), found()
-   RETURN
+   RETURN
+   
+//--EOF--//
+

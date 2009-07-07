@@ -50,6 +50,7 @@ FUNCTION Main( cRDD )
                          USER "postgres"  ;
                      PASSWORD "postgres"  ;
                           VIA "PGSQL"
+
       if !SL_DATABASE( "demosqllib" )
          SQL CREATE DATABASE "demosqllib" INTO lRet
          IF !lRet
@@ -57,6 +58,7 @@ FUNCTION Main( cRDD )
             QUIT
          EndIF
       endif
+
       SQL CONNECT DATABASE "demosqllib" ;
                     SCHEMA "public" ;
                       INTO nConn  
@@ -88,19 +90,23 @@ FUNCTION Main( cRDD )
       SQL ADD FIELD "FIRST"  "C" (12, 0) NEWNAME "NOME" DEFAULT "EU"        NOT NULL UNIQUE INTO aStruct
       SQL ADD FIELD "STREET" "C" (40, 0) NEWNAME "RUA"  DEFAULT "RUA GOIAS" NOT NULL UNIQUE INTO aStruct
 
-/*
- Aqui mudamos a estrutura da tabela e fazemos backup das COLUNAS que foram modificadas
-*/
-      SQL CHANGESTRUCT "customer" WITH aStruct INTO lRet ONLYFIELDS BACKUP "030709"
+**
+** Aqui mudamos a estrutura da tabela e fazemos backup das COLUNAS que foram modificadas
+**
+
 **      SQL CHANGESTRUCT "customer" WITH aStruct INTO lRet BACKUP "030709"
+      SQL CHANGESTRUCT "customer" WITH aStruct INTO lRet ONLYFIELDS BACKUP "030709"
+** ATENÇÃO: Se você não especificar o parametro <ONLYFIELDS>, todos os outros campos(colunas), serão apagados
+**          caso contrário, somente os campos(colunas) citados acima serão modificados sem modificar/apagar os outros
+**          campos(colunas)
 
       if !lRet
          msginfo( "Não foi possível mudar a estrutura da tabela <customer> !!!", "Atenção" )
       endif
 
-/*
- Aqui deletados as colunas de BACKUP
-*/
+**
+** Aqui deletados as colunas de BACKUP
+**
       SQL DELETE BACKUP TABLE "customer" INTO lRet
 
       if !lRet
@@ -163,9 +169,38 @@ FUNCTION Main( cRDD )
 
       CRIA_TABELA( "SQL" )
 
+** Para se atribuir aos campos os atributos do sql (NOT NULL / UNIQUE / PRIMARY_KEY / DEFAULT), primeiro você
+** deve importar os DBF´s para dentro do SQL e depois preencher os novos atributos dos campos usando os comandos
+** <SQL ADD FIELD> e <SQL CHANGESTRUCT> como citado abaixo:
+
 **      if !SL_FILE( "test" )
-         SQL IMPORT DBF { "test.dbf" } VIA "DBFCDX" PACK
+**         aArqs := { "test.dbf", "test1.dbf", "test2.dbf" }
+**         SQL IMPORT DBF aArqs VIA "DBFCDX" PACK
 **      endif
+      SQL IMPORT DBF { "test.dbf" } VIA "DBFCDX" PACK
+
+      aStruct := { }
+
+      SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE PRIMARY_KEY          INTO aStruct
+      SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE PRIMARY_KEY          INTO aStruct
+      SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE                      INTO aStruct
+      SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE DEFAULT "-1.234"     INTO aStruct 
+      SQL ADD FIELD "FLD2" "C" (30, 0) NOT NULL UNIQUE DEFAULT "teste1"     INTO aStruct
+      SQL ADD FIELD "FLD3" "D" (08, 0) NOT NULL UNIQUE DEFAULT "2009-07-10" INTO aStruct
+      SQL ADD FIELD "FLD4" "L" (01, 0) NOT NULL UNIQUE DEFAULT "true"       INTO aStruct
+
+      SQL CHANGESTRUCT "test" WITH aStruct INTO lRet BACKUP "060709"
+
+      if !lRet
+         msginfo( "Não foi possível mudar a estrutura da tabela <customer> !!!", "Atenção" )
+      endif
+
+      SQL DELETE BACKUP TABLE "test" INTO lRet
+
+      if !lRet
+         msginfo( "Não foi possível apagar as colunas de BACKUP !!!", "Atenção" )
+      endif
+
       SL_DELETEINDEX( "_tmp" )
       USE test ALIAS "test" via "SQLLIB" exclusive new
    else
@@ -177,18 +212,21 @@ FUNCTION Main( cRDD )
 *  SETCURSOR(SC_NONE)
 
    SETCOLOR("N/W")
-
+   
+   clear typeahead
+   keyboard chr(0) 
+   
    test->( dbgotop() )
 
    @ 2, 6 TO 21,72 DOUBLE COLOR "W+/BG"
 
-   b:= TBrowseDB( 3, 7, 20, 71 )
+   b := TBrowseDB( 3, 7, 20, 71 )
 
    b:colorSpec := "W+/BG,N/W,W/N,N,GR+/W,N/BG,B+/BG,GR+/BG"
-
-   b:colSep  := COLSEP
-   b:headSep := HEADSEP
-   b:footSep := FOOTSEP
+   b:colSep    := COLSEP
+   b:headSep   := HEADSEP
+   b:footSep   := FOOTSEP
+   b:freeze    := 1
 
    // TBColumn objects
    column := TBColumnNew( "Sequence", {|| test->SEQU} )
@@ -208,8 +246,6 @@ FUNCTION Main( cRDD )
    column := TBColumnNew( "Field 4", {|| test->fld4} )
    column:footing := "Last;Column"
    b:addColumn( column )
-
-   b:freeze := 1
 
    DO WHILE .T.
 
@@ -232,6 +268,7 @@ FUNCTION Main( cRDD )
                    EXIT
             elseif nKey == K_INS
                    TEST->( dbappend() )
+                   TEST->( dbcommit() )
             ELSEIF nKey == K_DEL
                    TEST->( dbdelete() )
             ENDIF
@@ -307,11 +344,11 @@ local aStruct := { }, n
 
 * Aqui criamos a Tabela dentro do banco de dados, já com as caracteristicas "NOT NULL", "UNIQUE", "PRIMARY_KEY"
 
-SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE PRIMARY_KEY INTO aStruct
-SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE             INTO aStruct
-SQL ADD FIELD "FLD2" "C" (30, 0) NOT NULL UNIQUE             INTO aStruct
-SQL ADD FIELD "FLD3" "D" (08, 0) NOT NULL UNIQUE             INTO aStruct
-SQL ADD FIELD "FLD4" "L" (01, 0) NOT NULL UNIQUE             INTO aStruct
+SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL UNIQUE PRIMARY_KEY           INTO aStruct
+SQL ADD FIELD "FLD1" "N" (15, 3) NOT NULL UNIQUE PRIMARY_KEY           INTO aStruct
+SQL ADD FIELD "FLD2" "C" (30, 0) NOT NULL UNIQUE DEFAULT "teste"       INTO aStruct
+SQL ADD FIELD "FLD3" "D" (08, 0) NOT NULL UNIQUE DEFAULT "2009-07-07"  INTO aStruct
+SQL ADD FIELD "FLD4" "L" (01, 0) NOT NULL UNIQUE DEFAULT "TRUE"        INTO aStruct
 
 **msgstop( SL_ToString( astruct,,,, "DUMP.TXT" ) )
 
@@ -323,9 +360,9 @@ if cRdd == "SQL"
 
    USE test ALIAS "TEST" via "SQLLIB" exclusive new
 
-msgstop( SL_ToString( TEST->( dbStruct()        ), , , , "dump.txt" ), "Usando DbStruct()" )
-msgstop( SL_ToString( SL_DBSTRUCT( "test"       ), , , , "dump.txt" ), "Usando SL_DbStruct()" )
-msgstop( SL_ToString( SL_DBSTRUCT( "test",, .T. ), , , , "dump.txt" ), "Usando SL_DbStruct() com retorno <EXTEND>" )
+**msgstop( SL_ToString( TEST->( dbStruct()        ), , , , "dump.txt" ), "Usando DbStruct()" )
+**msgstop( SL_ToString( SL_DBSTRUCT( "test"       ), , , , "dump.txt" ), "Usando SL_DbStruct()" )
+**msgstop( SL_ToString( SL_DBSTRUCT( "test",, .T. ), , , , "dump.txt" ), "Usando SL_DbStruct() com retorno <EXTEND>" )
    
    TEST->( dbclosearea() )
 else
@@ -343,3 +380,5 @@ else
 endif
 
 return NIL
+
+//--EOF--//
