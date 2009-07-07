@@ -301,3 +301,5 @@
    #define FSL_GETFIELDTYPE( id )      ( aSystemDrivers[ id, DSL_GETFIELDTYPE     ] )   && Rossine 23/12/08
    #define FSL_GETFULLTABLE( id )      ( aSystemDrivers[ id, DSL_GETFULLTABLE     ] )   && Rossine 03/01/09
 #endif
+
+//--EOF--//
