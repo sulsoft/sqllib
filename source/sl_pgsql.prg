@@ -229,8 +229,7 @@ function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
 function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
 ************************
 
-   LOCAL cSql, cSequenceField 
-
+   LOCAL cSql, cSequenceField
    local oSql        := aWAData[ WA_POINTER ]
    LOCAL nConn       := oSQL:pDB
    LOCAL cSchema     := aWAData[ WA_SCHEMA ]
@@ -297,13 +296,14 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    cSql += ', "' + cFieldRecno + '"' + " NUMERIC(15,0) DEFAULT nextval('" +;
                     cSequenceField + "'::regclass) UNIQUE NOT NULL"
 
-
    IF !Empty( aWAData[ WA_TEMP,2 ] )
       cSql += ', CONSTRAINT ' + cTableName + "_" +  SL_CONSTRAINT_PK  + ' PRIMARY KEY (' +  aWAData[ WA_TEMP,2 ] + ')'
    End
 
    cSql += ')'
    aWAData[ WA_TEMP ] := nil
+
+**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 
    /* Aqui executamos o comando e deixamos a msg de erro aparecer ao usuario */
    PGSQL_QUERY_LOG( nConn, cSql, @lError, .T., .T. )
@@ -322,7 +322,7 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
    LOCAL xDefault
    LOCAL nLen, nDec
    LOCAL cSQL
-   LOCAL cConstraintPK := ''
+   LOCAL aConstraintPK := { }, cConstraintPK := ""
    LOCAL n
 
    HB_SYMBOL_UNUSED( nWA )
@@ -459,20 +459,25 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
         * 24/05/2009 - 01:49:31
         */
        IF ( Len( aField ) >= DBS_PRIMARY_KEY )
-          IF (VALTYPE( aField[ DBS_PRIMARY_KEY ]) == 'L' .AND. ;
-                       aField[ DBS_PRIMARY_KEY ] ) 
-                                 
-             IF !Empty( cConstraintPK )
-                cConstraintPK += ','
-             End
-               
-             cConstraintPK += '"' + lower( aField[ DBS_NAME ] ) + '" '
+          IF (VALTYPE( aField[ DBS_PRIMARY_KEY ]) == 'N' .AND. ;
+                       aField[ DBS_PRIMARY_KEY ] > 0 ) 
+           aadd( aConstraintPK, { aField[ DBS_PRIMARY_KEY ], '"' + lower( aField[ DBS_NAME ] ) + '"' } )
           End
        End
    next
 
+   if len(aConstraintPK) > 0
+      asort( aConstraintPK,,,{ |x,y| x[1] < y[1] } )
+      for n = 1 to len(aConstraintPK)
+          cConstraintPK += aConstraintPK[n,2] + iif( n < len(aConstraintPK), ",", "" )
+      next
+   endif
+
+**msgstop( SL_ToString( cConstraintPK,.T.,,, "DUMP.TXT", .T. ) )
+   
    aWAData[ WA_TEMP,1 ] := cSQL
    aWAData[ WA_TEMP,2 ] := cConstraintPK
+
    RETURN SUCCESS
    
 /*
