@@ -297,6 +297,7 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    cSql += ', "' + cFieldRecno + '"' + " NUMERIC(15,0) DEFAULT nextval('" +;
                     cSequenceField + "'::regclass) UNIQUE NOT NULL"
 
+
    IF !Empty( aWAData[ WA_TEMP,2 ] )
       cSql += ', CONSTRAINT ' + cTableName + "_" +  SL_CONSTRAINT_PK  + ' PRIMARY KEY (' +  aWAData[ WA_TEMP,2 ] + ')'
    End
@@ -1634,6 +1635,4 @@ function SL_GETFULLTABLE_PGSQL( aWAData )
 
 return '"' + aWAData[ WA_SCHEMA ] + '"."' + aWAData[ WA_TABLENAME ] + '"'
 
-**-------------------**
-** Final de Programa **
-**-------------------**
+//--EOF--//

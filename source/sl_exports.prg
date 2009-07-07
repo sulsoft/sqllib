@@ -103,6 +103,7 @@ for each cFile in aFiles
     if lPack
        EXPORT_DBF->( __dbpack() )
     endif
+    EXPORT_DBF->( dbgotop() )
     
     aStruct := EXPORT_DBF->( dbStruct() )
     
@@ -121,7 +122,7 @@ for each cFile in aFiles
        append from (cFileDBF) via (cVia)
 **       copy to (cFileSQL) via "SQLLIB"
     endif
-          
+
     EXPORT_SQL->( dbCloseArea() )
 **    EXPORT_DBF->( dbCloseArea() )
 
@@ -214,6 +215,4 @@ rddsetdefault( cVia )
 
 return aExports
 
-**-------------------**
-** Final de Programa **
-**-------------------**
+//--EOF--//

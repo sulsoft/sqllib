@@ -614,6 +614,4 @@ return { s_cHost, s_cUser, s_cPwd, s_cDriverName }
 FUNCTION SL_Version()
    RETURN SQL_VTEXT + SQL_VERSION
 
-**-------------------**
-** Final de Programa **
-**-------------------**
+//--EOF--//

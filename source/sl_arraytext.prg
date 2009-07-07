@@ -88,3 +88,5 @@ FUNCTION SQLText2Array( cList, cDelimiter )
       RETURN cList
    End
    RETURN hb_ATokens( cList, cDelimiter )
+
+//--EOF--//

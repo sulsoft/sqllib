@@ -92,3 +92,5 @@ METHOD New( nHandle ) ;
    End
       
    RETURN Self
+
+//--EOF--//

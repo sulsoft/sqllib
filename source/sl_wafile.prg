@@ -51,7 +51,7 @@
  * Mesmo procedimento da rotina acima adaptada para índices
  */
 FUNCTION SL_INDEXE( Index, pConn, cTagName )
-      LOCAL cSql, aConn, Schema, Ind, Id, Result
+      LOCAL cSql, aConn, Schema, Id, Ind
 
       IF Index == NIL
          RETURN .F.
@@ -95,9 +95,8 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
        * Executamos o SQL com esta função q retorna um ARRAY
        * com o result de nossa query ...
        */
-      Ind    := SQLArray( cSql,, aConn,, ID )
-      Result := Len( Ind ) <> 00
-   RETURN Result
+
+   RETURN Len( SQLArray( cSql,, aConn,, ID ) ) <> 00
 
 /*
  * FUN€ÇO: TABLE( cTable )
@@ -120,7 +119,7 @@ FUNCTION SL_INDEXE( Index, pConn, cTagName )
  */
 FUNCTION SL_TABLE( Table, pConn )
 
-      LOCAL cSql, aConn, Schema, Tab, Id, Result
+      LOCAL cSql, aConn, Schema, Id, Tab
 
       IF Table == NIL
          RETURN .F.
@@ -158,9 +157,8 @@ FUNCTION SL_TABLE( Table, pConn )
        * Executamos o SQL com esta função q retorna um ARRAY
        * com o result de nossa query ...
        */
-      Tab    := SQLArray( cSql,, aConn,, ID )
-      Result := Len( Tab ) <> 00
-   RETURN Result
+
+   RETURN Len( SQLArray( cSql,, aConn,, ID ) ) <> 00
 
 /*
  * Mesmo procedimento da rotina acima adaptada para ¡ndices com TAGs
@@ -263,7 +261,7 @@ FUNCTION SL_FILE( cFile )
 function SL_CREATEDATABASE( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema, lCreate )
 **************************
 
-   local aConn, Id, Res, aConA := SL_GETCONNINFO(), cSql, Ind
+   local aConn, Id, lRet, aConA := SL_GETCONNINFO(), cSql
    local lNew := .F.  && Rossine 25/06/09
 
    HB_SYMBOL_UNUSED( cHost )
@@ -327,8 +325,7 @@ function SL_CREATEDATABASE( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema
     * com o result de nossa query ...
     */
 
-   Ind := SQLArray( cSql,, aConn,, ID )
-   Res := Len( Ind ) = 00
+   lRet := SL_EXECQUERYEX( cSql, aConn[1] )
 
 **   Res := SL_DATABASE( cDB )
 
@@ -340,7 +337,7 @@ function SL_CREATEDATABASE( cHost, nPort, cDb, cUser, cPwd, cDriverName, cSchema
       SL_SetConnection( aConA[SL_CONN_HANDLE] )
    endif
 
-return Res
+return lRet
 
 **************************
 function SL_RENAMEDATABASE( cDatabase, cNewDataBase, pConn )
@@ -377,8 +374,7 @@ local aConn, Id, lRet := .F., cSql
    CASE ( ID == ID_POSTGRESQL )
 
         cSql := "ALTER DATABASE " + cDataBase + " RENAME TO " + cNewDataBase
-        lRet := SQLArray( cSql,, aConn,, ID )
-        lRet := len( lRet ) = 0
+        lRet := SL_EXECQUERYEX( cSql, aConn[1] )
 
    OTHERWISE
 
@@ -390,7 +386,7 @@ return lRet
 function SL_DELETETABLE( cTableName, cSchema, pConn )  && Rossine 29/06/09
 ***********************
 
-local aConn, cSequenceField, lError, lRet  := .F., Id, cSql, Ind
+local aConn, cSequenceField, lRet  := .F., Id, cSql
 
    DEFAULT cSchema := "public"
  
@@ -422,16 +418,11 @@ local aConn, cSequenceField, lError, lRet  := .F., Id, cSql, Ind
    CASE ( ID == ID_POSTGRESQL )
         if SL_DELETEINDEX( cTableName, cSchema, pConn )
            cSequenceField := cTableName + "_" + SL_COL_RECNO
-           cSql   := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
-           Ind    := SQLArray( cSql,, aConn,, ID )
-           lError := Len( Ind ) <> 00
-           if !lError
-              cSQL   := 'DROP TABLE "' + cSchema + '"."' + cTableName + '"'
-              Ind    := SQLArray( cSql,, aConn,, ID )
-              lError := Len( Ind ) <> 00
-              if !lError
-                 lRet := .T.
-              endif
+           cSql := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
+           lRet := SL_EXECQUERYEX( cSql, aConn[1] )
+           if !lRet
+              cSQL := 'DROP TABLE "' + cSchema + '"."' + cTableName + '"'
+              lRet := SL_EXECQUERYEX( cSql, aConn[1] )
            endif
         endif
    OTHERWISE
@@ -444,7 +435,7 @@ return lRet
 function SL_DELETEINDEX( cIndexname, cSchema, pConn ) && Rossine 29/06/09
 ***********************
 
-local aConn, lRet  := .F., Id, Ind, cSql
+local aConn, lRet  := .F., Id, cSql
 
    DEFAULT cSchema := "public"
  
@@ -475,10 +466,9 @@ local aConn, lRet  := .F., Id, Ind, cSql
 
    CASE ( ID == ID_POSTGRESQL )
 
-        cSql  := "DELETE FROM " + cSchema + "." + SL_INDEX + " where " + ;
-                                            '"indexfile" = ' + "'" + ID_PREFIX + cIndexname + "'"
-        Ind   := SQLArray( cSql,, aConn,, ID )
-        lRet  := Len( Ind ) = 00
+        cSql := "DELETE FROM " + cSchema + "." + SL_INDEX + " where " + ;
+                                           '"indexfile" = ' + "'" + ID_PREFIX + cIndexname + "'"
+        lRet := SL_EXECQUERYEX( cSql, aConn[1] )
 
    OTHERWISE
         lRet := .F.
@@ -554,7 +544,7 @@ return aStr
 function SL_RENAMETABLE( cOld, cNew, cSchema, pConn )
 ***********************
 
-local aConn, Id, lRet := .F., cSql, Ind
+local aConn, Id, lRet := .F., cSql
    
    DEFAULT cSchema := "public"
 
@@ -589,8 +579,7 @@ local aConn, Id, lRet := .F., cSql, Ind
 
         if SL_TABLE( cOld ) .and. !SL_TABLE( cNew )
            cSql := 'ALTER TABLE "' + cSchema + '"."' + cOld + '" RENAME TO "' + cNew + '"'
-           Ind  := SQLArray( cSql,, aConn,, ID )
-           lRet := Len( Ind ) = 00
+           lRet := SL_EXECQUERYEX( cSql, aConn[1] )
         endif
         
    OTHERWISE
@@ -606,7 +595,7 @@ return lRet
 function SL_DELETEBACKUP( pConn, cSchema, cTable )
 ************************
 
-   LOCAL cSql, aConn, Tab, Id, lRet := .T., aStruct, n, t, cField, aTables := { }
+   LOCAL cSql, aConn, Id, lRet := .T., aStruct, n, t, cField, aTables := { }
 
    DEFAULT cTable  := ""
    DEFAULT cSchema := "public"
@@ -651,13 +640,11 @@ function SL_DELETEBACKUP( pConn, cSchema, cTable )
                    if left( cField, 7 ) == "sl$bkp_" .and. cField != SL_COL_RECNO .and. cField != SR_COL_RECNO .and. cField != SL_COL_DELETED
                       if aStruct[n,7] && .T. indica o flag PRIMARY KEY 
                          cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" DROP CONSTRAINT pk_' + cField + " CASCADE"
-                         Tab  := SQLArray( cSql,, aConn,, ID )
-                         lRet := Len( Tab ) = 0
+                         lRet := SL_EXECQUERYEX( cSql, aConn[1] )
                       endif
                       if lRet
                          cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" DROP COLUMN ' + cField + " CASCADE"
-                         Tab  := SQLArray( cSql,, aConn,, ID )
-                         lRet := Len( Tab ) = 0
+                         lRet := SL_EXECQUERYEX( cSql, aConn[1] )
                          if !lRet
                             msgstop( "Não foi possível apagar a Tabela: [" + cTable + "] !!!", "Erro" )
                             return .F.
@@ -706,8 +693,7 @@ local aConn, Id, lRet := .F., cSql
    CASE ( ID == ID_POSTGRESQL )
 
         cSql := "CREATE SCHEMA " + cSchema
-        lRet := SQLArray( cSql,, aConn,, ID )
-        lRet := len( lRet ) = 0
+        lRet := SL_EXECQUERYEX( cSql, aConn[1] )
 
    OTHERWISE
 
@@ -750,8 +736,7 @@ local aConn, Id, lRet := .F., cSql
    CASE ( ID == ID_POSTGRESQL )
 
         cSql := "ALTER SCHEMA " + cSchema + " RENAME TO " + cNewSchema
-        lRet := SQLArray( cSql,, aConn,, ID )
-        lRet := len( lRet ) = 0
+        lRet := SL_EXECQUERYEX( cSql, aConn[1] )
 
    OTHERWISE
 
@@ -762,7 +747,6 @@ return lRet
 ************************
 function SL_DELETESCHEMA( cSchema, pConn )
 ************************
-
 
 local aConn, Id, lRet := .F., cSql
    
@@ -789,8 +773,7 @@ local aConn, Id, lRet := .F., cSql
    CASE ( ID == ID_POSTGRESQL )
 
         cSql := "DROP SCHEMA " + cSchema + " CASCADE"
-        lRet := SQLArray( cSql,, aConn,, ID )
-        lRet := len( lRet ) = 0
+        lRet := SL_EXECQUERYEX( cSql, aConn[1] )
 
    OTHERWISE
 
@@ -855,6 +838,47 @@ local aConn, Id, aRet := { }, cSql, aTmp, n
 
 return aRet
 
-**-------------------**
-** Final de Programa **
-**-------------------**
+***********************
+function SL_EXECQUERYEX( cQuery, pConn )
+***********************
+
+local aConn, Id, lRet := .F., xRes
+   
+   DEFAULT cQuery := ""
+
+   aConn := SL_GETCONNINFO( pConn )
+
+   IF VALTYPE( cQuery ) != "C"
+      RETURN .F.
+   Endif
+
+   DEBUG_ARGS
+   
+   Id   := aConn[SL_CONN_SYSTEMID]
+   xRes := PQexec( aConn[10]:pDB, cQuery )
+
+**memowrit( "dump.txt", cQuery  )
+
+**msgstop( SL_ToString( xres) )
+
+   DO CASE
+   CASE ( ID == ID_MYSQL )
+*        cSql := "??"
+
+   CASE ( ID == ID_POSTGRESQL )
+
+        if PQresultstatus( xRes ) = PGRES_COMMAND_OK
+           lRet := .T.
+        else
+           msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( xRes ), "Erro na sentença" )
+        endif
+         
+        PQclear( xRes )
+        
+   OTHERWISE
+
+   Endcase
+
+RETURN lRet
+
+//--EOF--//

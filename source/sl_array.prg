@@ -96,3 +96,5 @@ FUNCTION SQLArray( cSQL, aParms, nHandle, Array, nSystemID, lAssoc )
  * Tenta executar a SQL com o Driver
    cFunc := 'SL_' + Rdd + '_SQLARRAY'
    RETURN HB_ExecFromArray( cFunc, { nHandle, cSQL, Array, lAssoc } )
+
+//--EOF--//

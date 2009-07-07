@@ -106,3 +106,5 @@ function SL_ToString( x, lLineFeed, lInherited, lType, cFile, lForceLineFeed )
     endif
     
 return s
+
+//--EOF--//

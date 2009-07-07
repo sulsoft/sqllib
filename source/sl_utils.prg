@@ -420,8 +420,6 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
       END
       RETURN nil
 
-
-
 #ifndef FWVERSION
    
    function msgyesno( msg, tit )   
@@ -505,4 +503,4 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
       /**/
    
    return nil
-#endif
+#endif

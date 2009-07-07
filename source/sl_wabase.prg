@@ -3304,3 +3304,5 @@ FUNCTION SQL_ANY2SEEK( uField, bTrim, cAdd, bSoft, cType )
         RETURN "'"+ uField+"'"
    END
    RETURN ""
+
+//--EOF--//
