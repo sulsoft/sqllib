@@ -103,6 +103,7 @@ for each cFile in aFiles
     if lPack
        EXPORT_DBF->( __dbpack() )
     endif
+
     EXPORT_DBF->( dbgotop() )
     
     aStruct := EXPORT_DBF->( dbStruct() )
