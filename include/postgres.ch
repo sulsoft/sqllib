@@ -26,3 +26,5 @@
 #define PQTRANS_INTRANS                 2
 #define PQTRANS_INERROR                 3
 #define PQTRANS_UNKNOWN                 4
+
+//--EOF--//

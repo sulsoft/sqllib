@@ -130,3 +130,5 @@
    #define ERRDATATYPE        2
    #define ERRDATAWIDTH       3   
 #endif
+
+//--EOF--//
