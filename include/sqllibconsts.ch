@@ -64,6 +64,7 @@
    #define SL_NULLDATE             "0001-01-01"
    #define SL_NULLDATE2            "0000-00-00"
    #define SL_CONSTRAINT_PK        "sl_primary_key"
+   #define SL_CONSTRAINT_UNIQUE    "sl_unique"
                                    
    #define SL_LOG_FILENAME         "sqllog.txt"
    #define SL_INDEX                "sl$indexes"
