@@ -477,14 +477,15 @@ local aConn, lRet  := .F., Id, cSql
 return lRet
 
 /*
+      1             2       3     4     5       6      7         8                                   9
     cField,      cType, nSize, nDec, bNull, UNIQUE, PRIMARY_KEY, xDef,                             hbType
-{ { "sequ"        ,"N",    15,    0,   .T.,    .F.,    .T.,       "0"                                 ,7},
-  { "fld1"        ,"N",    15,    3,   .T.,    .T.,    .F.,       "0"                                 ,7},
-  { "fld2"        ,"C",    30,    0,   .T.,    .T.,    .F.,       "' '::character varying"            ,1},
-  { "fld3"        ,"D",     8,    0,   .T.,    .T.,    .F.,       NIL                                 ,3},
-  { "fld4"        ,"L",     1,    0,   .T.,    .T.,    .F.,       "false"                             ,2},
-  { "sl_deleted"  ,"C",     1,    0,   .F.,    .F.,    .F.,       "' '::character varying"            ,1},
-  { "sl_rowid"    ,"N",    15,    0,   .T.,    .T.,    .F.,       "nextval('test_sl_rowid'::regclass)",7}
+{ { "sequ"        ,"N",    15,    0,   .T.,    .F.,    1,       "0"                                 ,7},
+  { "fld1"        ,"N",    15,    3,   .T.,    .T.,    0,       "0"                                 ,7},
+  { "fld2"        ,"C",    30,    0,   .T.,    .T.,    0,       "' '::character varying"            ,1},
+  { "fld3"        ,"D",     8,    0,   .T.,    .T.,    0,       NIL                                 ,3},
+  { "fld4"        ,"L",     1,    0,   .T.,    .T.,    0,       "false"                             ,2},
+  { "sl_deleted"  ,"C",     1,    0,   .F.,    .F.,    0,       "' '::character varying"            ,1},
+  { "sl_rowid"    ,"N",    15,    0,   .T.,    .T.,    0,       "nextval('test_sl_rowid'::regclass)",7}
 }
 */
 ********************
