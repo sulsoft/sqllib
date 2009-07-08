@@ -45,6 +45,47 @@
  * whether to permit this exception to apply to your modifications.
  * If you do not wish that, delete this exception notice.
  */
+
+/*
+  Sentenças de exemplo que poderão ser úteis para buscar informações do postgres.
+  
+    select * from pg_database;
+    select * from pg_class;
+    select * from pg_attribute;
+    select * from pg_tables;
+    select * from pg_indexes;
+    select * from pg_index;
+    select * from pg_constraint;
+    select * from pg_settings;
+    select * from pg_user;
+    select * from pg_shadow;
+    select * from pg_type;
+    select * from pg_rewrite;
+    select * from pg_views;
+    select * from pg_authid;
+    select * from pg_statio_all_sequences;
+    select * from pg_stat_activity;
+    select * from pg_stat_database;
+    select * from pg_locks;
+    select * from pg_attribute;
+
+    select * from information_schema.table_constraints;
+    select * from information_schema.referential_constraints;
+    select * from information_schema.constraint_column_usage;
+    select * from information_schema.check_constraints;
+    select * from information_schema.parameters;
+    select * from information_schema.column_udt_usage;
+    select * from information_schema.information_schema_catalog_name;
+    select * from information_schema.role_table_grants;
+    select * from information_schema.role_routine_grants;
+    select * from information_schema.routine_privileges;
+    select * from information_schema.routines;
+    select * from information_schema.tables;
+    select * from information_schema.triggers;
+    select * from information_schema.views;
+
+*/
+
 #include "sqllibrdd.ch"
 
 REQUEST  SL_PGSQL_SQLARRAY
