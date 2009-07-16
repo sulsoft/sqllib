@@ -134,31 +134,36 @@ REQUEST SQLLIB
    /*
      Importar DBF para SQL  && Rossine 23/01/09
    */
-   #command SQL IMPORT DBF <aFiles>                                         ;
-                       [ VIA <cVia> ]                                       ;
-                       [ <lPack:PACK> ]                                     ;
-                       [ <lDelete:DELETE> ]                                 ;
-                       [ INTO <lRet> ]                                      ;
-                       [ EVAL <bBlock> ]                                    ;
-                       [ EVERY <nEvery> ]                                   ;
-                       [ APPENDEVAL <bBlockApp> ]                           ;
-                                                                         => ;
-         [ <lRet> := ] SL_IMPORT_FILES( <aFiles>, <cVia>, <.lPack.>, <.lDelete.>, ;
-                                        <bBlock>, <nEvery>, <bBlockApp> )
+   #command SQL IMPORT DBF <aFiles>                                           ;
+                       [ VIA <cVia> ]                                         ;
+                       [ CONNECTION <pConn> ]                                 ;
+                       [ SCHEMA <cSChema> ]                                   ;
+                       [ <lPack:PACK> ]                                       ;
+                       [ <lDelete:DELETE> ]                                   ;
+                       [ INTO <lRet> ]                                        ;
+                       [ EVAL <bBlock> ]                                      ;
+                       [ EVERY <nEvery> ]                                     ;
+                       [ APPENDEVAL <bBlockApp> ]                             ;
+                                                                           => ;
+         [ <lRet> := ] SL_IMPORT_FILES( <aFiles>, <cVia>, <pConn>, <cSChema>, ;
+                       <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockApp> )
 
    /*
      Exportar SQL para DBF  && Rossine 23/01/09
    */
-   #command SQL EXPORT DBF [ <aFiles> ]                                     ;
-                       [ VIA <cVia> ]                                       ;
-                       [ <lPack:PACK> ]                                     ;
-                       [ <lDelete:DELETE> ]                                 ;
-                       [ INTO <aRet> ]                                      ;
-                       [ EVAL <bBlock> ]                                    ;
-                       [ EVERY <nEvery> ]                                   ;
-                       [ COPYEVAL <bBlockCopy> ]                            ;
-                                                                         => ;
-         [ <aRet> := ] SL_EXPORT_FILES( <aFiles>, <cVia>, <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockCopy> )
+   #command SQL EXPORT DBF [ <aFiles> ]                                       ;
+                       [ VIA <cVia> ]                                         ;
+                       [ CONNECTION <pConn> ]                                 ;
+                       [ SCHEMA <cSChema> ]                                   ;
+                       [ <lPack:PACK> ]                                       ;
+                       [ <lDelete:DELETE> ]                                   ;
+                       [ INTO <aRet> ]                                        ;
+                       [ EVAL <bBlock> ]                                      ;
+                       [ EVERY <nEvery> ]                                     ;
+                       [ COPYEVAL <bBlockCopy> ]                              ;
+                                                                           => ;
+         [ <aRet> := ] SL_EXPORT_FILES( <aFiles>, <cVia>, <pConn>, <cSChema>, ;
+                       <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockCopy> )
 
    /*
      Deleta uma Tabela
@@ -179,12 +184,12 @@ REQUEST SQLLIB
    #command USE <(cDb)> [VIA <cRddName>] [ALIAS <cAlias>] [<lNew: NEW>] ;
                [ <lExclusive: EXCLUSIVE>] [<lShared: SHARED>] [<lReadOnly: READONLY>] ;
                [ CODEPAGE <cCodePage>] [INDEX <(index1)> [, <(indexN)>]] ;
+               [ CONECTION <nCnn> ] ;
                [ SCHEMA <cSChema> ] ;
                [ QUERY <cQuery> ] ;
-               [ INTO <nCnn> ] => ;
-               [; SL_SetSChema( <cSChema> ) ] ;
-               [; SL_SetQuery( <cQuery> ) ] ;
                [; SL_SetConnection( <nCnn> ) ; ] ;
+               [; SL_SetSChema( <cSChema> ) ] ;
+               [; SL_SetQuery( <cQuery> ) ] => ;
                dbUseArea( <.lNew.>, <cRddName>, <(cDb)>, <(cAlias)>, ;
                           if( <.lShared.> .or. <.lExclusive.>, !<.lExclusive.>, NIL ), ;
                           <.lReadOnly.> [, <cCodePage>] ) ;
