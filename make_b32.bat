@@ -10,7 +10,7 @@ if "%HRB_DIR%" == "" if not "%HB_INSTALL_PREFIX%" == "" 	SET HRB_DIR=%HB_INSTALL
 if "%HRB_DIR%" == "" if not "%HB_PATH%"  == "" 				SET HRB_DIR=%HB_PATH%
 
 if not exist lib md lib
-if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
+if not exist %HRB_DIR%\lib\hbvm.lib if not exist %HRB_DIR%\lib\win\bcc\hbvm.lib goto BUILD_XHB
 
 :BUILD_HB
    cd source

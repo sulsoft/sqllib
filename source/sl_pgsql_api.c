@@ -526,7 +526,7 @@ HB_FUNC( PQGETVALUEEX )
                szResult[lLen] = '\0';
 
                hb_xmemset( szResult, ' ', lLen );
-               hb_itemPutCPtr( pItem, ( char * ) szResult, lLen );
+               hb_itemPutCLPtr( pItem, ( char * ) szResult, lLen );
 
             } else {
                char * szResult = ( char * ) hb_xgrab( lLen + 1 );
@@ -536,7 +536,7 @@ HB_FUNC( PQGETVALUEEX )
 
                hb_xmemset( szResult, ' ', lLen );
                hb_xmemcpy( szResult, PQgetvalue( res, nRow, nField ), ( ulSize > lLen) ? lLen : ulSize );
-               hb_itemPutCPtr( pItem, ( char * ) szResult, lLen );
+               hb_itemPutCLPtr( pItem, ( char * ) szResult, lLen );
             }
             HB_TRACE(HB_TR_DEBUG, ("PQGetValueEx (char *) => %s", hb_itemGetCPtr( pItem )));
             break;

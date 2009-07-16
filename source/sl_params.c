@@ -78,7 +78,7 @@ HB_FUNC( SQLPARAMS )
    BOOL  bLiteral;
    HB_TYPE type;
       
-   char *cSQL;                 /* Original SQL */
+   const char *cSQL;                 /* Original SQL */
    char *cResult;              /* New SQL as result */
    char *szText;               /* Temporary item */
    char *szTemp;               /* Temporary item #2 */

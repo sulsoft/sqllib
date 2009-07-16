@@ -67,10 +67,10 @@
 #define SQLSYS_INFO_MAX_BOOL_VALUE                 6           // e.g. "FALSE"
 #define SQLSYS_INFO_MAX_BOOL_FLDNAME               8           // e.g. "Boolean"
 
-#define SQL_ESCAPESTR( funcname )   static char * funcname ( char *source, ULONG *size, int Flags)
+#define SQL_ESCAPESTR( funcname )   static char * funcname ( const char *source, ULONG *size, int Flags)
 #define SR_ISVALID_DRIVER( x )         ( x  && x ->ID )
                                           
-typedef char *(*PFUNC_ESCAPE_STR)( char *source, ULONG *size, int Flags);
+typedef char *(*PFUNC_ESCAPE_STR)( const char *source, ULONG *size, int Flags);
 
 typedef struct _SQLSYS_INFO 
 {

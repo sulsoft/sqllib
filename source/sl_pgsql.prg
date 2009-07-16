@@ -665,7 +665,7 @@ function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
 
   cSQL := SQLPARAMS( aWAData[ WA_SL_GOTOID ], { AllTrim( Str( nRecNo ) ) }, ID_POSTGRESQL )
 
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_FIRST )
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_NONE )
 
 /*
  * Perform DbGoTop() on current WA. 
