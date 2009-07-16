@@ -644,11 +644,11 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    aWAData[ WA_BUFFER_ROWCOUNT ] := nRows
 
    /* Update recno position */
-   IF aWAData[ WA_TABLETYPE ] == TS_COMPLEX_SQL
+   if aWAData[ WA_TABLETYPE ] == TS_COMPLEX_SQL
       aWAData[ WA_RECNO ] := 1
-   ELSE
+   else
       aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
-   End
+   endif
 
    aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
@@ -845,9 +845,15 @@ return SL_ExecQuery( aWAData, cSql )
 function SL_INFO_PGSQL( nWa, aWAData )
 **********************
 
-local cSql
+   local cSql, cSchema := aWAData[ WA_SCHEMA ]
 
-  DEBUG_ARGS
+   DEBUG_ARGS
+   
+   IF Empty( cSchema )
+      cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
+   End
+
+   DEBUG_ARGS
 
    HB_SYMBOL_UNUSED( nWA )
 **   cSql := "select * from pg_locks"
@@ -880,7 +886,7 @@ local cSql
 **   cSql := "SELECT " + SL_PKFIELD( nWA ) + " FROM " + SQLGetFullTableName( aWAData ) + " AS a, " + aWAData[ WA_SCHEMA ] + ".pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
 **   cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, " + aWAData[ WA_SCHEMA ] + ".pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
 
-cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
+cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, " + '"' + cSchema + '"' + ".pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
 
 return SL_QuickQuery( aWAData, cSql )
 
