@@ -46,9 +46,9 @@
  * If you do not wish that, delete this exception notice.
  */
 
-#ifndef SQL_DEBUG
-   #define SQL_DEBUG
-#endif
+//#ifndef SQL_DEBUG
+//   #define SQL_DEBUG
+//#endif
 
 #ifndef _SQLLIB_CONSTS_CH
    #define _SQLLIB_CONSTS_CH
