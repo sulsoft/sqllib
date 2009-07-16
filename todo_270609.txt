@@ -97,7 +97,7 @@ Stack Calls
 
 7o Problema:
 
-   Não está respeitando a variavel "FWVERSION", sempre usa a "msgstop" da sqllib e não do fivewin. (RESOLVIDO)
+   Não está respeitando a variavel "FWVERSION", sempre usa a "msgstop" da sqllib e não do fivewin.
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -192,5 +192,9 @@ de sua atençaõ:
 ---------------------------------------------------------------------------------------------------------------
 
 17º append from está duplicando o ultimo registro. Ex: append from (cFileDBF) via (cVia)
+
+---------------------------------------------------------------------------------------------------------------
+
+18º PQGetValue() tem que retornar o valor real de cada variável. (Ver SL_PGSQL.PRG linha 1637)
 
 ---------------------------------------------------------------------------------------------------------------
