@@ -16,7 +16,7 @@ REQUEST HB_LANG_PT
 
 FUNCTION Main( cRDD )
 
-   LOCAL b, column, nKey, cScreen, nConn, lRet
+   LOCAL b, column, nKey, cScreen, nConn, lRet, aArq
    
    clear screen
    
@@ -61,7 +61,7 @@ FUNCTION Main( cRDD )
 
       SQL CONNECT DATABASE "demosqllib" ;
                     SCHEMA "public" ;
-                      INTO nConn  
+                      INTO nConn
 
       if nConn = 0
          msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
@@ -187,7 +187,7 @@ FUNCTION Main( cRDD )
       SQL ADD FIELD "SEQU" "N" (15, 0) NOT NULL        PRIMARY KEY 2        INTO aStruct
       SQL ADD FIELD "FLD1" "N" (10, 0) NOT NULL        PRIMARY KEY 1        INTO aStruct
       SQL ADD FIELD "FLD2" "N" (12, 0)          UNIQUE                      INTO aStruct
-      SQL ADD FIELD "FLD3" "N" (10, 0) NOT NULL        DEFAULT "-123"       INTO aStruct
+      SQL ADD FIELD "FLD3" "N" (10, 3) NOT NULL        DEFAULT "-123"       INTO aStruct
       SQL ADD FIELD "FLD4" "C" (30, 0) NOT NULL        DEFAULT "teste1"     INTO aStruct
       SQL ADD FIELD "FLD5" "D" (08, 0) NOT NULL        DEFAULT "2009-07-10" INTO aStruct
       SQL ADD FIELD "FLD6" "L" (01, 0) NOT NULL        DEFAULT "true"       INTO aStruct
@@ -203,7 +203,35 @@ FUNCTION Main( cRDD )
       if !lRet
          msginfo( "Não foi possível apagar as colunas de BACKUP !!!", "Atenção" )
       endif
+      
+      aArq := { }
 
+msgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , @aArq ) ), "Retornando os dados para uma ARRAY" )
+
+msgstop( SL_ToString( aArq ), "aArq" )
+
+msgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , "arqtmp.dbf", .F. ) ), "Retornando os dados para um DBF" )
+
+      USE arqtmp ALIAS "ARQTMP" via "DBFCDX" exclusive new
+
+      clear typeahead
+      keyboard chr(0)
+
+      ARQTMP->( browse() )
+      
+      ARQTMP->( dbclosearea() )
+      
+msgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , "arqtmp.dbf", .T. ) ), "Retornando os dados para um DBF + RECNO + DELETED" )
+
+      USE arqtmp ALIAS "ARQTMP" via "DBFCDX" exclusive new
+
+      clear typeahead
+      keyboard chr(0)
+
+      ARQTMP->( browse() )
+      
+      ARQTMP->( dbclosearea() )
+      
       SL_DELETEINDEX( "_tmp" )
       USE test ALIAS "test" via "SQLLIB" exclusive new
    else
@@ -217,7 +245,7 @@ FUNCTION Main( cRDD )
    SETCOLOR("N/W")
    
    clear typeahead
-   keyboard chr(0) 
+   keyboard chr(0)
    
    test->( dbgotop() )
 
