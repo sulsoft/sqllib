@@ -419,7 +419,7 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
            RETURN IIF( uField, "1", "0" )
       END
       RETURN nil
-
+/*
 #ifndef FWVERSION
    
    function msgyesno( msg, tit )   
@@ -451,10 +451,10 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
       tit := procname(1) + "(" + alltrim( str( procline(1) )) + ")"
    end         
    return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), tit, 0x00000020 )
-   /*
-    * Para o caso dele nao usar FW e/ou estiver testando em modo console
-    * Vailton @ 11/11/2008 - 21:58:53 
-    */
+   **
+   ** Para o caso dele nao usar FW e/ou estiver testando em modo console
+   ** Vailton @ 11/11/2008 - 21:58:53 
+   **
    function VerArray( aArray )
    local x := HB_VALTOSTR( aArray )   
       memoedit(x)
@@ -500,7 +500,7 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
          otherwise
               return ""
       endcase
-      /**/
    
    return nil
 #endif
+*/

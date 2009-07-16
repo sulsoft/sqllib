@@ -87,24 +87,25 @@ static nConnCount      := 0      /* between 1 and MAX_CONN_COUNT */
  * no array de conexäes j  efetuadas.
  * 12/12/2008 - 19:09:35
  */
-********************
+****************
 FUNCTION SL_CONN( cHost, cPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema, cCharSet )
-********************
+****************
 
    LOCAL xPointer  
    LOCAL cRddFunc
    LOCAL nResult
    LOCAL nSysID
    
-   DEFAULT cPort    TO "5432"
-   DEFAULT cSchema  TO "" 
-   DEFAULT cCharSet TO ""
-   DEFAULT cHost    TO s_cHost
-   DEFAULT cUser    TO s_cUser
-   DEFAULT cPwd     TO s_cPwd
-   DEFAULT cRddName TO s_cDriverName
+   DEFAULT cPort      TO "5432"
+   DEFAULT cSchema    TO "" 
+   DEFAULT cCharSet   TO ""
+   DEFAULT cHost      TO s_cHost
+   DEFAULT cUser      TO s_cUser
+   DEFAULT cPwd       TO s_cPwd
+   DEFAULT cRddName   TO s_cDriverName
 
    DEBUG_ARGS
+
    SQLERR_CLEAR()
 /*
 msgstop( cPort    + CRLF + ;
@@ -157,9 +158,9 @@ msgstop( cPort    + CRLF + ;
    End
 
    /* TODO: Turn this BLOCK Thread Safe! */
-   nConnCount := nConnCount +1
-   
-   IF (nConnCount == MAX_CONN_COUNT) 
+   nConnCount += 1
+**msgstop( "nConnCount: " + str(nConnCount) )
+   IF nConnCount == MAX_CONN_COUNT
       nConnCount := 1         
    End
    
@@ -183,8 +184,8 @@ msgstop( cPort    + CRLF + ;
                          		  0 ;  // SL_CONN_VERSION
                       }) 
 
-	Atail(saConnections)[ SL_CONN_VERSION] :=	SQLServerVersionNum( Atail(saConnections), nSysID )	// 27/04/2009 - 15:27:44 - Vailton
-	
+   Atail(saConnections)[ SL_CONN_VERSION] :=	SQLServerVersionNum( Atail(saConnections), nSysID )	// 27/04/2009 - 15:27:44 - Vailton
+
    snConnHandle := nResult
    saConnInfo   := aClone( Atail(saConnections) )
 
@@ -428,7 +429,7 @@ function SL_DISCONN( nHandle )
     * Tenta desconectar o driver
     */
    DEBUG 'Tenta desconectar o driver'
-   
+
 **   cFunc := SL_RDD_NAME + '_DISCONN_' + aConn[SL_CONN_RDD]
    cFunc := 'SL_DISCONN_' + aConn[SL_CONN_RDD]
    lRet  := &cFunc( aConn[SL_CONN_POINTER] )
@@ -454,12 +455,22 @@ function SL_DISCONN( nHandle )
  * Retorna o numero da conexao atual
  * 12/12/2008 - 23:21:16
  */   
-***********************
+*******************
 function SL_GETCONN
-***********************
+*******************
 
 return snConnHandle  
    
+/*
+ * Retorna todas as conexoes com todas suas propriedades.
+ * 14/07/2009 - 16:46:00 - By Rossine
+ */   
+***********************
+function SL_GETCONN_ALL
+***********************
+
+return iif( valtype( saConnections ) != "A", { }, saConnections )
+
 /*
  * Retorna o numero da conexao ao qual o ALIAS() atual está vinculado
  * 12/12/2008 - 23:21:16
@@ -491,9 +502,9 @@ function SL_GETCONNBYALIAS( nAlias )
  * Puxa informações sobre uma determinada conexão procurando pelo Handle
  * 13/12/2008 - 00:22:26
  */
-***************************
+***********************
 function SL_GETCONNINFO( nHandle )
-***************************
+***********************
 
    LOCAL c := VALTYPE( nHandle )
    
@@ -515,7 +526,14 @@ function SL_GETCONNINFO( nHandle )
              RETURN aClone( saConnections[c] )
           End
       End
+   ELSEIF c = "C"  && By Rossine 14/07/09
+      FOR c := len( saConnections ) TO 1 STEP -1
+          IF saConnections[c,SL_CONN_DB] == nHandle
+             RETURN saConnections[c,SL_CONN_HANDLE]
+          endif
+      next
    End 
+   
    RETURN nil         
 
 /*
@@ -555,12 +573,20 @@ FUNCTION SL_SetSystemSchema( cSChema )  && Rossine 07/10/08
 *************************
 * TODO: Isto tem que ser válido para cada CONEXÃO e sendo assim deve estar
 *       guardado dentro de saConnections[] - 23/05/2009 - 23:17:44
+
 FUNCTION SL_SetSchema( cSChema )  && Rossine 07/10/08
 *************************
    LOCAL cOld := s_cSchema    
    IF VALTYPE( cSChema ) == 'C'
       s_cSchema := cSChema
    End   
+   
+**   msgstop( SL_ToString( saConnInfo,.T.,,, "DUMP.TXT", .T. ), cSchema )
+
+   saConnInfo[SL_CONN_SCHEMA] := cSchema && Rossine 11/07/09
+
+**   msgstop( SL_ToString( saConnInfo,.T.,,, "DUMP.TXT", .T. ), cSchema )
+
    RETURN cOld
 
 ************************
@@ -612,6 +638,50 @@ return { s_cHost, s_cUser, s_cPwd, s_cDriverName }
  * 23/05/2009 - 22:18:31
  */
 FUNCTION SL_Version()
+
    RETURN SQL_VTEXT + SQL_VERSION
+
+/*
+ * Seta uma conexão pelo nome do Banco de dados - By Rossine
+ * 11/07/09 - 10:50:00
+ */
+*********************
+function SL_GETCONNBD( cDb )
+*********************
+
+   local n, xRet
+   	
+   if ( n := ascan( saConnections, { |aParams| aParams[SL_CONN_DB] == cDb } ) ) > 0
+      xRet := saConnections[n,SL_CONN_POINTER]
+   endif      
+
+return xRet
+
+/*
+ * Pega uma conexão pelo nome do Banco de dados - By Rossine
+ * 11/07/09 - 11:45:00
+ */
+*********************
+function SL_SETCONNBD( cDb )
+*********************
+
+   local n, lRet := .F.
+   	
+   if ( n := ascan( saConnections, { |aParams| aParams[SL_CONN_DB] == cDb } ) ) > 0
+      SL_SetConnection( saConnections[n,SL_CONN_POINTER] )
+      lRet := .T.
+   endif      
+
+return lRet
+
+/*
+ * Pega o schema que está ativo
+ * 11/07/09 - 16:45:00
+ */
+*********************
+FUNCTION SL_GetSchema
+*********************
+
+return saConnInfo[SL_CONN_SCHEMA]
 
 //--EOF--//

@@ -54,7 +54,7 @@
  */
 
 ************************
-function SL_IMPORT_FILES( aFiles, cVia, lPack, lDelete, bBlock, nEvery, bBlockApp )
+function SL_IMPORT_FILES( aFiles, cVia, pConn, cSChema, lPack, lDelete, bBlock, nEvery, bBlockApp )
 ************************
 
 local lRet := .T.
@@ -63,12 +63,13 @@ local aStruct
 local cFileSQL
 local cFileDBF
 local cExteDBF
-local nCtd := 0
+local nCtd := 0, aConn
 
 DEFAULT cVia    := rddsetdefault()
 DEFAULT lPack   := .F.
 DEFAULT lDelete := .F.
 DEFAULT nEvery  := 1
+DEFAULT cSchema := "public"
 
 if valtype( aFiles ) != "A"
    msgstop( "Arquivo(s) a ser(em) importado(s) não definido(s) !!!" + CRLF + CRLF + ;
@@ -81,6 +82,17 @@ if len( aFiles ) = 0
    msgstop( "Não há arquivos a serem importados !!!", "Atenção" )
    return .F.
 endif
+
+aConn := SL_GETCONNINFO( pConn )
+
+if valtype( aConn ) != 'A' 
+   return .F.
+endif
+
+cSchema := SQLAdjustFn( cSchema )
+
+SL_SetConnection( aConn[SL_CONN_HANDLE] )
+SL_SetSchema( cSchema )
 
 asort( aFiles,,,{ |x,y| upper(x) < upper(y) } )
 
@@ -102,33 +114,13 @@ if !lRet
    return .F.
 endif
 
-rddsetdefault( cVia )
+*rddsetdefault( cVia )
 
 for each cFile in aFiles
 
-    if valtype( bBlock ) = "B"
-       nCtd++
-
-       if nCtd >= nEvery
-          #IfnDef __XHARBOUR__
-          BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
-             Eval( bBlock )
-          RECOVER
-
-          End
-          #else
-          TRY
-             Eval( bBlock )
-          catch e
-             ? e:description
-          End
-          #endif
-          nCtd := 0
-       endif
-    endif
-    
     cFileDBF := lower(alltrim( cFile ))
     cExteDBF := substr( cFileDBF, rat( ".", cFileDBF ) )
+
 /*
     if !file( cFileDBF )
        msgstop( "Arquivo não existe [" + cFile + "]. Tecle ENTER...", "Atenção" )
@@ -142,11 +134,39 @@ for each cFile in aFiles
        cFileSQL := substr( cFileSQL, rat( "\", cFileSQL ) + 1 )
     endif
 
+    if valtype( bBlock ) = "B"
+       nCtd++
+
+       if nCtd >= nEvery
+          #IfnDef __XHARBOUR__
+          BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
+             Eval( bBlock, cFileSql, cFileDbf )
+          RECOVER
+
+          End
+          #else
+          TRY
+             Eval( bBlock, cFileSql, cFileDbf )
+          catch e
+             ? e:description
+          End
+          #endif
+          nCtd := 0
+       endif
+    endif
+
     if SL_TABLE( cFileSQL )
        SL_DELETETABLE( cFileSQL )
     endif
 
-    use ( cFileDBF ) alias "EXPORT_DBF" via (cVia) NEW exclusive
+**msgstop( "[" + cFileDBF + "-" + cVia + "]" )
+
+    try
+        use ( cFileDBF ) alias "EXPORT_DBF" via (cVia) NEW exclusive
+    catch
+        msgstop( "Erro de abertura no arquivo: [" + cFileDBF + "] !!!", "Erro" )
+        loop
+    end
 
     if lPack
        EXPORT_DBF->( __dbpack() )
@@ -155,7 +175,7 @@ for each cFile in aFiles
     EXPORT_DBF->( dbgotop() )
     
     aStruct := EXPORT_DBF->( dbStruct() )
-    
+
     EXPORT_DBF->( dbCloseArea() )
 
     dbCreate( cFileSQL, aStruct, "SQLLIB" )
@@ -166,13 +186,14 @@ for each cFile in aFiles
    EXPORT_SQL->( __dbzap() )
 
     if valtype( bBlockApp ) = "B"
-       append from (cFileDBF) via (cVia) for eval( bBlockApp )
+       append from (cFileDBF) via (cVia) for eval( bBlockApp, cFileSql, cFileDbf, "EXPORT_DBF" )
     else
        append from (cFileDBF) via (cVia)
 **       copy to (cFileSQL) via "SQLLIB"
     endif
 
     EXPORT_SQL->( dbCloseArea() )
+
 **    EXPORT_DBF->( dbCloseArea() )
 
     if lDelete
@@ -181,9 +202,9 @@ for each cFile in aFiles
     endif
 next
 
-dbcloseall()
+**dbcloseall()
 
-rddsetdefault( "SQLLIB" )
+*rddsetdefault( "SQLLIB" )
 
 return lRet
 
@@ -193,16 +214,28 @@ return lRet
  */
 
 ************************
-function SL_EXPORT_FILES( aFiles, cVia, lPack, lDelete, bBlock, nEvery, bBlockCopy )
+function SL_EXPORT_FILES( aFiles, cVia, pConn, cSChema, lPack, lDelete, bBlock, nEvery, bBlockCopy )
 ************************
 
-local cFile, aExports := { }, nCtd := 0
+local cFile, aExports := { }, nCtd := 0, aConn
 
 DEFAULT aFiles  := { }
 DEFAULT cVia    := rddsetdefault()
 DEFAULT lPack   := .F.
 DEFAULT lDelete := .F.
 DEFAULT nEvery  := 1
+DEFAULT cSchema := "public"
+
+aConn := SL_GETCONNINFO( pConn )
+
+if valtype( aConn ) != 'A' 
+   return .F.
+endif
+
+cSchema := SQLAdjustFn( cSchema )
+
+SL_SetConnection( aConn[SL_CONN_HANDLE] )
+SL_SetSchema( cSchema )
 
 rddsetdefault( "SQLLIB" )
 
@@ -219,13 +252,13 @@ for each cFile in aFiles
        if nCtd >= nEvery
           #IfnDef __XHARBOUR__
           BEGIN SEQUENCE WITH {|oErr| Break( oErr )}
-             Eval( bBlock )
+             Eval( bBlock, cFile )
           RECOVER
 
           End
           #else
           TRY
-             Eval( bBlock )
+             Eval( bBlock, cFile )
           catch e
              ? e:description
           End
@@ -235,8 +268,13 @@ for each cFile in aFiles
        endif
     endif
 
-    if SL_file( cFile ) .and. cFile != "sl$indexes"
-       use ( cFile ) alias "EXPORT_SQL" via "SQLLIB" NEW exclusive
+    if SL_file( cFile ) .and. cFile != SL_INDEX
+       try
+           use ( cFile ) alias "EXPORT_SQL" via "SQLLIB" NEW exclusive
+       catch
+           msgstop( "Erro de abertura no arquivo: [" + cFile + "] !!!", "Erro" )
+           loop
+       end
        if lPack
           EXPORT_SQL->( __dbpack() )
        endif

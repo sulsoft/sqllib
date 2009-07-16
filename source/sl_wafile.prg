@@ -386,9 +386,9 @@ return lRet
 function SL_DELETETABLE( cTableName, cSchema, pConn )  && Rossine 29/06/09
 ***********************
 
-local aConn, cSequenceField, lRet  := .F., Id, cSql
+local aConn, cSequenceField, lRet  := .T., Id, cSql
 
-   DEFAULT cSchema := "public"
+   DEFAULT cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
  
    IF cTableName == NIL
       RETURN .F.
@@ -416,7 +416,10 @@ local aConn, cSequenceField, lRet  := .F., Id, cSql
 *        cSql := "??"
 
    CASE ( ID == ID_POSTGRESQL )
-        if SL_DELETEINDEX( cTableName, cSchema, pConn )
+        if SL_INDEXE( cTableName )
+           lRet := SL_DELETEINDEX( cTableName, cSchema, pConn )
+        endif
+        if lRet
            cSequenceField := cTableName + "_" + SL_COL_RECNO
            cSql := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
            lRet := SL_EXECQUERYEX( cSql, aConn[1] )
@@ -437,7 +440,7 @@ function SL_DELETEINDEX( cIndexname, cSchema, pConn ) && Rossine 29/06/09
 
 local aConn, lRet  := .F., Id, cSql
 
-   DEFAULT cSchema := "public"
+   DEFAULT cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
  
    IF cIndexname == NIL
       RETURN .F.
@@ -467,7 +470,7 @@ local aConn, lRet  := .F., Id, cSql
    CASE ( ID == ID_POSTGRESQL )
 
         cSql := "DELETE FROM " + cSchema + "." + SL_INDEX + " where " + ;
-                                           '"indexfile" = ' + "'" + ID_PREFIX + cIndexname + "'"
+                                           '"indexfile" = ' + "'" + cIndexname + "'"
         lRet := SL_EXECQUERYEX( cSql, aConn[1] )
 
    OTHERWISE
@@ -528,7 +531,7 @@ local aConn, Id, aStruct := { }, aStr := { }, n
            for n = 1 to len(aStruct)
                if aStruct[n,1] != SL_COL_RECNO .and. aStruct[n,1] != SR_COL_RECNO .and. aStruct[n,1] != SL_COL_DELETED
                   aadd( aStr, { aStruct[n,1], aStruct[n,2], aStruct[n,3], aStruct[n,4], ;
-                  	            aStruct[n,5], aStruct[n,6], aStruct[n,7] } ) 
+                                 aStruct[n,5], aStruct[n,6], aStruct[n,7] } ) 
                endif
            next
         else
@@ -549,7 +552,7 @@ function SL_RENAMETABLE( cOld, cNew, cSchema, pConn )
 
 local aConn, Id, lRet := .F., cSql
    
-   DEFAULT cSchema := "public"
+   DEFAULT cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
 
    IF valtype( cOld ) != "C" .or. valtype( cNew ) != "C"
       RETURN .F.
@@ -601,7 +604,7 @@ function SL_DELETEBACKUP( pConn, cSchema, cTable )
    LOCAL cSql, aConn, Id, lRet := .T., aStruct, n, t, cField, aTables := { }, lUniqu, nPrKey
    
    DEFAULT cTable  := ""
-   DEFAULT cSchema := "public"
+   DEFAULT cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
 
    IF cTable == NIL
       RETURN .F.
@@ -680,11 +683,11 @@ function SL_CREATESCHEMA( cSchema, pConn )
 local aConn, Id, lRet := .F., cSql
    
    DEFAULT cSchema := ""
-   
+
    aConn := SL_GETCONNINFO( pConn )
 
-   IF VALTYPE( aConn ) != 'A' 
-      RETURN { }
+   IF VALTYPE( aConn ) != 'A' .or. empty( cSchema )
+      RETURN .F.
    Endif
 
    DEBUG_ARGS
@@ -716,7 +719,7 @@ function SL_RENAMESCHEMA( cSchema, cNewSchema, pConn )
 
 local aConn, Id, lRet := .F., cSql
    
-   DEFAULT cSchema := ""
+   DEFAULT cSchema    := ""
    DEFAULT cNewSchema := ""
    
    if empty( cSchema ) .or. empty( cNewSchema )
@@ -763,7 +766,7 @@ local aConn, Id, lRet := .F., cSql
    
    aConn := SL_GETCONNINFO( pConn )
 
-   IF VALTYPE( aConn ) != 'A' 
+   IF VALTYPE( aConn ) != 'A' .or. empty( cSchema )
       RETURN { }
    Endif
 
@@ -794,7 +797,7 @@ return lRet
 function SL_SCHEMA( cSchema, cDataName, pConn )
 ******************
 
-DEFAULT cSchema := ""
+DEFAULT cSchema   := ""
 DEFAULT cDataName := ""
 
 return iif( ascan( SL_LISTSCHEMA( cSchema, cDataName, pConn ), { |aSchema| aSchema[2] == cSchema } ) > 0, .T., .F. )
@@ -848,13 +851,15 @@ local aConn, Id, aRet := { }, cSql, aTmp, n
 return aRet
 
 ***********************
-function SL_EXECQUERYEX( cQuery, pConn )
+function SL_EXECQUERYEX( cQuery, pConn, cDbf, lRecno )
 ***********************
 
-local aConn, Id, lRet := .F., xRes
+local aConn, Id, lRet := .F., xRes, aStruct, cTipo, nTipo, aNewStr, n, t, aFld
    
    DEFAULT cQuery := ""
-
+   DEFAULT cDbf   := ""
+   DEFAULT lRecno := .F.
+   
    aConn := SL_GETCONNINFO( pConn )
 
    IF VALTYPE( cQuery ) != "C"
@@ -863,12 +868,11 @@ local aConn, Id, lRet := .F., xRes
 
    DEBUG_ARGS
    
-   Id   := aConn[SL_CONN_SYSTEMID]
-   xRes := PQexec( aConn[10]:pDB, cQuery )
+   Id := aConn[SL_CONN_SYSTEMID]
 
-**memowrit( "dump.txt", cQuery  )
-
-**msgstop( SL_ToString( xres) )
+   if valtype( cDbf ) = "C"
+      xRes := PQexec( aConn[10]:pDB, cQuery )
+   endif
 
    DO CASE
    CASE ( ID == ID_MYSQL )
@@ -876,13 +880,95 @@ local aConn, Id, lRet := .F., xRes
 
    CASE ( ID == ID_POSTGRESQL )
 
-        if PQresultstatus( xRes ) = PGRES_COMMAND_OK
-           lRet := .T.
+        if valtype( cDbf ) = "C"
+           if empty( cDbf )
+              if PQresultstatus( xRes ) = PGRES_COMMAND_OK
+                 lRet := .T.
+              else
+                 msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( xRes ), "Erro na sentença" )
+              endif
+              PQclear( xRes )
+           else
+**              xRes := PQexec( aConn[10]:pDB, 'copy ( ' + cQuery + ' ) TO E' + "'\\Temp\\tempor.txt' with delimiter '|'" )
+**              if PQresultstatus( xRes ) = PGRES_COMMAND_OK
+              if PQresultStatus( xRes) == PGRES_TUPLES_OK
+                 aStruct := PQmetadata( xRes )
+
+**msgstop( SL_ToString( aStruct,.T.,,, "DUMP.TXT", .T. ) )
+
+                 aNewStr := { }
+                 for n = 1 TO len(aStruct)
+                     if lRecno .or. ( lower(aStruct[n,1]) != SL_COL_RECNO .and. ;
+                                      lower(aStruct[n,1]) != SR_COL_RECNO .and. ;
+                                      lower(aStruct[n,1]) != SL_COL_DELETED )
+                        cTipo := "C"
+                        nTipo := HB_FT_STRING
+                        do case
+                           case upper(aStruct[ n, DBS_TYPE ]) $ [CHAR,CHARACTER,VARCHAR,TEXT,TIMESTAMP,TIME]
+                                cTipo := "C"
+                                nTipo := HB_FT_STRING
+                                
+                           case upper(aStruct[ n, DBS_TYPE ]) $ [MONEY,SMALLINT,INTEGER,BIGINT,DECIMAL,NUMERIC,REAL,DOUBLE,SERIAL,BIGSERIAL]
+                                cTipo := "N"
+                                nTipo := HB_FT_DOUBLE
+                        
+                           case upper(aStruct[ n, DBS_TYPE ]) $ [LOGICAL,BOOLEAN]
+                                cTipo := "L"
+                                nTipo := HB_FT_LOGICAL
+                        
+                           case upper(aStruct[ n, DBS_TYPE ]) $ [DATE]
+                                cTipo := "D"
+                                nTipo := HB_FT_DATE
+                        
+                           case at( "BLOB", upper(aStruct[ n, DBS_TYPE ]) ) > 0
+                                cTipo := "M"
+                                nTipo := HB_FT_MEMO
+                        endcase
+                        
+                        aadd( aNewStr, { aStruct[ n, DBS_NAME ], cTipo, SL_GETFIELDSIZE( nTipo, aStruct[ n, DBS_LEN ] ), aStruct[ n, DBS_DEC ] } )
+                     endif
+                 next   
+
+**msgstop( SL_ToString( aNewStr,.T.,,, "DUMP.TXT", .T. ) )
+
+/*
+  Vailton - Verificar se é possível fazer a rotina abaixo diretamente dentro do postgres
+*/
+                 dbcreate( cDbf, aNewStr, "DBFCDX" ) &&, .T., "ARQTMP" )
+**                 append from "\temp\tempor.txt" DELIMITED with PIPE
+**                 ferase( "\temp\tempor.txt" )
+
+                 aFld := SQLArray( cQuery,, aConn,, ID )
+**msgstop( SL_ToString( aFLD,.T.,,.t., "DUMP.TXT", .T. ) )
+                 lRet := len( aFld ) <> 00
+                 if lRet
+                    USE (cDbf) ALIAS "ARQTMP" via "DBFCDX" exclusive new
+                    for n = 1 to len(aFld)
+                        ARQTMP->( dbappend() )
+                        for t = 1 to len(aFld[n])
+                            if     ARQTMP->( fieldtype( t ) ) = "N"
+                                   ARQTMP->( fieldput( t, val(aFld[n,t] ) ) )
+                            elseif ARQTMP->( fieldtype( t ) ) = "D"
+                                   ARQTMP->( fieldput( t, stod(aFld[n,t]) ) )
+                            elseif ARQTMP->( fieldtype( t ) ) = "L"
+                                   ARQTMP->( fieldput( t, iif( upper(aFld[n,t]) $ [TRUE,.T.,T,Y,YES,1], .T., .F. ) ) )
+                            else
+                               ARQTMP->( fieldput( t, aFld[n,t] ) )
+                            endif
+                        next
+                    next
+                    ARQTMP->( dbclosearea() )
+                 endif
+              else
+                 msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( xRes ), "Erro na sentença" )
+              endif
+
+              PQclear( xRes )
+           endif
         else
-           msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( xRes ), "Erro na sentença" )
+           cDbf := SQLArray( cQuery,, aConn,, ID )
+           lRet := len( cDbf ) <> 00
         endif
-         
-        PQclear( xRes )
         
    OTHERWISE
 

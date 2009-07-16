@@ -51,6 +51,8 @@
 
 static aSystemDrivers  := NIL
 
+static s_aMyLocks := { }  && ver isto depois. Ativei em 15/07/09
+
 FUNCTION SQLRegisterDrv( nSysID, cRddName )
 
    LOCAL n, aFuncs
@@ -63,7 +65,7 @@ FUNCTION SQLRegisterDrv( nSysID, cRddName )
 
    IF aSystemDrivers[ nSysID ] == NIL
       aSystemDrivers[ nSysID ] := array( ID_MAX_FUNCTIONS )
-      
+
       aFuncs := { "SL_CREATE", ;
                   "SL_CREATEFLDS",;
                   "SL_OPEN", ;
@@ -193,6 +195,7 @@ static function SL_NEW( nWA )
    aWAData[ WA_INDEX_CURR ]      := 00 // default set order to 0  
 
    USRRDD_AREADATA( nWA, aWAData )
+   
    return SUCCESS
 
 ********************************************************************************
@@ -261,9 +264,9 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
  
    FOR n := 1 TO nTotalFields
        aField := ARRAY( UR_FI_SIZE )
-       aField[ UR_FI_NAME ]    := s_aStruct[ n, DBS_NAME ]
 **     aField[ UR_FI_TYPE ]    := s_aStruct[ n, DBS_FIELD_TYPE ]
 **     aField[ UR_FI_TYPE ]    := SL_GETFIELDTYPE( s_aStruct[ n, 2 ] )
+       aField[ UR_FI_NAME ]    := s_aStruct[ n, DBS_NAME ]
        aField[ UR_FI_TYPE ]    := HB_ExecFromArray( { FSL_GETFIELDTYPE( aWAData[ WA_SYSTEMID ] ), s_aStruct[ n, 2 ] } )
        aField[ UR_FI_TYPEEXT ] := s_aStruct[ n, DBS_TYPE ] &&  0   Rossine 22/10/08
        aField[ UR_FI_LEN ]     := SL_GETFIELDSIZE( aField[ UR_FI_TYPE ], s_aStruct[ n, DBS_LEN ] )  && Rossine 22/10/08
@@ -330,7 +333,7 @@ static function SL_GOTOID( nWA, nRecord )  && XBASE - DBGOTO()
 **************************
 
    LOCAL aWAData := USRRDD_AREADATA( nWA )
- 
+
    DEBUG_ARGS
 
    IF SL_GOCOLD( nWA ) != SUCCESS
@@ -338,18 +341,22 @@ static function SL_GOTOID( nWA, nRecord )  && XBASE - DBGOTO()
    End
 
    if aWAData[ WA_SL_GOTOID ] = NIL
-      aWAData[ WA_SL_GOTOID ]   := "SELECT " + SL_GetFieldNames( aWAData ) + ;
-                                     " FROM " + SQLGetFullTableName( aWAData ) + ;
-                                   ' WHERE "' + SL_PKFIELD( nWA ) + '" = ? LIMIT 1'
+      aWAData[ WA_SL_GOTOID ] := "SELECT " + SL_GetFieldNames( aWAData ) + ;
+                                 " FROM " + SQLGetFullTableName( aWAData ) + ;
+                                 ' WHERE "' + SL_PKFIELD( nWA ) + '" = ? LIMIT 1'
    endif
 
    SQLBUFFER_DELETE( aWAData )   
 
    aWAData[ WA_BUFFER_POS ] :=  1 // my row inside aWAData
  
-   IF HB_ExecFromArray( { FSL_GOTOID( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, nRecord } ) != SUCCESS
+SQL_DEBUGINIT( .T. )
+
+   if HB_ExecFromArray( { FSL_GOTOID( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, nRecord } ) != SUCCESS
       return FAILURE
-   End
+   endif
+ 
+SQL_DEBUGINIT( .F. )
 
    aWAData[ WA_BOF ]   := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    aWAData[ WA_EOF ]   := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
@@ -446,6 +453,7 @@ FUNCTION SL_UpdateFlags( nWA, aWAData )
    USRRDD_SETBOF( nWA, aWAData[ WA_BOF ] )
    USRRDD_SETEOF( nWA, aWAData[ WA_EOF ] )
    USRRDD_SETFOUND( nWA, aWAData[ WA_FOUND ] )
+
    RETURN SUCCESS
    
 /*
@@ -744,23 +752,24 @@ FUNCTION SL_RECNO( nWA, nRecNo )   && XBASE - RECNO()
 ******************
 STATIC;
 FUNCTION SL_RECID( nWA, nRecNo )   && XBASE - RECNO()
-   LOCAL aWAData := USRRDD_AREADATA( nWA )
-
+   LOCAL aWAData := USRRDD_AREADATA( nWA ), nRecnoTmp := nRecno
+   
    DEBUG_ARGS
 
    IF aWAData[ WA_EOF ]
-      IF SL_RECCOUNT( nWA, @nRecNo ) == SUCCESS   // Simulate xBase EOF() - 25/05/2009 - 15:06:38
-         * TODO: BUG: Esta linha abaixo nao seria necessario se a linha acima
-         * funcionasse corretamente, o que nao tem ocorrido aqui nos meus testes
-         nRecNo := aWAData[ WA_RECCOUNT ] +1
+      IF SL_RECCOUNT( nWA, @nRecnoTmp ) == SUCCESS   // Simulate xBase EOF() - 25/05/2009 - 15:06:38
+         nRecnoTmp += 1
       End
    ELSE
-      IF nRecNo == 0
-         nRecNo := aWAData[ WA_RECNO ]
+      IF nRecnoTmp == 0
+         nRecnoTmp           := aWAData[ WA_RECNO ]
       ELSE
-         aWAData[ WA_RECNO ] := nRecNo
+         aWAData[ WA_RECNO ] := nRecnoTmp
       End
    End
+   
+   nRecno := nRecnoTmp
+   
    RETURN SUCCESS
 
 ****************************
@@ -783,6 +792,7 @@ FUNCTION SL_RECCOUNT( nWA, nRecords )  && XBASE - LASTREC() / RECCOUNT()
    End
 
    nRecords := aWAData[ WA_RECCOUNT ]
+
    RETURN SUCCESS
 
 ****************************
@@ -998,9 +1008,9 @@ return SUCCESS
 static function SL_LOCK( nWA, aLockInfo )  && XBASE - DBRLOCK()
 ************************
 
-#ifdef _OFF_
+*#ifdef _OFF_
    local aWAData := USRRDD_AREADATA( nWA )
-   local nResult, xRecId, i
+*   local nResult, xRecId, i
    local lRet, nRecno := iif( aLockInfo[ UR_LI_RECORD ] = NIL, aWAData[ WA_RECNO ], aLockInfo[ UR_LI_RECORD ] )
 
    DEBUG_ARGS
@@ -1035,11 +1045,11 @@ static function SL_LOCK( nWA, aLockInfo )  && XBASE - DBRLOCK()
    endif
    
    return lRet
-#endif
-   HB_SYMBOL_UNUSED( nWA )
-   HB_SYMBOL_UNUSED( aLockInfo )
+*#endif
+*   HB_SYMBOL_UNUSED( nWA )
+*   HB_SYMBOL_UNUSED( aLockInfo )
 
-   return .f.
+*   return .f.
 /*     
 **   return iif( valtype( lRet ) = "A", .T., .F. )
 
@@ -2271,9 +2281,9 @@ static function SL_ALIAS( nWA, cAlias )  && Rossine 29/12/08
 
 return SUCCESS
 
-********************************
-static function SL_GETFIELDSIZE( nDBFFieldType, nSQLFieldSize )  && Rossine 07/10/08
-********************************
+************************
+function SL_GETFIELDSIZE( nDBFFieldType, nSQLFieldSize )  && Rossine 07/10/08
+************************
 
    local nDBFFieldSize := 0
 
@@ -2830,7 +2840,6 @@ FUNCTION SL_ComplexCheck( cChave, aCampos )
           c := i+1
 
           AADD( aExp, d )
-
           IF (d == 'STR') .OR. ( d == 'DTOS' ) .or. ( at( 'VALTOSTR', d ) > 0 )  && Rossine 29/06/09
             *Validacao por enquanto normal...
             DEBUG " * Validacao por enquanto normal...",d
@@ -2842,6 +2851,9 @@ FUNCTION SL_ComplexCheck( cChave, aCampos )
             * É um campo desta tabela... deixa passar
             DEBUG " * É um campo desta tabela... deixa passar",d
           ELSE
+
+msgstop( SL_ToString( aCampos ), "[" + d + "]" )
+
             DEBUG " * É um campo COMPLEXO!!",d
              lComplex := TRUE
           End

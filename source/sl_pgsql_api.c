@@ -1225,7 +1225,9 @@ HB_FUNC( PGSQL_CHECKSYSTEMTABLES )
 
       SQL[0] = '\0';
       seq[0]='\0';
-      sprintf( seq, "sqlindexes_%s%s", SL_COL_RECNO, "_seq");
+//      sprintf( seq, "sqlindexes_%s%s", SL_COL_RECNO, "_seq");
+      sprintf( seq, "%s_%s%s", SL_INDEX, SL_COL_RECNO, "_seq");
+
       sprintf( SQL,  "CREATE SEQUENCE \"%s\".\"%s\" INCREMENT 1  MINVALUE 1 START 1", SchemaName, seq );
 
       PQclear( PQexec(postgres,SQL) );
@@ -1248,8 +1250,8 @@ HB_FUNC( PGSQL_CHECKSYSTEMTABLES )
                      \"indexkeysizes\" varchar(40) default NULL,\
                      \"indexkeytypes\" varchar(40) default NULL,\
                      \"indexcustomcol\" smallint NOT NULL default 0,\
-                     %s numeric(15) UNIQUE default nextval('%s'::regclass) NOT NULL \
-                     )", SchemaName, SL_INDEX, SL_COL_RECNO, seq );
+                     %s numeric(15) UNIQUE default nextval('%s.%s'::regclass) NOT NULL \
+                     )", SchemaName, SL_INDEX, SL_COL_RECNO, SchemaName, seq );
 
       PQclear( pgsql_query_log(postgres,SQL,&bError) );
 

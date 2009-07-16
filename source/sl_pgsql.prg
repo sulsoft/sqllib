@@ -47,7 +47,7 @@
  */
 
 /*
-  Sentenças de exemplo que poderão ser úteis para buscar informações do postgres.
+  Sentenças de exemplo que poderão ser úteis para buscar informações do postgres
   
     select * from pg_database;
     select * from pg_class;
@@ -139,10 +139,10 @@ function SQLLIB_PGSQL( cHost, nPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema
    HB_SYMBOL_UNUSED( CRDDNAME )
    HB_SYMBOL_UNUSED( CCHARSET )
 
-   DEFAULT cHost   to "localhost"
-   DEFAULT nPort   to 0
-   DEFAULT cDb     to "template1"
-   DEFAULT cSchema to "public"
+   DEFAULT cHost         to "localhost"
+   DEFAULT nPort         to 0
+   DEFAULT cDb           to "template1"
+   DEFAULT cSchema       to "public"
 
    DEBUG_ARGS
    
@@ -180,9 +180,9 @@ function SL_DISCONN_PGSQL( oSQL )
 
       DEBUG_ARGS
 
-      oSQL : QueryEx( "COMMIT" )
-      oSQL : QueryEx( "COMMIT" )
-      oSQL : Close()
+      oSQL:QueryEx( "COMMIT" )
+      oSQL:QueryEx( "COMMIT" )
+      oSQL:Close()
 
    RETURN .T.
 
@@ -210,8 +210,14 @@ function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
    DEBUG_ARGS
    
    IF Empty( cSchema )
-      cSchema := "public"
+      cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
    End
+
+/*
+ * Aqui temos que atualizar o schema para que na função <TableStruct> que é chamada abaixo, o schema
+ * já esteja atualizado - Rossine 11/07/09
+*/
+   oSQL:Schema := cSchema
 
    /* Aqui o RDD deve converter o nome do arquivo para um formato correto dentro do BD */
    cTableName := SQLAdjustFn( aOpenInfo[ UR_OI_NAME ] )
@@ -285,7 +291,7 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    DEBUG_ARGS
    
    IF Empty( cSchema )
-      cSchema := "public"
+      cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
    End
 
    /* Aqui o RDD deve converter o nome do arquivo para um formato correto dentro do BD */
@@ -313,9 +319,8 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
    PGSQL_QUERY_LOG( nConn, cSql, NIL, .F., .T. )
 
    /* We created the sequence to create the table */
-   cSql := 'CREATE SEQUENCE "' + cSchema + '"."' + cSequenceField + '" INCREMENT 1'
-   cSql += ' MINVALUE 1 CACHE 1'
-   
+   cSql := 'CREATE SEQUENCE "' + cSchema + '"."' + cSequenceField + '" INCREMENT 1 MINVALUE 1 CACHE 1'
+
    PGSQL_QUERY_LOG( nConn, cSql, NIL, .T., .T. )
    
    /*
@@ -335,7 +340,7 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
                                aWAData[ WA_TEMP, 1 ]
    
    cSql += ', "' + cFieldRecno + '"' + " NUMERIC(15,0) DEFAULT nextval('" +;
-                    cSequenceField + "'::regclass) UNIQUE NOT NULL"
+                    cSchema + "." + cSequenceField + "'::regclass) UNIQUE NOT NULL"
 
    IF !Empty( aWAData[ WA_TEMP,2 ] )
       cSql += ', CONSTRAINT ' + cTableName + "_" +  SL_CONSTRAINT_PK  + ' PRIMARY KEY (' +  aWAData[ WA_TEMP,2 ] + ')'
@@ -407,11 +412,11 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
            cType := aField[ DBS_TYPE ]
 
        CASE ( cType == "C" )
-           cType := "VARCHAR"
+           cType    := "VARCHAR"
            xDefault := "' '"
 
        CASE ( cType == "N" )
-           cType := "NUMERIC"
+           cType    := "NUMERIC"
            xDefault := "0"
 
        CASE ( cType == "M" )
@@ -419,11 +424,11 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
            cType := "TEXT"
 
        CASE ( cType == "D" )
-           cType := "DATE"
+           cType    := "DATE"
 *           xDefault := "'" + SL_NULLDATE + "'"
 
        CASE ( cType == "L" )
-           cType := "BOOLEAN" 
+           cType    := "BOOLEAN" 
            xDefault := 'FALSE'
          
        OTHERWISE
@@ -574,7 +579,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    End
 
    nRows := PQNTUPLES( pResult )
-   
+
    IF SL_HAS( nOptions, EU_IGNORE_FIRST )
       xOldKey := aWAData[ WA_RECNO ]
       xNewKey := PQGETVALUE( pResult, 1, aWAData[ WA_FLD_RECNO ] )
@@ -584,6 +589,8 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
       IF ValType( xOldKey ) != 'C'
          xOldKey := SQLITEM2STR( xOldKey )
       End
+
+      DEBUG xOldKey, xNewKey
 
     * BUG: Erroneous first record is current record?
     *      20/03/2009 - 16:55:58
@@ -645,6 +652,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
 
    aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
+
    RETURN SL_UpdateFlags( nWA, aWAData )
 
 ************************
@@ -656,9 +664,8 @@ function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
   DEBUG_ARGS
 
   cSQL := SQLPARAMS( aWAData[ WA_SL_GOTOID ], { AllTrim( Str( nRecNo ) ) }, ID_POSTGRESQL )
-  
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_FIRST )
 
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_FIRST )
 
 /*
  * Perform DbGoTop() on current WA. 
@@ -752,9 +759,11 @@ function SL_RECCOUNT_PGSQL( nWa, aWAData )
            ' FROM '  + SQLGetFullTableName( aWAData ) + ;
            ' ORDER BY ' + cField + ' DESC'+;
            ' LIMIT 1'
-    
+
    SL_QuickQuery_PGSQL( aWAData, cSql, @cTemp )
-   aWAData[ WA_RECCOUNT ] := VAL( cTemp )
+
+   aWAData[ WA_RECCOUNT ] := val( cTemp )
+
    RETURN SUCCESS
 
 /*
@@ -827,6 +836,8 @@ End
 
 cSql += " where " + cRddSep + SL_PKFIELD( nWA ) + cRddSep + " = " 
 cSql += AllTrim( Str( aWAData[WA_RECNO] ) ) 
+
+msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 
 return SL_ExecQuery( aWAData, cSql )
 
@@ -928,7 +939,7 @@ endif
 **lRet := SL_QuickQuery( aWAData, cSql )
 **msgstop( valtoprg(lRet) + "-" + cSql, "Proc: " + PROCESSO() )
 
-**msgstop( cSql, "Proc: " + PROCESSO() )
+**msgstop( cSql )
 **catch
 **msgstop( "-2-" )
 **end
@@ -1016,6 +1027,10 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 
    PGSQL_QUERY_LOG( pSQL, cSql,,, True )
    
+   if empty( aWAData[ WA_SCHEMA ] ) && Rossine 11/07/09
+      aWAData[ WA_SCHEMA ] := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
+   endif
+   
    cSql := 'DELETE FROM "' + aWAData[ WA_SCHEMA ] + '"."' + SL_INDEX + '" where ' + ;
                                       '"indextable" = ' + "'" + aWAData[ WA_TABLENAME ] + "' and  " + ;
                                       '"indexfile" = '  + "'" + cIdx + "'"
@@ -1028,7 +1043,8 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
       
    DEBUG aOrderCreateInfo
          
-   cSql  := 'CREATE INDEX "' + cBag + '" ON "' + aWAData[ WA_TABLENAME ] + '" ( '   
+**   cSql  := 'CREATE INDEX "' + cBag + '" ON "' + aWAData[ WA_TABLENAME ] + '" ( '   
+   cSql  := 'CREATE INDEX "' + cBag + '" ON "' + aWAData[ WA_SCHEMA ] + '"."' + aWAData[ WA_TABLENAME ] + '" ( '   
    lDesc := iif( valtype( aOrderCreateInfo [UR_ORCR_CONDINFO] ) == "A" .and. aOrderCreateInfo [UR_ORCR_CONDINFO,DBOI_ISDESC], .T., .F. )
    
    /* Montamos o comando SQL */      
@@ -1117,55 +1133,6 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    
    RETURN SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo ) 
 
-****************************
-function SL_ORDDESTROY_PGSQL( nWa, aWAData, aOrderInfo )
-****************************
-
-   LOCAL cSql
-   LOCAL aIndex
-   LOCAL cTag
-   LOCAL nOrder
-   LOCAL lRet := .F.
-   
-   HB_SYMBOL_UNUSED( nWA )
-
-   DEBUG_ARGS
-   
-   cTag := aOrderInfo[ UR_ORI_TAG ]
-   
-   if valType( cTag ) == "N"
-      nOrder := cTag
-   else
-      cTag   := Lower( cTag )
-      nOrder := aScan( aWAData[ WA_INDEX ], {| idx | idx[ IDX_TAG ] == cTag })
-   endif
-   if nOrder <1 .OR. nOrder > Len( aWAData[ WA_INDEX ] )
-      return lRet
-   end
-   
-   if nOrder = 0 .or. empty( aWAData[ WA_INDEX ] )
-      cSql := "select indexfile, indextag from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX
-      cSql += " where indextable = '" + aWAData[ WA_TABLENAME ] + "'"
-      aIndex := SL_QuickQuery( aWAData, cSql )
-      if !empty( aInDex )
-         cSql := 'drop index "' + aIndex[1,1] + "_" + aIndex[1,2] + '"'
-         cTag := aIndex[1,2]
-      endif
-   else
-      cSql := 'drop index "' + aWAData[ WA_INDEX ][nOrder,IDX_BAG] + "_" + aWAData[ WA_INDEX ][nOrder,IDX_TAG] + '"'
-      cTag := aWAData[ WA_INDEX ][nOrder,IDX_TAG]
-   endif
-   
-   if !empty( cSql ) .and. SL_ExecQuery( aWAData, cSql )
-      cSql := "delete from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX + " where " + ;
-              '"indextable" = ' + "'" + aWAData[ WA_TABLENAME ] + "'" + ;
-              ' and "indextag" = ' + "'" + lower(alltrim(cTag)) + "'"
-      if SL_ExecQuery( aWAData, cSql )
-         lRet := .T.
-      endif
-   endif
-return lRet
-
 /*
  * Open a existing index into current WA
  * 15/01/2009 - 19:55:13
@@ -1186,6 +1153,10 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
    
    DEBUG_ARGS
 
+   if empty( aWAData[ WA_SCHEMA ] ) && Rossine 11/07/09
+      aWAData[ WA_SCHEMA ] := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
+   endif
+
    cSQL := 'SELECT * FROM "' + aWAData[ WA_SCHEMA ] + '"."' + SL_INDEX
    cSQL += '" WHERE IndexTable = '+ "'" + aWAData[ WA_TABLENAME ] + "'" && Incluido o nome da tabela: Rossine 03/07/09
    cSQL += " and IndexFile = '" + ID_PREFIX + cFile + "' "
@@ -1196,10 +1167,14 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
    
    cSQL += ' ORDER BY "' + SL_COL_RECNO + '"' 
 
+**msgstop( cSQL )
+
    SL_QuickQuery_PGSQL( aWAData, cSQL, @aIndexes )
    
+**msgstop( SL_ToString( aIndexes ), "aIndexes" )
+
    // Not found? Raise an exception?
-   IF Empty( aIndexes )         
+   IF Empty( aIndexes )
       IF cTag != NIL
          cError := "Error: index tag '"+cTag+"' in "+cFile+" does not exist!"
       ELSE      
@@ -1242,6 +1217,60 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
        AADD( aWAData[ WA_INDEX ], aInfo )
    End   
    RETURN SUCCESS
+
+****************************
+function SL_ORDDESTROY_PGSQL( nWa, aWAData, aOrderInfo )
+****************************
+
+   LOCAL cSql
+   LOCAL aIndex
+   LOCAL cTag
+   LOCAL nOrder
+   LOCAL lRet := .F.
+   
+   HB_SYMBOL_UNUSED( nWA )
+
+   DEBUG_ARGS
+   
+   cTag := aOrderInfo[ UR_ORI_TAG ]
+   
+   if valType( cTag ) == "N"
+      nOrder := cTag
+   else
+      cTag   := Lower( cTag )
+      nOrder := aScan( aWAData[ WA_INDEX ], {| idx | idx[ IDX_TAG ] == cTag })
+   endif
+   if nOrder <1 .OR. nOrder > Len( aWAData[ WA_INDEX ] )
+      return lRet
+   end
+
+   if empty( aWAData[ WA_SCHEMA ] ) && Rossine 11/07/09
+      aWAData[ WA_SCHEMA ] := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
+   endif
+
+   if nOrder = 0 .or. empty( aWAData[ WA_INDEX ] )
+      cSql := "select indexfile, indextag from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX
+      cSql += " where indextable = '" + aWAData[ WA_TABLENAME ] + "'"
+      aIndex := SL_QuickQuery( aWAData, cSql )
+      if !empty( aInDex )
+         cSql := 'drop index "' + aIndex[1,1] + "_" + aIndex[1,2] + '"'
+         cTag := aIndex[1,2]
+      endif
+   else
+      cSql := 'drop index "' + aWAData[ WA_INDEX ][nOrder,IDX_BAG] + "_" + aWAData[ WA_INDEX ][nOrder,IDX_TAG] + '"'
+      cTag := aWAData[ WA_INDEX ][nOrder,IDX_TAG]
+   endif
+   
+   if !empty( cSql ) .and. SL_ExecQuery( aWAData, cSql )
+      cSql := "delete from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX + " where " + ;
+              '"indextable" = ' + "'" + aWAData[ WA_TABLENAME ] + "'" + ;
+              ' and "indextag" = ' + "'" + lower(alltrim(cTag)) + "'"
+      if SL_ExecQuery( aWAData, cSql )
+         lRet := .T.
+      endif
+   endif
+
+return lRet
 
 *****************************
 function SL_WRITERECORD_PGSQL( nWa, aWAData )
@@ -1432,7 +1461,11 @@ function SL_CLEARINDEX_PGSQL( aWAData, lAll )
 
    LOCAL aIndex, cSql, n
    
-  DEBUG_ARGS
+   DEBUG_ARGS
+
+   if empty( aWAData[ WA_SCHEMA ] ) && Rossine 11/07/09
+      aWAData[ WA_SCHEMA ] := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
+   endif
 
    cSql := "select indextag from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX
    
@@ -1634,9 +1667,9 @@ function SL_PGSQL_SQLARRAY( pConn, cSQL, aFieldNames, lAssoc )
              AADD( aResult, {} )
 
              FOR c := 1 TO  Flds
-                AADD( aResult[r], PQGetValue( res, r,c ))
-             End
-         END
+                AADD( aResult[r], PQGetValue( res, r,c )) && Preciso que PQGetValue retorne o valor real.
+             End                                          && ou senão, termos um flag para pegar o valor real
+         END                                              && ou somente caracter.
 #ifdef __XHARBOUR__
       End
 #endif

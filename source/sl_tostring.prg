@@ -77,19 +77,23 @@ function SL_ToString( x, lLineFeed, lInherited, lType, cFile, lForceLineFeed )
        case ( t == "U" )
             s := iif( lType, "[U]=", "" ) + 'NIL'
        case ( t == "A" )
-            s := iif( lType, "[A]=", "" ) + "{" + iif( valtype( x[1] ) = "A" .or. lForceLineFeed, CRLF, "" )
-            j := len(x)
-            
-            for i := 1 to j
-                s += iif( valtype( x[i] ) == "A", "  ", " " ) + iif( lForceLineFeed, " ", "" ) + SL_ToString( x[i], FALSE )
-                s += iif( i <> j, ",", "" )
-                if lLineFeed
-                   if !lInherited .and. ( valtype( x[i] ) == "A" .or. lForceLineFeed )
-                      s += CRLF
+            s := iif( lType, "[A]=", "" ) + "{"
+            if len(x) = 0
+               s += " "
+            else
+               s += iif( valtype( x[1] ) = "A" .or. lForceLineFeed, CRLF, "" )
+               j := len(x)
+               
+               for i := 1 to j
+                   s += iif( valtype( x[i] ) == "A", "  ", " " ) + iif( lForceLineFeed, " ", "" ) + SL_ToString( x[i], FALSE )
+                   s += iif( i <> j, ",", "" )
+                   if lLineFeed
+                      if !lInherited .and. ( valtype( x[i] ) == "A" .or. lForceLineFeed )
+                         s += CRLF
+                      endif
                    endif
-                endif
-            next
-            
+               next
+            endif         
             s += "}"
 
        case ( t == "O" )
