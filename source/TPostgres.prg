@@ -72,10 +72,10 @@ CLASS TPQServer
     DATA     lError    INIT .F.
     DATA     cError    INIT ''
    
-    DATA     cHost       && Rossine 05/11/08
-    DATA     cDatabase   && Rossine 05/11/08
-    DATA     cUser       && Rossine 05/11/08
-    DATA     cPass       && Rossine 05/11/08
+    DATA     cHost         INIT ""   && Rossine 05/11/08
+    DATA     cDatabase     INIT ""   && Rossine 05/11/08
+    DATA     cUser         INIT ""   && Rossine 05/11/08
+    DATA     cPass         INIT ""   && Rossine 05/11/08
    
     METHOD   New( cHost, cDatabase, cUser, cPass, nPort, Schema )
     METHOD   Destroy()            
@@ -115,12 +115,12 @@ METHOD New( cHost, cDatabase, cUser, cPass, nPort, Schema ) CLASS TPQserver
 
     DEFAULT nPort TO 5432
 
-    ::cHost     := cHost       && Rossine 05/11/08
-    ::cDatabase := cDatabase   && Rossine 05/11/08
-    ::cUser     := cUser       && Rossine 05/11/08
-    ::cPass     := cPass       && Rossine 05/11/08
+    ::cHost         := cHost         && Rossine 05/11/08
+    ::cDatabase     := cDatabase     && Rossine 05/11/08
+    ::cUser         := cUser         && Rossine 05/11/08
+    ::cPass         := cPass         && Rossine 05/11/08
     
-    ::pDB := PQconnect(cDatabase, cHost, cUser, cPass, nPort)
+    ::pDB := PQconnect( cDatabase, cHost, cUser, cPass, nPort )
     
     if PQstatus(::pDb) != CONNECTION_OK
         ::lError := .T.
