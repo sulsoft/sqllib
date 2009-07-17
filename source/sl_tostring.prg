@@ -94,7 +94,7 @@ function SL_ToString( x, lLineFeed, lInherited, lType, cFile, lForceLineFeed )
                    endif
                next
             endif         
-            s += "}"
+            s += iif( !lForceLineFeed, " ", "" ) + "}"
 
        case ( t == "O" )
             if lInherited
