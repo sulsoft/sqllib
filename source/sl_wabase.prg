@@ -350,13 +350,9 @@ static function SL_GOTOID( nWA, nRecord )  && XBASE - DBGOTO()
 
    aWAData[ WA_BUFFER_POS ] :=  1 // my row inside aWAData
  
-SQL_DEBUGINIT( .T. )
-
    if HB_ExecFromArray( { FSL_GOTOID( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, nRecord } ) != SUCCESS
       return FAILURE
    endif
- 
-SQL_DEBUGINIT( .F. )
 
    aWAData[ WA_BOF ]   := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
    aWAData[ WA_EOF ]   := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
@@ -2857,7 +2853,7 @@ FUNCTION SL_ComplexCheck( cChave, aCampos )
             DEBUG " * É um campo desta tabela... deixa passar",d
           ELSE
 
-msgstop( SL_ToString( aCampos ), "[" + d + "]" )
+*msgstop( SL_ToString( aCampos ), "[" + d + "]" )
 
             DEBUG " * É um campo COMPLEXO!!",d
              lComplex := TRUE
