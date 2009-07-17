@@ -993,14 +993,16 @@ return SUCCESS
 static function SL_INFO( nWA, nTypo, aList  )  && XBASE - dbrlocklist()
 ************************
  
-   local aWAData := USRRDD_AREADATA( nWA )
+   local aWAData := USRRDD_AREADATA( nWA ), aListTmp
 
    DEBUG_ARGS
 
    HB_SYMBOL_UNUSED( nTypo )
-   HB_SYMBOL_UNUSED( aList )
+**   HB_SYMBOL_UNUSED( aList )
 
-   HB_ExecFromArray( { FSL_INFO( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } )
+   HB_ExecFromArray( { FSL_INFO( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, s_aMyLocks, @aListTmp } )
+
+   aList := aListTmp
 
 return SUCCESS
 
@@ -1033,6 +1035,8 @@ static function SL_LOCK( nWA, aLockInfo )  && XBASE - DBRLOCK()
       if ascan( s_aMyLocks, { |aLock| aLock[1] = aLockInfo[ UR_LI_RECORD ] .and. aLock[2] = SQLGetFullTableName( aWAData ) } ) = 0
          aadd( s_aMyLocks, { aLockInfo[ UR_LI_RECORD ], SQLGetFullTableName( aWAData ) } )
       endif
+
+**msgstop( SL_ToString( dbrlocklist(),.T.,,, "DUMP.TXT" ) )
 
 **      nResult := UR_SUPER_LOCK( nWA, aLockInfo )
 **msgstop( "nResult: " + valtoprg( nResult ) )
@@ -1116,39 +1120,40 @@ return FAILURE
 static function SL_UNLOCK( nWA, xRecID )   && XBASE - DBUNLOCK()
 **************************
  
-   HB_SYMBOL_UNUSED( nWA )
-   HB_SYMBOL_UNUSED( xRecID )
+**   HB_SYMBOL_UNUSED( nWA )
+**   HB_SYMBOL_UNUSED( xRecID )
+
+**return SUCCESS
+   
+**#ifdef _OFF_   
+   local aWAData := USRRDD_AREADATA( nWA ), n, nReg := recno() && , nResult
 
    DEBUG_ARGS
 
-return SUCCESS
-   
-#ifdef _OFF_   
-   local aWAData := USRRDD_AREADATA( nWA ), n, nReg := recno()
-
-**   HB_SYMBOL_UNUSED( xRecID )
-
-   if xRecID != NIL
+   if valtype(xRecID) = "N"
       nReg := xRecID
    endif
 
    aWAData [ WA_LOCK ] := .F.
    
    if ( n := ascan( s_aMyLocks, { |aLock| aLock[1] = nReg .and. aLock[2] = SQLGetFullTableName( aWAData ) } ) ) > 0  && Rossine 01/11/08
-      adel( s_aMyLocks, n , .T. )
+**      adel( s_aMyLocks, n , .T. )
+      adel( s_aMyLocks, n )
+      asize( s_aMyLocks, len(s_aMyLocks) - 1 )
    endif
 
    SL_FLUSH( nWA )
 
+* Ver depois o trecho abaixo
 *   nResult := UR_SUPER_UNLOCK( nWA, xRecID )
-
 *   IF nResult == SUCCESS 
 *      aWAData [ WA_LOCK ] := .F.
 *      SL_FLUSH( nWA )
 *   ENDIF
+*return nResult
 
-**return nResult
-#endif
+return SUCCESS
+**#endif
  
 *****************************
 static function SL_SETFILTER( nWA, aFilterInfo )
@@ -2614,7 +2619,7 @@ local lRet, oQuery
 DEFAULT cMsg := "Não foi possível realizar a operação baixo: "
 DEFAULT lMsg := .T.
 
-   DEBUG_ARGS
+DEBUG_ARGS
 
 HB_ExecFromArray( { FSL_EXECQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @oQuery, @lRet } )
 
@@ -2634,13 +2639,13 @@ return !lRet
 function SL_QuickQuery( aWAData, cQuery )  && Rossine 07/10/08
 **********************
 
-local xtemp
+local xTemp
 
    DEBUG_ARGS
 
-   HB_ExecFromArray( { FSL_QUICKQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @xtemp } )
+   HB_ExecFromArray( { FSL_QUICKQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @xTemp } )
 
-return xtemp
+return xTemp
 
 **********************
 function SL_Commit  && Rossine 07/10/08
