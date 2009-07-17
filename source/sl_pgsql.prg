@@ -208,7 +208,7 @@ function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
    HB_SYMBOL_UNUSED( nWA )
 
    DEBUG_ARGS
-   
+
    IF Empty( cSchema )
       cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
    End
@@ -837,24 +837,19 @@ End
 cSql += " where " + cRddSep + SL_PKFIELD( nWA ) + cRddSep + " = " 
 cSql += AllTrim( Str( aWAData[WA_RECNO] ) ) 
 
-msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
+**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 
 return SL_ExecQuery( aWAData, cSql )
 
 **********************
-function SL_INFO_PGSQL( nWa, aWAData )
+function SL_INFO_PGSQL( nWa, aWAData, s_aMyLocks, aList )
 **********************
 
-   local cSql, cSchema := aWAData[ WA_SCHEMA ]
+   local cSql
+   local aRet, n
 
    DEBUG_ARGS
    
-   IF Empty( cSchema )
-      cSchema := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
-   End
-
-   DEBUG_ARGS
-
    HB_SYMBOL_UNUSED( nWA )
 **   cSql := "select * from pg_locks"
 
@@ -886,9 +881,33 @@ function SL_INFO_PGSQL( nWa, aWAData )
 **   cSql := "SELECT " + SL_PKFIELD( nWA ) + " FROM " + SQLGetFullTableName( aWAData ) + " AS a, " + aWAData[ WA_SCHEMA ] + ".pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
 **   cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, " + aWAData[ WA_SCHEMA ] + ".pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
 
-cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, " + '"' + cSchema + '"' + ".pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
+**--commit;
+**--begin work;
+**--select * from "e001"."a001005" where "sl_rowid" = 1 for update nowait;
+**SELECT * FROM e001.a001005 AS a, public.pgrowlocks('e001.a001005') AS p where p.locked_row = a.ctid
+**--commit
 
-return SL_QuickQuery( aWAData, cSql )
+* Lembrete importante: tem que executar o arquivo: c:\pgsql83\share\contrib\pgrowlocks.sql para poder carregar esta
+* função para o postgres e colocar em todos os bancos de dados.
+
+**cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
+cSql := "SELECT " + SL_COL_RECNO + " FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
+
+aRet := SL_QuickQuery( aWAData, cSql )
+
+if valtype( aRet ) != "A"
+   aRet := { }
+endif
+
+for n = 1 to len(s_aMyLocks)
+    if s_aMyLocks[n,2] = SQLGetFullTableName( aWAData )
+       aadd( aRet, s_aMyLocks[n,1] )
+    endif
+next
+
+aList := aRet
+
+return NIL
 
 **********************
 function SL_LOCK_PGSQL( nWa, aWAData, nRecno, s_aMyLocks )
@@ -945,10 +964,7 @@ endif
 **lRet := SL_QuickQuery( aWAData, cSql )
 **msgstop( valtoprg(lRet) + "-" + cSql, "Proc: " + PROCESSO() )
 
-**msgstop( cSql )
-**catch
-**msgstop( "-2-" )
-**end
+**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 
 return SL_ExecQuery( aWAData, cSql, , .F. )
 
@@ -1394,9 +1410,10 @@ local oSql := aWAData[ WA_POINTER ]
 
 **memowrit( "sql.txt", cQuery )
 
-  DEBUG_ARGS
+DEBUG_ARGS
 
 pQuery := PQexec( oSql:pDB, cQuery )
+
 if PQresultstatus( pQuery ) == PGRES_TUPLES_OK
    if PQLastrec( pQuery ) != 0
        if PQFcount( pQuery ) == 1 .and. PQLastrec( pQuery ) == 1
@@ -1410,11 +1427,13 @@ if PQresultstatus( pQuery ) == PGRES_TUPLES_OK
                    temp := PQGetValue( pQuery, x, y )
                    aadd( aTemp, iif( temp == NIL, "", temp ) ) 
                next
-               aadd( xResult, aTemp)
+               aadd( xResult, aTemp )
            next                
        endif                
    endif
 endif    
+
+**msgstop( cQuery + CRLF + CRLF + "[" + PQresultErrormessage( pQuery ) + "]" + CRLF + valtoprg(PQresultstatus( pQuery )), "Exec sentença" )
 
 PQclear( pQuery ) 
            
@@ -1506,11 +1525,11 @@ function SL_EXECQUERY_PGSQL( aWAData, cQuery, oQuery, lRet )
 
 local oSql := aWAData[ WA_POINTER ]
 
-  DEBUG_ARGS
+DEBUG_ARGS
 
-oQuery                   := oSql:Execute( cQuery )
-lRet                     := oQuery:neterr()
-aWAData[ WA_POINTER ]    := oSql       // TODO: Faz setindo isto aqui???  (( o_O ))
+oQuery                := oSql:Execute( cQuery )
+lRet                  := oQuery:neterr()
+aWAData[ WA_POINTER ] := oSql       // TODO: Faz setindo isto aqui???  (( o_O ))
 
 return NIL
 
