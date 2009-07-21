@@ -1,16 +1,16 @@
 *#include "FiveWin.ch"
 
 #include "SQLLIB.ch"
-#include "postgres.ch"
-#include "hbusrrdd.ch"
-#include "dbinfo.ch"
-#include "simpleio.ch"
+*#include "postgres.ch"
+*#include "hbusrrdd.ch"
+*#include "dbinfo.ch"
+*#include "simpleio.ch"
 
-*#define SQL_DEBUG
-#include "..\include\SQLLIBrdd.ch"
+**#define SQL_DEBUG
+*#include "..\include\SQLLIBrdd.ch"
 
-REQUEST SQLLIB
-REQUEST PGSQL
+*REQUEST SQLLIB
+*REQUEST PGSQL
 REQUEST DBFCDX
 REQUEST HB_LANG_PT
 
@@ -49,20 +49,20 @@ function Main()
 quit   
 /**/   
 
-msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
-         SL_GETCONNPARAMS()[2] + CRLF + ;
-         SL_GETCONNPARAMS()[3] + CRLF + ;
-         SL_GETCONNPARAMS()[4] )
+*msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
+*         SL_GETCONNPARAMS()[2] + CRLF + ;
+*         SL_GETCONNPARAMS()[3] + CRLF + ;
+*         SL_GETCONNPARAMS()[4] )
          
   SQL CONN PARAMS TO HOST "localhost" ;
                      USER "postgres" ;
                  PASSWORD "postgres" ;
                       VIA "PGSQL"
 
-msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
-         SL_GETCONNPARAMS()[2] + CRLF + ;
-         SL_GETCONNPARAMS()[3] + CRLF + ;
-         SL_GETCONNPARAMS()[4] )
+*msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
+*         SL_GETCONNPARAMS()[2] + CRLF + ;
+*         SL_GETCONNPARAMS()[3] + CRLF + ;
+*         SL_GETCONNPARAMS()[4] )
 
 /*
 msgstop( "vou criar o database 'demo'" + CRLF + ;
@@ -78,7 +78,7 @@ msgstop( "Conseguiu  criar 'demo' ? " + SL_ToString( lRet ) )
                    INTO nConn  
 
    IF (nConn == 00)
-      msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
+*      msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
       QUIT
    End
 
@@ -229,7 +229,7 @@ zap
    
 
    IF !SL_Table( "m3" )
-      msginfo( "Vamos criar a tabela M2" )
+*      msginfo( "Vamos criar a tabela M2" )
       DBCreate( "m3", {;
                       { "cod" , "c", 4, 0 },;
                       { "desc", "c", 3, 0 } ;
@@ -391,8 +391,8 @@ exit procedure EuPorUltimo
    return      
 
 FUNCTION SHOWRECNO()
-   DEBUG recno(), status, cod, desc,eof(), bof(), found()
-   ?     recno(), status, cod, desc,eof(), bof(), found()
+*   DEBUG recno(), status, cod, desc, eof(), bof(), found()
+   ?     recno(), status, cod, desc, eof(), bof(), found()
    RETURN
    
 //--EOF--//
