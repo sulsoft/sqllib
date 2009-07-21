@@ -102,6 +102,19 @@ cls
 
 wait "-parando-"
 
+   ? "Vou incluir um registro: ", SQLCust->( dbappend() )
+   ? "Estou posicionado no registro", SQLCust->( recno() )
+   ? "Travando  Registro "+alltrim(str(SQLCust->( recno() )))+ ": ", SQLCust->( dbrlock(SQLCust->( recno() )) )
+
+   if SQLCust->( islocked() )
+      ? "gravando os campos", SQLCust->( islocked() )
+      SQLCust->( fieldput( 1, "teste de exclusão" ) )
+      SQLCust->( fieldput( 2, "teste 2" ) )
+      SQLCust->( dbdelete() )
+      SQLCust->( dbcommit() )
+      SQLCust->( dbunlock() )
+   endif
+
    SQLCust->( dbgotop() )
    
    cls 
