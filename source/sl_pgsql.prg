@@ -88,7 +88,7 @@
 
 #include "sqllibrdd.ch"
 
-REQUEST  SL_PGSQL_SQLARRAY
+*REQUEST  SL_PGSQL_SQLARRAY
 
 /*
  * Retorna o ID do driver para uso do PostgreSQL com SQLLIB
@@ -667,6 +667,8 @@ function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
 
   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_NONE )
 
+*  RETURN SL_UpdateFlags( nWA, aWAData )
+
 /*
  * Perform DbGoTop() on current WA. 
  * TODO: Convert this routine into a C function to turn it faster ************** 
@@ -798,7 +800,7 @@ function SL_GETVALUE_PGSQL( nWa, aWAData, nField, lHidden )
 function SL_PUTVALUE_PGSQL( nWa, aWAData, xValue, nField )
 **************************
 
-local cSql
+local cSql, lRet
 local s_aStruct := aWAData[ WA_STRUCT ]
 local cRddSep   := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 
@@ -829,7 +831,7 @@ case s_aStruct[ nField ][ DBS_TYPE ] == "D" && "DATE"
         cSql += "'" + DTOS( xValue ) + "'"
      End
 
-otherwise  // Numeric field..
+otherwise  && "NUMERIC"
      cSql += AllTrim( Str( xValue ) )
 
 End
@@ -837,16 +839,25 @@ End
 cSql += " where " + cRddSep + SL_PKFIELD( nWA ) + cRddSep + " = " 
 cSql += AllTrim( Str( aWAData[WA_RECNO] ) ) 
 
-**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
+msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 
-return SL_ExecQuery( aWAData, cSql )
+lRet := SL_EXECQUERYEX( cSql, SL_GETCONN() )
+**lRet := SL_ExecQuery( aWAData, cSql )
+**lRet := SL_QuickQuery( aWAData, cSql )
+
+**msgstop( lret )
+
+**msgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ) )
+
+return lRet
+*return SL_ExecQuery( aWAData, cSql )
 
 **********************
 function SL_INFO_PGSQL( nWa, aWAData, s_aMyLocks, aList )
 **********************
 
    local cSql
-   local aRet, n
+   local aRet, n, aRet1
 
    DEBUG_ARGS
    
@@ -886,6 +897,24 @@ function SL_INFO_PGSQL( nWa, aWAData, s_aMyLocks, aList )
 **--select * from "e001"."a001005" where "sl_rowid" = 1 for update nowait;
 **SELECT * FROM e001.a001005 AS a, public.pgrowlocks('e001.a001005') AS p where p.locked_row = a.ctid
 **--commit
+**rollback;
+**commit;
+**begin work;
+**select * from "public"."customer" where "sl_rowid" = 3 for update nowait;
+**UPDATE "public"."customer" SET "last" = 'teste 12' where "sl_rowid" = 3;
+**commit;
+**select * from "public"."customer" order by "sl_rowid";
+**--commit;                                                                                                          
+**--begin work;                                                                                                      
+**--select * from "public"."customer" where "sl_rowid" = 3 for update nowait;                                        
+**--UPDATE "public"."customer" SET "last" = 'teste 12' where "sl_rowid" = 3;                                         
+**--commit;                                                                                                          
+**--select * from "public"."customer" order by "sl_rowid";                                                           
+**                                                                                                                   
+**-- *--------------------------------------*                                                                        
+**-- * Para Verificar os registros travados *                                                                        
+**-- *--------------------------------------*                                                                        
+**SELECT * FROM "public"."customer" AS a, public.pgrowlocks('"public"."customer"') AS p where p.locked_row = a.ctid ;
 
 * Lembrete importante: tem que executar o arquivo: c:\pgsql83\share\contrib\pgrowlocks.sql para poder carregar esta
 * função para o postgres e colocar em todos os bancos de dados.
@@ -893,19 +922,29 @@ function SL_INFO_PGSQL( nWa, aWAData, s_aMyLocks, aList )
 **cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
 cSql := "SELECT " + SL_COL_RECNO + " FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
 
-aRet := SL_QuickQuery( aWAData, cSql )
+*aRet := SL_QuickQuery( aWAData, cSql )
+aRet := SQLArray( cSql )
+*aRet := SL_PGSQL_SQLARRAY( aWAData[ WA_CONNECTION ], cSQL )
 
-if valtype( aRet ) != "A"
-   aRet := { }
+aRet1 := { }
+
+if valtype( aRet ) = "A"
+   for n = 1 to len(aRet) && Ver depois porque está retornando String - 20/07/09 - By Rossine.
+       aadd( aRet1, val( aRet[n,1] ) )
+   next
 endif
 
+**msgstop( SL_ToString( aret,.T.,,, "DUMP.TXT", .T. ), "dbrlocklist" )
+
 for n = 1 to len(s_aMyLocks)
-    if s_aMyLocks[n,2] = SQLGetFullTableName( aWAData )
-       aadd( aRet, s_aMyLocks[n,1] )
+    if s_aMyLocks[n,1] = SL_GETCONN() .and. s_aMyLocks[n,2] = SQLGetFullTableName( aWAData )
+       aadd( aRet1, s_aMyLocks[n,3] )
     endif
 next
 
-aList := aRet
+aList := aRet1
+
+**msgstop( SL_ToString( aList,.T.,,, "DUMP.TXT", .T. ), "dbrlocklist" )
 
 return NIL
 
@@ -913,7 +952,7 @@ return NIL
 function SL_LOCK_PGSQL( nWa, aWAData, nRecno, s_aMyLocks )
 **********************
 
-local cSql,n
+local cSql, n, aRet
 local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 
   DEBUG_ARGS
@@ -947,26 +986,52 @@ local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 **        'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;' + CRLF + ;
 **cSql := 'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;' + CRLF + ;
 
-cSql := 'commit;'        + CRLF + ;  && Rossine 01/11/08
+**cSql := 'rollback;'      + CRLF + ; && commit;'        + CRLF + ;  && Rossine 01/11/08
+cSql := 'commit;'        + CRLF + ;
         'begin work;'    + CRLF + ;
         'select * from ' + SQLGetFullTableName( aWAData ) + ' where ' + cRddSep + SL_PKFIELD( nWA ) + cRddSep + ' = ' + ;
                            alltrim(str( nRecno )) + ' for update nowait;' + CRLF
 
 if len(dbrlocklist()) > 0  && Rossine 01/11/08
    for n = 1 to len(s_aMyLocks)
-       if s_aMyLocks[n,2] = SQLGetFullTableName( aWAData ) .and. s_aMyLocks[n,1] != nRecno
+       if s_aMyLocks[n,1] = SL_GETCONN() .and. s_aMyLocks[n,2] = SQLGetFullTableName( aWAData ) .and. s_aMyLocks[n,3] != nRecno
           cSql += 'select * from ' + SQLGetFullTableName( aWAData ) + ' where ' + cRddSep + SL_PKFIELD( nWA ) + cRddSep + ' = ' + ;
-                  alltrim(str(s_aMyLocks[n,1])) + ' for update nowait;' + CRLF
+                  alltrim(str(s_aMyLocks[n,3])) + ' for update nowait;' + CRLF
        endif
    next
 endif
-
+**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 **lRet := SL_QuickQuery( aWAData, cSql )
+**msgstop( lret )
+**msgstop( csql )
+**lret := SL_EXECQUERYEX( cSql )
+**msgstop( lret )
 **msgstop( valtoprg(lRet) + "-" + cSql, "Proc: " + PROCESSO() )
 
-**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
+/*
+cSql := "rollback;" + CRLF + ;
+        "commit;" + CRLF + ;
+        "begin work;" + CRLF + ;
+        'select * from "public"."customer" where "sl_rowid" = 3 for update nowait;' + CRLF + ;
+        [UPDATE "public"."customer" SET "last" = 'teste 30' where "sl_rowid" = 3;] + CRLF + ;
+        "commit;" + CRLF + ;
+        'select * from "public"."customer" order by "sl_rowid";'
 
-return SL_ExecQuery( aWAData, cSql, , .F. )
+msgstop( SL_ToString( SQLArray( cSql ),.T.,,, "DUMP.TXT", .T. ) )
+return iif( len(SQLArray( cSql )) > 0, .T., .F. )
+*/
+**msgstop( SL_ToString( ( aRet := SQLArray( cSql ) ) ),.T.,,, "DUMP.TXT", .T. )
+*aRet := SL_ExecQuery( aWAData, cSql, , .F. )
+**msgstop( iif( len(aRet) > 0, .T., .F. ) )
+aRet := SQLArray( cSql )
+*aRet := SL_PGSQL_SQLARRAY( aWAData[ WA_CONNECTION ], cSQL )
+*return aRet
+
+**msgstop( csql )
+
+**msgstop( SL_ToString( aRet ),.T.,,, "DUMP.TXT", .T. )
+
+return iif( len(aRet) > 0, .T., .F. )
 
 **********************
 function SL_PACK_PGSQL( nWa, aWAData )
@@ -1302,14 +1367,14 @@ function SL_WRITERECORD_PGSQL( nWa, aWAData )
    local lApp      := aWAData[ WA_APPEND ]
    local cVal      := "" && Rossine 07/10/08
    local s_aStruct := aWAData[ WA_STRUCT ]
-   local cSql
+   local cSql, lRet
    local nCount
    local nField
    local aBuffer
    local nRow
    
    HB_SYMBOL_UNUSED( nWA )
-   
+
    DEBUG_ARGS
    
    if lApp
@@ -1317,88 +1382,131 @@ function SL_WRITERECORD_PGSQL( nWa, aWAData )
    else
       cSql := "UPDATE " + SQLGetFullTableName( aWAData ) + " SET "
    end
-   
+
    nCount  := 0
    aBuffer := aWAData[ WA_BUFFER_ARR ]
    nRow    := aWAData[ WA_BUFFER_POS ]
-   
-   for nField = 1 to Len( s_aStruct )
-   
-       if aBuffer[ nRow, nField ] == NIL
-          loop
-       end
-       nCount ++
-   
-       /* Get the current fieldname */
-       cSql += iif( nCount > 1, ", ", "" ) + cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep
-   
-       /* Get formated value */
-       do case
-       case s_aStruct[ nField ][ DBS_TYPE ] == "C" && "CHAR"
-   
-            /* Test correct field length to avoid some errors */
-            if Len(aBuffer[ nRow, nField ]) <= s_aStruct[ nField ][ DBS_LEN ]
+
+   if lApp  && Rossine 07/10/08
+
+      for nField = 1 to Len( s_aStruct )
+          nCount ++
+      
+          /* Get the current fieldname */
+          cSql += iif( nCount > 1, ", ", "" ) + cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep
+          do case
+          case s_aStruct[ nField ][ DBS_TYPE ] == "C" && "CHAR"
+               cVal += iif( nCount > 1, ", ", "" ) + "'" + space(s_aStruct[ nField ][ DBS_LEN ]) + "'"
+      
+          case s_aStruct[ nField ][ DBS_TYPE ] == "M" && "MEMO"
+      
+               cVal += iif( nCount > 1, ", ", "" ) + "'" + space(10) + "'"
+      
+          case s_aStruct[ nField ][ DBS_TYPE ] == "L" && "LOGICAL"
+      
+               cVal += iif( nCount > 1, ", ", "" ) + "TRUE"
+      
+          case s_aStruct[ nField ][ DBS_TYPE ] == "D" && "DATE"
+      
+               cVal += iif( nCount > 1, ", ", "" ) + "'" + "00000000" + "'"  && Rossine 07/10/08
+      
+          otherwise  // Numeric field..
+      
+               cVal += iif( nCount > 1, ", ", "" ) + "0"
+      
+          endcase
+      next
+   else
+      for nField = 1 to Len( s_aStruct )
+          lRet := .F.
+      
+          if !lApp  && Rossine 07/10/08
+             try
+                if aBuffer[ nRow, nField ] = NIL
+                   lRet := .T.
+                endif
+             catch
+                 lRet := .T.
+             end
+             if lRet
+                loop
+             endif
+          endif
+          nCount ++
+      
+          /* Get the current fieldname */
+          cSql += iif( nCount > 1, ", ", "" ) + cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep
+          /* Get formated value */
+          do case
+          case s_aStruct[ nField ][ DBS_TYPE ] == "C" && "CHAR"
+      
+               /* Test correct field length to avoid some errors */
+               if Len(aBuffer[ nRow, nField ]) <= s_aStruct[ nField ][ DBS_LEN ]
+                  if lApp  && Rossine 07/10/08
+                     cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape  && Rossine 07/10/08
+                  else
+                     cSql += "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape
+                  endif
+               else
+                  if lApp  && Rossine 07/10/08
+                     cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"  && Rossine 07/10/08
+                  else
+                     cSql += "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"
+                  endif
+               endif
+      
+          case s_aStruct[ nField ][ DBS_TYPE ] == "M" && "MEMO"
+      
                if lApp  && Rossine 07/10/08
                   cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape  && Rossine 07/10/08
                else
                   cSql += "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape
                endif
-            else
+               
+          case s_aStruct[ nField ][ DBS_TYPE ] == "L" && "LOGICAL"
+      
                if lApp  && Rossine 07/10/08
-                  cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"  && Rossine 07/10/08
+                  cVal += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html  && Rossine 07/10/08
                else
-                  cSql += "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"
+                  cSql += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html
                endif
-            endif
-   
-       case s_aStruct[ nField ][ DBS_TYPE ] == "M" && "MEMO"
-   
-            if lApp  && Rossine 07/10/08
-               cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape  && Rossine 07/10/08
-            else
-               cSql += "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape
-            endif
-            
-       case s_aStruct[ nField ][ DBS_TYPE ] == "L" && "LOGICAL"
-   
-            if lApp  && Rossine 07/10/08
-               cVal += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html  && Rossine 07/10/08
-            else
-               cSql += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html
-            endif
-   
-       case s_aStruct[ nField ][ DBS_TYPE ] == "D" && "DATE"
-   
-            IF Empty( aBuffer[ nRow, nField ] )
-               if lApp
-                  cVal += iif( nCount > 1, ", ", "" ) + "NULL"
-               else
-                  cSql += "NULL"
-               endif
-            ELSE
+      
+          case s_aStruct[ nField ][ DBS_TYPE ] == "D" && "DATE"
+      
+               IF Empty( aBuffer[ nRow, nField ] )
+                  if lApp
+                     cVal += iif( nCount > 1, ", ", "" ) + "NULL"
+                  else
+                     cSql += "NULL"
+                  endif
+               ELSE
+                  if lApp  && Rossine 07/10/08
+                     cVal += iif( nCount > 1, ", ", "" ) + "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"  && Rossine 07/10/08
+                  else
+                     cSql += "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"
+                  endif
+               End
+      
+          otherwise  // Numeric field..
+      
                if lApp  && Rossine 07/10/08
-                  cVal += iif( nCount > 1, ", ", "" ) + "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"  && Rossine 07/10/08
+                  cVal += iif( nCount > 1, ", ", "" ) + AllTrim( Str( aBuffer[ nRow, nField ] ) )  && Rossine 07/10/08
                else
-                  cSql += "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"
+                  cSql += AllTrim( Str( aBuffer[ nRow, nField ] ) )
                endif
-            End
-   
-       otherwise  // Numeric field..
-            if lApp  && Rossine 07/10/08
-               cVal += iif( nCount > 1, ", ", "" ) + AllTrim( Str( aBuffer[ nRow, nField ] ) )  && Rossine 07/10/08
-            else
-               cSql += AllTrim( Str( aBuffer[ nRow, nField ] ) )
-            endif
-   
-       End
-   next
-   
+      
+          endcase
+      next
+   endif
+
    if lApp
       cSql += " ) values ( " + cVal + " )"
    else
       cSql += ' where "' + SL_PKFIELD( aWAData ) + '" = ' + AllTrim( Str( aWAData[ WA_RECNO ] ) )
    endif
-   
+
+**msgstop( SL_ToString( csql,.T.,,, "DUMP.TXT", .T. ) )
+
 return SL_ExecQuery( aWAData, cSql )
 
 ****************************
@@ -1432,6 +1540,8 @@ if PQresultstatus( pQuery ) == PGRES_TUPLES_OK
        endif                
    endif
 endif    
+
+DEBUG "Sentença [" + cQuery + "]", "Valor de xResult: " + sl_tostring( xResult ), "PQresultErrormessage: [" + PQresultErrormessage( pQuery ) + "]", "PQresultstatus(): " + sl_tostring( PQresultstatus( pQuery ) )
 
 **msgstop( cQuery + CRLF + CRLF + "[" + PQresultErrormessage( pQuery ) + "]" + CRLF + valtoprg(PQresultstatus( pQuery )), "Exec sentença" )
 
@@ -1476,7 +1586,7 @@ local oSql := aWAData[ WA_POINTER ]
 
   DEBUG_ARGS
 
-SL_COMMIT()
+SL_COMMIT_PGSQL( aWAData )
 
 return ( PQtransactionstatus( oSql:pDB ) == PQTRANS_INTRANS )          
 
@@ -1527,9 +1637,16 @@ local oSql := aWAData[ WA_POINTER ]
 
 DEBUG_ARGS
 
-oQuery                := oSql:Execute( cQuery )
-lRet                  := oQuery:neterr()
-aWAData[ WA_POINTER ] := oSql       // TODO: Faz setindo isto aqui???  (( o_O ))
+oQuery := oSql:Execute( cQuery )
+lRet   := oQuery:neterr()
+
+DEBUG "Conseguiu executar a sentença [" + cQuery + "] ? ", lRet
+
+**aWAData[ WA_POINTER ] := oSql       // TODO: Faz setindo isto aqui???  (( o_O ))
+**msgstop( sl_tostring(PQresultstatus( oQuery )))
+**if PQresultstatus( oQuery ) != PGRES_COMMAND_OK
+**   msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( oQuery ), "Erro na sentença-1" )
+**endif
 
 return NIL
 
@@ -1563,11 +1680,17 @@ return NIL
 function SL_COMMIT_PGSQL( aWAData )
 ************************
 
-local oSql := aWAData[ WA_POINTER ]
+local oSql := aWAData[ WA_POINTER ], lRet
 
-  DEBUG_ARGS
+**msgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ), "-1-" )
 
-return oSql:Commit()
+  lRet := oSql:Commit()
+
+  DEBUG "Comitando o registro: " + sl_tostring( lRet )
+
+**msgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ), "-2-" )
+
+return lRet
 
 **********************
 function SL_SEEK_PGSQL( nWa, aWAData, lSoftSeek, cKey, lFindLast )

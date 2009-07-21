@@ -284,16 +284,19 @@ static function SL_OPEN( nWA, aOpenInfo )  && XBASE - DBUSEAREA()
 static function SL_CLOSE( nWA )  && XBASE - DBCLOSE()
 *************************
  
+   LOCAL aWAData := USRRDD_AREADATA( nWA ), cTable, n
+
    DEBUG_ARGS
 
    if SL_GOCOLD( nWA ) != SUCCESS
       return FAILURE
    endif
    
-//   cTable := SQLGetFullTableName( aWAData )
-//   do while ( n := ascan( s_aMyLocks, { |aLock| aLock[2] = cTable } ) ) > 0
-//      adel( s_aMyLocks, n , .T. )
-//   enddo
+   cTable := SQLGetFullTableName( aWAData )
+
+   do while ( n := ascan( s_aMyLocks, { |aLock| aLock[1] = SL_GETCONN() .and. aLock[2] = cTable } ) ) > 0
+      hb_adel( s_aMyLocks, n , .T. )
+   enddo
 
 return UR_SUPER_CLOSE( nWA )
  
@@ -593,7 +596,7 @@ DEBUG "MS_DOWN: Ele está AVANÇANDO no dados!", nRecords
          aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
 DEBUG "MS_DOWN: Nao precisou ler mais dados! Posição atual:", alltrim(str(aWAData[ WA_BUFFER_POS ])) + '/' + alltrim(str(aWAData[ WA_BUFFER_ROWCOUNT ])), '  *** Recno -> ', aWAData[ WA_RECNO ]
          //// substituir acima por isto:
-         //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], @aWAData[ WA_RECNO ], .T. )
+         //// SL_GETVALUE_WA( nWA, AWAData[ WA_FLD_RECNO ], aWAData[ WA_RECNO ], .T. )
 
          aWAData[ WA_FOUND ] := aWAData[ WA_BOF ] := aWAData[ WA_EOF ] := False
 
@@ -903,9 +906,9 @@ static function SL_PUTVALUE( nWA, nField, xValue )   && XBASE - FIELDPUT()
 
 return SUCCESS
  
-**************************
+*************************
 static function SL_APPEND( nWA, lUnLockAll )  && XBASE - DBAPPEND()
-**************************
+*************************
  
    local aWAData := USRRDD_AREADATA( nWA )
 
@@ -913,28 +916,42 @@ static function SL_APPEND( nWA, lUnLockAll )  && XBASE - DBAPPEND()
 
    DEBUG_ARGS
 
-   if SL_GOCOLD( nWA ) != SUCCESS
-      return FAILURE
-   endif
+**   if SL_GOCOLD( nWA ) != SUCCESS
+**      return FAILURE
+**   endif
 
    /* Destroy any buffer data if exists */
    SQLBUFFER_DELETE( aWAData )
  
    aWAData[ WA_RECCOUNT ]++          // meanwhile we don´t do a real connection
 
-   aWAData[ WA_APPEND        ] := .T.
-   aWAData[ WA_RECORDCHANGED ] := .T.
    aWAData[ WA_RECNO ]         := aWAData[ WA_RECCOUNT ]             && Rossine 07/10/08
+   aWAData[ WA_APPEND        ] := .T.  && Tirado daqui em 20/07/09 - By Rossine
+   aWAData[ WA_RECORDCHANGED ] := .T.  && Tirado daqui em 20/07/09 - By Rossine
 
    /* Create a new buffer for current area*/
 **   aWAData[ WA_BUFFER_ROWCOUNT ]:= 1 // One line... for Append values only
    aWAData[ WA_BUFFER_ROWCOUNT ]:= aWAData[ WA_RECCOUNT ] && Rossine 26/06/09
-   SQLBUFFER_CREATE( aWAData )
+
+*   SQLBUFFER_CREATE( aWAData )
+   IF SQLBUFFER_CREATE( aWAData ) != SUCCESS
+      ** Check any error here! (Especially if this function is written in C)
+      return FAILURE
+   endif
+
+**msgstop( SL_ToString( aWAData[ WA_BUFFER_ARR ],.T.,,, "DUMP.TXT", .T. ), valtype( aWAData[ WA_BUFFER_ARR ] ) )
 
 **   aWAData[ WA_BUFFER_POS ]     := 1
    aWAData[ WA_BUFFER_POS ]     := aWAData[ WA_RECCOUNT ] && Rossine 26/06/09
 *   msgstop( "dbAppend()", "SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
- 
+
+   if SL_GOCOLD( nWA ) != SUCCESS
+      return FAILURE
+   endif
+   
+   aWAData[ WA_BOF ] := .F.  && Rossine 21/07/09
+   aWAData[ WA_EOF ] := .F.  && Rossine 21/07/09
+
 return SUCCESS
  
 *************************
@@ -945,10 +962,10 @@ static function SL_FLUSH( nWA )  && XBASE - DBCOMMIT()
    
    DEBUG_ARGS
 
-   if SL_GOCOLD( nWA ) != SUCCESS
-      return FAILURE
-   endif
- 
+*   if SL_GOCOLD( nWA ) != SUCCESS && Tive que tirar isto pois não estava funcionando o commit.
+*      return FAILURE
+*   endif
+
    if aWAData[ WA_TRANSCOUNTER ] == 0
 //      if len(s_aMyLocks) > 0  && Rossine 01/11/08
 //         dbrlock( s_aMyLocks[1,1] )  && Travo novamente todos os outros registros
@@ -965,12 +982,12 @@ static function SL_GOCOLD( nWA )
 
    local aWAData := USRRDD_AREADATA( nWA )
  
-   DEBUG_ARGS
+   DEBUG aWAData[ WA_RECORDCHANGED ]
 
    if !aWAData[ WA_RECORDCHANGED ]
       return SUCCESS
    endif
- 
+
 return SL_WRITERECORD( nWA )
 
 *************************** 
@@ -998,7 +1015,7 @@ static function SL_INFO( nWA, nTypo, aList  )  && XBASE - dbrlocklist()
 
    HB_ExecFromArray( { FSL_INFO( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, s_aMyLocks, @aListTmp } )
 
-   aList := aListTmp
+   aList := aListTmp  && Rossine 18/07/09
 
 return SUCCESS
 
@@ -1012,6 +1029,10 @@ static function SL_LOCK( nWA, aLockInfo )  && XBASE - DBRLOCK()
    local lRet, nRecno := iif( aLockInfo[ UR_LI_RECORD ] = NIL, aWAData[ WA_RECNO ], aLockInfo[ UR_LI_RECORD ] )
 
    DEBUG_ARGS
+
+**msgstop( hb_valtostr( aWAData[ WA_RECNO ] ) + "-" + hb_valtostr( aLockInfo[ UR_LI_RECORD ] ) )
+
+**msgstop( SL_ToString( aLockInfo,.T.,,, "DUMP.TXT", .T. ) )
 
    lRet := HB_ExecFromArray( { FSL_LOCK( aWAData[ WA_SYSTEMID ] ), nWa, aWAData, nRecno, s_aMyLocks } )
 
@@ -1028,8 +1049,8 @@ static function SL_LOCK( nWA, aLockInfo )  && XBASE - DBRLOCK()
       aLockInfo[ UR_LI_RESULT ] := .T.
       aWAData [ WA_LOCK ]       := .T.   && Rossine 22/10/08
 
-      if ascan( s_aMyLocks, { |aLock| aLock[1] = aLockInfo[ UR_LI_RECORD ] .and. aLock[2] = SQLGetFullTableName( aWAData ) } ) = 0
-         aadd( s_aMyLocks, { aLockInfo[ UR_LI_RECORD ], SQLGetFullTableName( aWAData ) } )
+      if ascan( s_aMyLocks, { |aLock| aLock[1] = SL_GETCONN() .and. aLock[2] = SQLGetFullTableName( aWAData ) .and. aLock[3] = aLockInfo[ UR_LI_RECORD ] } ) = 0
+         aadd( s_aMyLocks, { SL_GETCONN(), SQLGetFullTableName( aWAData ), aLockInfo[ UR_LI_RECORD ] } )
       endif
 
 **msgstop( SL_ToString( dbrlocklist(),.T.,,, "DUMP.TXT" ) )
@@ -1132,10 +1153,8 @@ static function SL_UNLOCK( nWA, xRecID )   && XBASE - DBUNLOCK()
 
    aWAData [ WA_LOCK ] := .F.
    
-   if ( n := ascan( s_aMyLocks, { |aLock| aLock[1] = nReg .and. aLock[2] = SQLGetFullTableName( aWAData ) } ) ) > 0  && Rossine 01/11/08
-**      adel( s_aMyLocks, n , .T. )
-      adel( s_aMyLocks, n )
-      asize( s_aMyLocks, len(s_aMyLocks) - 1 )
+   if ( n := ascan( s_aMyLocks, { |aLock| aLock[1] = SL_GETCONN() .and. aLock[2] = SQLGetFullTableName( aWAData ) .and. aLock[3] = nReg } ) ) > 0  && Rossine 01/11/08
+      hb_adel( s_aMyLocks, n , .T. )
    endif
 
    SL_FLUSH( nWA )
@@ -2040,6 +2059,7 @@ FUNCTION SL_SEEK( nWA, bSoftSeek, uKey, lFindLast )  && XBASE - DBSEEK()
    End
 
    DEBUG "SQL final:", cSQL
+
    IF PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_NONE + EU_EOF_ON_EMPTY ) != SUCCESS
       RETURN FAILURE
    End
@@ -2411,21 +2431,21 @@ function SQLAdjustFn( cDataBase )
  * to build INSERT / UPDATE statements.
  * 16/09/2008 - 08:13:32
  */
-*******************************
-static function SL_WRITERECORD( nWA )
-*******************************
+******************************
+static function SL_WRITERECORD( nWA ) && Inserido "aWAData" em 20/07/09 By Rossine 
+******************************
 
    local aWAData := USRRDD_AREADATA( nWA )
- * local lApp    := aWAData[ WA_APPEND ]
-   local aBuffer, nRow, nRecNo := 0
+   local nRow, nRecNo := 0
+**   local aBuffer
    
-   DEBUG_ARGS
+   DEBUG aWAData[ WA_BUFFER_ARR ]
 
-   IF aWAData[ WA_BUFFER_ARR ] == NIL
+   IF valtype( aWAData[ WA_BUFFER_ARR ] ) = "U" .or. len(aWAData[ WA_BUFFER_ARR ]) = 0
       return SUCCESS
    endif
 
-   aBuffer := aWAData[ WA_BUFFER_ARR ]
+**   aBuffer := aWAData[ WA_BUFFER_ARR ]
    nRow    := aWAData[ WA_BUFFER_POS ]
  
    /* We are positioned properly within the buffer? */
@@ -2434,10 +2454,10 @@ static function SL_WRITERECORD( nWA )
    endif
  
    /* This line had been changed before? If not it have NIL value */
-   if aBuffer[ nRow ] == NIL
-      return SUCCESS
-   endif
- 
+*   if aBuffer[ nRow ] == NIL
+*      return SUCCESS
+*   endif
+
    SL_RECID( nWA, @nRecNo )
 
    HB_ExecFromArray( { FSL_WRITERECORD( aWAData[ WA_SYSTEMID ] ), nWa, aWAData } )
@@ -2617,7 +2637,7 @@ DEFAULT lMsg := .T.
 
 DEBUG_ARGS
 
-HB_ExecFromArray( { FSL_EXECQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @oQuery, @lRet } )
+HB_ExecFromArray( { FSL_EXECQUERY( aWAData[ WA_SYSTEMID ] ), aWAData, cQuery, @oQuery, @lRet } )
 
 if lRet .and. lMsg
    HB_ExecFromArray( { FSL_EXECQUERY_MSG( aWAData[ WA_SYSTEMID ] ), @oQuery, cMsg, cQuery } )
@@ -2639,27 +2659,33 @@ local xTemp
 
    DEBUG_ARGS
 
-   HB_ExecFromArray( { FSL_QUICKQUERY( aWAData[ WA_SYSTEMID ] ), @aWAData, cQuery, @xTemp } )
+   HB_ExecFromArray( { FSL_QUICKQUERY( aWAData[ WA_SYSTEMID ] ), aWAData, cQuery, @xTemp } )
 
 return xTemp
 
-**********************
-function SL_Commit  && Rossine 07/10/08
-**********************
+******************
+function SL_Commit( aWAData )  && Rossine 07/10/08
+******************
 
-local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
-
+local nWA := select()
+   
    DEBUG_ARGS
+
+   if valtype( aWAData ) = "U"
+      aWAData := USRRDD_AREADATA( nWA )
+   endif
 
 return HB_ExecFromArray( { FSL_COMMIT( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
-************************
-function SL_Rollback  && Rossine 07/10/08
-************************
+********************
+function SL_Rollback && Rossine 07/10/08
+********************
 
 local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
-
+   
    DEBUG_ARGS
+
+**msgstop( SL_ToString( aWAData,.T.,,, "DUMP.TXT", .T. ) )
 
 return HB_ExecFromArray( { FSL_ROLLBACK( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
@@ -2683,9 +2709,9 @@ DEFAULT lAll := .F.
 
 return HB_ExecFromArray( { FSL_CLEARINDEX( aWAData[ WA_SYSTEMID ] ), aWAData, lAll } )
 
-**************************
+**********************
 function SL_StartTrans
-**************************
+**********************
 
 local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
 
@@ -2693,14 +2719,19 @@ local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
 
 return HB_ExecFromArray( { FSL_STARTTRANS( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
-************************
+********************
 function SL_EndTrans( aWAData )  && Rossine 07/10/08
-************************
+********************
+
+local nWA := select()
 
    DEBUG_ARGS
 
-return HB_ExecFromArray( { FSL_ENDTRANS( aWAData[ WA_SYSTEMID ] ), aWAData } )
+   if valtype( aWAData ) = "U"
+      aWAData := USRRDD_AREADATA( nWA )
+   endif
 
+return HB_ExecFromArray( { FSL_ENDTRANS( aWAData[ WA_SYSTEMID ] ), aWAData } )
 
 /*
 *********************

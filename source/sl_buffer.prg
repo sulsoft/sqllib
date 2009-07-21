@@ -51,11 +51,11 @@
  * Create a new buffer with defined size. (Vailton)
  * 16/09/2008 - 07:56:05
  */
-*****************************
+*************************
 FUNCTION SQLBUFFER_CREATE( aWAData )
-*****************************
+*************************
 
-   if valtype( aWAData[ WA_BUFFER_ARR ] ) == 'A'
+  if valtype( aWAData[ WA_BUFFER_ARR ] ) == "A"
       return SUCCESS
    endif
  
@@ -67,11 +67,11 @@ RETURN SUCCESS
  * Create destroy a buffer (if exists) into current workarea. (Vailton)
  * 16/09/2008 - 08:04:50
  */
-*****************************
+*************************
 FUNCTION SQLBUFFER_DELETE( aWAData )
-*****************************
+*************************
 
-   aWAData[ WA_BUFFER_ARR]  := NIL
+   aWAData[ WA_BUFFER_ARR ]  := NIL
  
 RETURN SUCCESS
  

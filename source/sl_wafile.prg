@@ -885,7 +885,8 @@ local aConn, Id, lRet := .F., xRes, aStruct, cTipo, nTipo, aNewStr, n, t, aFld
               if PQresultstatus( xRes ) = PGRES_COMMAND_OK
                  lRet := .T.
               else
-                 msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( xRes ), "Erro na sentença" )
+*                 msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( xRes ), "Erro na sentença" )
+                 msgstop( SL_ToString( cQuery + CRLF + CRLF + PQresultErrormessage( xRes ),.T.,,, "DUMP.TXT", .T. ) )
               endif
               PQclear( xRes )
            else

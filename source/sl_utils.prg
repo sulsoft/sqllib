@@ -419,7 +419,7 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
            RETURN IIF( uField, "1", "0" )
       END
       RETURN nil
-/*
+
 #ifndef FWVERSION
    
    function msgyesno( msg, tit )   
@@ -503,4 +503,4 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
    
    return nil
 #endif
-*/
+
