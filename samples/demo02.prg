@@ -52,24 +52,56 @@ function Main()
    cls 
 
    ? alias()
-   ? "Estou posicionado no registro", SQLCust->( recno() )
+   ? "dbrlocklist(): " + SL_ToString(dbrlocklist())
+   ? "Travando  Registro 2: ", SQLCust->( dbrlock(2) )
+   ? "dbrlocklist(): " + SL_ToString(dbrlocklist())
+   ? "Estou posicionado no registro", recno()
    ? "movendo para o registro 3", dbgoto( 3 )
    ? "Estou posicionado no registro", SQLCust->( recno() )
-   ? ""
-wait "-parando-"
-   cls
-? "Registro 3 travado ?", SQLCust->( islocked() )
-   SQLCust->( dbrlock() )
+   ? "dbrlocklist(): " + SL_ToString(dbrlocklist())
    ? "Registro 3 travado ?", SQLCust->( islocked() )
-wait "-parando-"
-   cls
-   SQLCust->( fieldput( 1, "teste 1" ) )
-   SQLCust->( fieldput( 2, "teste 2" ) )
-
-   SQLCust->( dbunlock() )
-
+   ? "Travando  Registro 3: ", SQLCust->( dbrlock() )
    ? "Registro 3 travado ?", SQLCust->( islocked() )
+   ? "dbrlocklist(): " + SL_ToString(dbrlocklist())
+   ? "Nome do campo numero 1: " + SQLCust->( fieldname( 1 ) )
+   ? "Nome do campo numero 2: " + SQLCust->( fieldname( 2 ) )
+   ? "Conteudo do campo 1: ", SQLCust->( fieldget( 1 ) )
+   ? "Conteudo do campo 2: ", SQLCust->( fieldget( 2 ) )
+
 wait "-parando-"
+   ? "movendo para o registro 3", dbgoto( 3 )
+
+   if SQLCust->( dbrlock(3) )
+      SQLCust->( fieldput( 1, "teste 10" ) )
+      SQLCust->( fieldput( 2, "teste 11" ) )
+      SQLCust->( dbcommit() )
+   endif
+
+   ? "Conteudo do campo 1: ", SQLCust->( fieldget( 1 ) )
+   ? "Conteudo do campo 2: ", SQLCust->( fieldget( 2 ) )
+   ? "Destravando  Registro 3: ", SQLCust->( dbunlock() )
+   ? "Registro 3 travado ?", SQLCust->( islocked() )
+   ? "dbrlocklist(): " + SL_ToString(dbrlocklist())
+   ? "Destravando  Registro 2: ", SQLCust->( dbunlock(2) )
+
+wait "-parando-"
+cls
+
+   ? "Estou posicionado no registro", SQLCust->( recno() )
+   ? "Vou incluir um registro: ", SQLCust->( dbappend() )
+   ? "Estou posicionado no registro", SQLCust->( recno() )
+   ? "Travando  Registro "+alltrim(str(SQLCust->( recno() )))+ ": ", SQLCust->( dbrlock(SQLCust->( recno() )) )
+
+   if SQLCust->( islocked() )
+      ? "gravando os campos", SQLCust->( islocked() )
+      SQLCust->( fieldput( 1, "teste 1" ) )
+      SQLCust->( fieldput( 2, "teste 2" ) )
+      SQLCust->( dbcommit() )
+      SQLCust->( dbunlock() )
+   endif
+
+wait "-parando-"
+
    SQLCust->( dbgotop() )
    
    cls 
