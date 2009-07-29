@@ -49,7 +49,7 @@ function Main()
 quit   
 /**/   
 
-*msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
+*xmsgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
 *         SL_GETCONNPARAMS()[2] + CRLF + ;
 *         SL_GETCONNPARAMS()[3] + CRLF + ;
 *         SL_GETCONNPARAMS()[4] )
@@ -59,18 +59,18 @@ quit
                  PASSWORD "postgres" ;
                       VIA "PGSQL"
 
-*msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
+*xmsgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
 *         SL_GETCONNPARAMS()[2] + CRLF + ;
 *         SL_GETCONNPARAMS()[3] + CRLF + ;
 *         SL_GETCONNPARAMS()[4] )
 
 /*
-msgstop( "vou criar o database 'demo'" + CRLF + ;
+xmsgstop( "vou criar o database 'demo'" + CRLF + ;
          "Ele existe ?: " + SL_ToString( SL_DATABASE( "demo" ) ) )
 
    SQL CREATE DATABASE "demo" INTO lRet
 
-msgstop( "Conseguiu  criar 'demo' ? " + SL_ToString( lRet ) )
+xmsgstop( "Conseguiu  criar 'demo' ? " + SL_ToString( lRet ) )
 */
 
    SQL CONNECT DATABASE "demo" ;
@@ -78,7 +78,7 @@ msgstop( "Conseguiu  criar 'demo' ? " + SL_ToString( lRet ) )
                    INTO nConn  
 
    IF (nConn == 00)
-*      msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
+*      xmsgerror( "Falha na conexao:;;" + SQLERR_MSG() )
       QUIT
    End
 
@@ -229,7 +229,7 @@ zap
    
 
    IF !SL_Table( "m3" )
-*      msginfo( "Vamos criar a tabela M2" )
+*      xmsginfo( "Vamos criar a tabela M2" )
       DBCreate( "m3", {;
                       { "cod" , "c", 4, 0 },;
                       { "desc", "c", 3, 0 } ;
@@ -378,7 +378,7 @@ return hb_OemToAnsi(cInfo)
 
 init procedure EuPrimeiro
 #ifndef FWVERSION
-   ErrorBlock( { | oError | MsgError( GetErrorInfo( oError ), "Error" ), __Quit() } )
+   ErrorBlock( { | oError | xmsgError( GetErrorInfo( oError ), "Error" ), __Quit() } )
    //SetUnhandledExceptionFilter( @GpfHandler() )
 #endif
    return nil

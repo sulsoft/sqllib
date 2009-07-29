@@ -1,3 +1,6 @@
+#include "sqllib.ch"
+
+/*
 #include "./../include/sqllib.ch"
 #include "./../postgres.ch"
 #include "dbinfo.ch"
@@ -9,6 +12,8 @@
 
 REQUEST SQLLIB
 REQUEST PGSQL
+*/
+
 REQUEST DBFCDX
 REQUEST HB_LANG_PT
 
@@ -36,7 +41,7 @@ function Main()
    SQL CONNECT ON "localhost" ;
              USER "postgres" ;
          PASSWORD "postgres" ;
-         DATABASE "demo" ;
+         DATABASE "demosqllib" ;
               LIB "PGSQL" ;
            SCHEMA "public" ;
              INTO nConn  
@@ -61,8 +66,8 @@ function Main()
    SET INDEX TO cli
    SET ORDER TO 5
    
-   msginfo( indexord() )
-   msginfo( indexkey() )
+   xmsginfo( indexord() )
+   xmsginfo( indexkey() )
    quit
    
    
@@ -160,7 +165,7 @@ return hb_OemToAnsi(cInfo)
 
 init procedure EuPrimeiro
 #ifndef FWVERSION
-   ErrorBlock( { | oError | MsgError( GetErrorInfo( oError ), "Error" ), __Quit() } )
+   ErrorBlock( { | oError | xmsgError( GetErrorInfo( oError ), "Error" ), __Quit() } )
    //SetUnhandledExceptionFilter( @GpfHandler() )
 #endif
    return nil

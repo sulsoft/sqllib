@@ -54,7 +54,7 @@ FUNCTION Main( cRDD )
       if !SL_DATABASE( "demosqllib" )
          SQL CREATE DATABASE "demosqllib" INTO lRet
          IF !lRet
-            msgstop( "Não foi possível criar a tabela <demosqllib>" )
+            xmsgstop( "Não foi possível criar a tabela <demosqllib>" )
             QUIT
          EndIF
       endif
@@ -64,26 +64,28 @@ FUNCTION Main( cRDD )
                       INTO nConn
 
       if nConn = 0
-         msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
+         xmsgerror( "Falha na conexao:;;" + SQLERR_MSG() )
          quit
       endif
+
+      SL_DELETEINDEX( , "customer" )  && Aqui exclue todos os indices da tabela "customer"
 
       SQL RENAMETABLE "test1" TO "testa2" INTO lRet  && Aqui vai retornar .F., pois a tabela não existe
  
       if !lRet
-         msginfo( "Não foi possível renomear a tabela <test1> !!!", "Atenção" )
+         xmsginfo( "Não foi possível renomear a tabela <test1> !!!", "Atenção" )
       endif
 
       SQL RENAMETABLE "customer" TO "customerss" SCHEMA "public" INTO lRet
  
       if !lRet
-         msginfo( "Não foi possível renomear a tabela <customer> !!!", "Atenção" )
+         xmsginfo( "Não foi possível renomear a tabela <customer> !!!", "Atenção" )
       endif
 
       SQL RENAMETABLE "customerss" TO "customer" INTO lRet
  
       if !lRet
-         msginfo( "Não foi possível renomear a tabela <customerss> !!!", "Atenção" )
+         xmsginfo( "Não foi possível renomear a tabela <customerss> !!!", "Atenção" )
       endif
 
       aStruct := { }
@@ -96,12 +98,12 @@ FUNCTION Main( cRDD )
 
 **      SQL CHANGESTRUCT "customer" WITH aStruct INTO lRet BACKUP "030709"
       SQL CHANGESTRUCT "customer" WITH aStruct INTO lRet ONLYFIELDS BACKUP "030709"
-** ATENÇÃO: Se você não especificar o parametro <ONLYFIELDS>, todos os outros campos(colunas), serão apagados
+** ATENÇÃO: Se você não definir o parametro <ONLYFIELDS>, todos os campos(colunas) não especificados, serão apagados
 **          caso contrário, somente os campos(colunas) citados acima serão modificados sem modificar/apagar os outros
 **          campos(colunas)
 
       if !lRet
-         msginfo( "Não foi possível mudar a estrutura da tabela <customer> !!!", "Atenção" )
+         xmsginfo( "Não foi possível mudar a estrutura da tabela <customer> !!!", "Atenção" )
       endif
 
 **
@@ -110,62 +112,62 @@ FUNCTION Main( cRDD )
       SQL DELETE BACKUP TABLE "customer" INTO lRet
 
       if !lRet
-         msginfo( "Não foi possível apagar as colunas de BACKUP !!!", "Atenção" )
+         xmsginfo( "Não foi possível apagar as colunas de BACKUP !!!", "Atenção" )
       endif
 
       SQL EXIST SCHEMA "public" DATABASE "demosqllib" INTO lRet
       
-      msgstop( "schema <public> existe em <demosqllib> ?" + hb_valtostr( lRet ) )
+      xmsgstop( "schema <public> existe em <demosqllib> ?" + hb_valtostr( lRet ) )
 
       SQL LIST DATABASE INTO lRet
 
-      msgstop( "Quais os bancos de dados que existem ? " + SL_ToString( lRet ) )
+      xmsgstop( "Quais os bancos de dados que existem ? " + SL_ToString( lRet ) )
 
       SQL LIST SCHEMA DATABASE "demosqllib" INTO lRet
 
-      msgstop( "Quais os schemas existem dentro do BD <demosqllib> ?" + SL_ToString( SL_LISTSCHEMA( , "demosqllib" ) ) )
+      xmsgstop( "Quais os schemas existem dentro do BD <demosqllib> ?" + SL_ToString( SL_LISTSCHEMA( , "demosqllib" ) ) )
 
-      msgstop( "Existe banco de dados <novo> ? " + hb_valtostr(SL_DATABASE( "novo" ) ) )
+      xmsgstop( "Existe banco de dados <novo> ? " + hb_valtostr(SL_DATABASE( "novo" ) ) )
 
       SQL CREATE DATABASE "novo" INTO lRet
 
-      msgstop( "Criou database <novo> ?" + hb_valtostr( lret ) )
+      xmsgstop( "Criou database <novo> ?" + hb_valtostr( lret ) )
 
       SQL RENAME DATABASE "novo" TO "velho" INTO lRet
 
-      msgstop( "Renomeou o database <novo> para <velho> ?" + hb_valtostr( lRet ) )
+      xmsgstop( "Renomeou o database <novo> para <velho> ?" + hb_valtostr( lRet ) )
 
       SQL DELETE DATABASE "velho" INTO lRet
 
-      msgstop( "Apagou o database <velho> ?" + hb_valtostr( lRet ) )
+      xmsgstop( "Apagou o database <velho> ?" + hb_valtostr( lRet ) )
 
       SQL EXIST SCHEMA "teste" DATABASE "demosqllib" INTO lRet
 
-      msgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+      xmsgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
 
       SQL CREATE SCHEMA "teste" INTO lRet
 
-      msgstop( "Criou o schema <teste> ? " + hb_valtostr( lRet ) )
+      xmsgstop( "Criou o schema <teste> ? " + hb_valtostr( lRet ) )
 
       SQL EXIST SCHEMA "teste" DATABASE "demosqllib" INTO lRet
 
-      msgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+      xmsgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
 
       SQL RENAME SCHEMA "teste" TO "novo_teste" INTO lRet
 
-      MSGSTOP( "Alterou o schema <teste> para <novo_teste> ? " + hb_valtostr( lRet ) )
+      xmsgSTOP( "Alterou o schema <teste> para <novo_teste> ? " + hb_valtostr( lRet ) )
 
       SQL EXIST SCHEMA "teste" DATABASE "demosqllib" INTO lRet
 
-      msgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+      xmsgstop( "Existe schema <teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
 
       SQL DELETE SCHEMA "novo_teste" INTO lRet
 
-      MSGSTOP( "Deletou o schema <novo_teste> ? " + hb_valtostr( lRet ) )
+      xmsgSTOP( "Deletou o schema <novo_teste> ? " + hb_valtostr( lRet ) )
 
       SQL EXIST SCHEMA "novo_teste" DATABASE "demosqllib" INTO lRet
 
-      msgstop( "Existe schema <novo_teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
+      xmsgstop( "Existe schema <novo_teste> no BD <demosqllib> ? " + hb_valtostr( lRet ) )
 
       CRIA_TABELA( "SQL" )
 
@@ -195,33 +197,22 @@ FUNCTION Main( cRDD )
       SQL CHANGESTRUCT "test" WITH aStruct INTO lRet BACKUP "060709"
 
       if !lRet
-         msginfo( "Não foi possível mudar a estrutura da tabela <customer> !!!", "Atenção" )
+         xmsginfo( "Não foi possível mudar a estrutura da tabela <customer> !!!", "Atenção" )
       endif
 
       SQL DELETE BACKUP TABLE "test" INTO lRet
 
       if !lRet
-         msginfo( "Não foi possível apagar as colunas de BACKUP !!!", "Atenção" )
+         xmsginfo( "Não foi possível apagar as colunas de BACKUP !!!", "Atenção" )
       endif
       
       aArq := { }
 
-msgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , @aArq ) ), "Retornando os dados para uma ARRAY" )
+xmsgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , @aArq ) ), "Retornando os dados para uma ARRAY" )
 
-msgstop( SL_ToString( aArq ), "aArq" )
+xmsgstop( SL_ToString( aArq ), "aArq" )
 
-msgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , "arqtmp.dbf", .F. ) ), "Retornando os dados para um DBF" )
-
-      USE arqtmp ALIAS "ARQTMP" via "DBFCDX" exclusive new
-
-      clear typeahead
-      keyboard chr(0)
-
-      ARQTMP->( browse() )
-      
-      ARQTMP->( dbclosearea() )
-      
-msgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , "arqtmp.dbf", .T. ) ), "Retornando os dados para um DBF + RECNO + DELETED" )
+xmsgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , "arqtmp.dbf", .F. ) ), "Retornando os dados para um DBF" )
 
       USE arqtmp ALIAS "ARQTMP" via "DBFCDX" exclusive new
 
@@ -232,8 +223,20 @@ msgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from t
       
       ARQTMP->( dbclosearea() )
       
-      SL_DELETEINDEX( "_tmp" )
+xmsgstop( "select * from test = " + hb_valtostr( SL_EXECQUERYEX( "select * from test", , "arqtmp.dbf", .T. ) ), "Retornando os dados para um DBF + RECNO + DELETED" )
+
+      USE arqtmp ALIAS "ARQTMP" via "DBFCDX" exclusive new
+
+      clear typeahead
+      keyboard chr(0)
+
+      ARQTMP->( browse() )
+      
+      ARQTMP->( dbclosearea() )
+      
       USE test ALIAS "test" via "SQLLIB" exclusive new
+      SL_DELETEINDEX( "_tmp" )
+
    else
       USE test ALIAS "test" via "DBFCDX" exclusive new
    endif
@@ -388,12 +391,12 @@ SQL ADD FIELD "FLD4" "C" (30, 0) NOT NULL        DEFAULT "teste1"     INTO aStru
 SQL ADD FIELD "FLD5" "D" (08, 0) NOT NULL        DEFAULT "2009-07-10" INTO aStruct
 SQL ADD FIELD "FLD6" "L" (01, 0) NOT NULL        DEFAULT "true"       INTO aStruct
 
-**msgstop( SL_ToString( astruct,,,, "DUMP.TXT" ) )
+**xmsgstop( SL_ToString( astruct,,,, "DUMP.TXT" ) )
 
 if cRdd == "SQL"
    if SL_TABLE( "test" )
       if !SL_DELETETABLE( "test" )
-         msgstop( "Não consegui deletar a tabela <teste> !!!", "Atenção" )
+         xmsgstop( "Não consegui deletar a tabela <teste> !!!", "Atenção" )
       endif
    endif
 
@@ -401,9 +404,9 @@ if cRdd == "SQL"
 
    USE test ALIAS "TEST" via "SQLLIB" exclusive new
 
-**msgstop( SL_ToString( TEST->( dbStruct()        ), , , , "dump.txt" ), "Usando DbStruct()" )
-**msgstop( SL_ToString( SL_DBSTRUCT( "test"       ), , , , "dump.txt" ), "Usando SL_DbStruct()" )
-**msgstop( SL_ToString( SL_DBSTRUCT( "test",, .T. ), , , , "dump.txt" ), "Usando SL_DbStruct() com retorno <EXTEND>" )
+**xmsgstop( SL_ToString( TEST->( dbStruct()        ), , , , "dump.txt" ), "Usando DbStruct()" )
+**xmsgstop( SL_ToString( SL_DBSTRUCT( "test"       ), , , , "dump.txt" ), "Usando SL_DbStruct()" )
+**xmsgstop( SL_ToString( SL_DBSTRUCT( "test",, .T. ), , , , "dump.txt" ), "Usando SL_DbStruct() com retorno <EXTEND>" )
    
    TEST->( dbclosearea() )
 else

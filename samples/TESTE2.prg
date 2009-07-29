@@ -49,7 +49,7 @@ function Main()
 quit   
 /**/   
 
-msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
+xmsgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
          SL_GETCONNPARAMS()[2] + CRLF + ;
          SL_GETCONNPARAMS()[3] + CRLF + ;
          SL_GETCONNPARAMS()[4] )
@@ -59,12 +59,12 @@ msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
                  PASSWORD "postgres" ;
                       VIA "PGSQL"
 
-msgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
+xmsgstop( SL_GETCONNPARAMS()[1] + CRLF + ;
          SL_GETCONNPARAMS()[2] + CRLF + ;
          SL_GETCONNPARAMS()[3] + CRLF + ;
          SL_GETCONNPARAMS()[4] )
 
-msgstop( "vou criar o database 'demo1'" + CRLF + ;
+xmsgstop( "vou criar o database 'demo1'" + CRLF + ;
          "Ele existe ?: " + SL_ToString( SL_DATABASE( "demo1" ) ) )
 
    SQL CREATE DATABASE "demo1" ;
@@ -73,40 +73,40 @@ msgstop( "vou criar o database 'demo1'" + CRLF + ;
             LIB "PGSQL" INTO lRet
 
 if !lRet
-   msgstop( "O Banco de dados <demo1> não foi criado" )
+   xmsgstop( "O Banco de dados <demo1> não foi criado" )
 endif
 
-msgstop( "O database 'demo1' foi criado ?: " + SL_ToString( SL_DATABASE( "demo1" ) ) + " <- Aqui tinha que retornar .T. :(" )
+xmsgstop( "O database 'demo1' foi criado ?: " + SL_ToString( SL_DATABASE( "demo1" ) ) + " <- Aqui tinha que retornar .T. :(" )
 
-msgstop( "vou criar o database 'demo2'" + CRLF + ;
+xmsgstop( "vou criar o database 'demo2'" + CRLF + ;
          "Ele existe ?: " + SL_ToString( SL_DATABASE( "demo2" ) ) )
 
    SQL CREATE DATABASE "demo2" INTO lRet
 
 if !lRet
-   msgstop( "O Banco de dados <demo2> não foi criado" )
+   xmsgstop( "O Banco de dados <demo2> não foi criado" )
 endif
 
-msgstop( "O database 'demo2' foi criado ?: " + SL_ToString( SL_DATABASE( "demo2" ) ) + " <- Aqui tinha que retornar .T. :(" )
+xmsgstop( "O database 'demo2' foi criado ?: " + SL_ToString( SL_DATABASE( "demo2" ) ) + " <- Aqui tinha que retornar .T. :(" )
 
-msgstop( "agora vou apagar o database 'demo1'" )
+xmsgstop( "agora vou apagar o database 'demo1'" )
 
    SQL DELETE DATABASE "demo1" ;
            USER "postgres" ;
        PASSWORD "postgres" ;
             LIB "PGSQL"
 
-msgstop( "O database 'demo1' existe ?: " + SL_ToString( SL_DATABASE( "demo1" ) ) + " <- Aqui tinha que retornar .F. :)" )
+xmsgstop( "O database 'demo1' existe ?: " + SL_ToString( SL_DATABASE( "demo1" ) ) + " <- Aqui tinha que retornar .F. :)" )
 
-msgstop( "agora vou apagar o database 'demo2'" )
+xmsgstop( "agora vou apagar o database 'demo2'" )
 
    SQL DELETE DATABASE "demo2"
 
-msgstop( "O database 'demo2' existe ?: " + SL_ToString( SL_DATABASE( "demo2" ) ) + " <- Aqui tinha que retornar .F. :)" )
+xmsgstop( "O database 'demo2' existe ?: " + SL_ToString( SL_DATABASE( "demo2" ) ) + " <- Aqui tinha que retornar .F. :)" )
 
 if !SL_DATABASE( "demo" ) && Nao poderia ter entrado aqui pois o banco de dados existe.
 
-   msgstop( "vou criar o banco de dados 'demo'" + CRLF + ;
+   xmsgstop( "vou criar o banco de dados 'demo'" + CRLF + ;
             "Nao poderia ter entrado aqui pois o banco de dados existe." )
          
    SQL CREATE DATABASE "demo" ;
@@ -122,14 +122,14 @@ endif
               LIB "PGSQL" ;
            SCHEMA "public" ;
              INTO nConn  
-msgstop( SQLLIB_GETCONN() )
+xmsgstop( SQLLIB_GETCONN() )
 
    IF (nConn == 00)
-      msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
+      xmsgerror( "Falha na conexao:;;" + SQLERR_MSG() )
       QUIT
    End
 
-msgstop( "vou criar teste1" )
+xmsgstop( "vou criar teste1" )
 
    SQL CREATE DATABASE "teste1"    ;
                   HOST "localhost" ;
@@ -139,9 +139,9 @@ msgstop( "vou criar teste1" )
                    LIB "PGSQL" ;
                   INTO lCreate
 
-msgstop( "O banco de dados 'teste1' foi criado ? " + SL_ToString( lCreate ) )
+xmsgstop( "O banco de dados 'teste1' foi criado ? " + SL_ToString( lCreate ) )
 
-msgstop( "porque que aqui está chegando 0 (zero) ?: " + SL_ToString( SQLLIB_GETCONN() ) )
+xmsgstop( "porque que aqui está chegando 0 (zero) ?: " + SL_ToString( SQLLIB_GETCONN() ) )
 
    cTB  := 'm4'
    
@@ -245,7 +245,7 @@ QUIT
 
 
    IF !SL_Table( "m3" )
-      msginfo( "Vamos criar a tabela M2" )
+      xmsginfo( "Vamos criar a tabela M2" )
       DBCreate( "m3", {;
                       { "cod" , "c", 4, 0 },;
                       { "desc", "c", 3, 0 } ;
@@ -394,7 +394,7 @@ return hb_OemToAnsi(cInfo)
 
 init procedure EuPrimeiro
 #ifndef FWVERSION
-   ErrorBlock( { | oError | MsgError( GetErrorInfo( oError ), "Error" ), __Quit() } )
+   ErrorBlock( { | oError | xmsgError( GetErrorInfo( oError ), "Error" ), __Quit() } )
    //SetUnhandledExceptionFilter( @GpfHandler() )
 #endif
    return nil

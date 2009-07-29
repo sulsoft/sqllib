@@ -66,7 +66,7 @@ function Main()
    if !SL_DATABASE( "demosqllib" )
       SQL CREATE DATABASE "demosqllib" INTO lRet
       IF !lRet
-         msgstop( "Não foi possível criar a tabela <demosqllib>" )
+         xmsgstop( "Não foi possível criar a tabela <demosqllib>" )
          QUIT
       End
    endif
@@ -76,7 +76,7 @@ function Main()
                    INTO nConn  
 
    IF nConn = 0
-      msgerror( "Falha na conexao:;;" + SQLERR_MSG() )
+      xmsgerror( "Falha na conexao:;;" + SQLERR_MSG() )
       QUIT
    End
 
