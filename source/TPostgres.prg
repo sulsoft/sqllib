@@ -309,16 +309,21 @@ METHOD ListTables() CLASS TPQserver
 
 RETURN result  
 
-METHOD ListIndex( cTable ) CLASS TPQserver   && Rossine 05/11/08
+METHOD ListIndex( cTable, cSChema ) CLASS TPQserver   && Rossine 05/11/08
     
     Local result := {}
     Local cQuery
     Local res
     Local i
+    
+    default cTable  to ""
+    default cSChema to ::Schema
+    
+    cQuery := "select datname, schemaname, tablename, indexname" && , indexdef "
+    cQuery += "  from pg_indexes, pg_database where datname = '" + ::cDatabase + iif( empty( cSChema ), "'", "' and schemaname = " + DataToSql( cSChema ) ) + iif( empty( cTable ), "", " and tablename = '" + cTable +  + "'" ) + " and indexdef not like '%UNIQUE%'"
 
-    cQuery := "select datname, schemaname, tablename, indexname, indexdef "
-    cQuery += "  from pg_indexes, pg_database where datname = '" + ::cDatabase + "' and schemaname = " + DataToSql(::Schema) + " and tablename = '" + cTable + "' and indexdef not like '%UNIQUE%'"
-MSGSTOP( cQuery )
+**msgstop( SL_ToString( cQuery,.T.,,, "DUMP.TXT", .T. ) )
+
     res    := PQexec( ::pDB, cQuery )
     
     if PQresultstatus(res) == PGRES_TUPLES_OK

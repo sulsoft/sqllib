@@ -422,7 +422,7 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
 
 #ifndef FWVERSION
    
-   function msgyesno( msg, tit )   
+   function xmsgyesno( msg, tit )   
    if tit != nil
       tit := cvaltochar(tit)
    else
@@ -430,21 +430,21 @@ FUNCTION ANY2SQL( uField, nLen, nDec, lFormat, lMaskText, cType )
    end            
    return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), tit, 0x00000004 ) == 6
 
-   function msgstop(msg,tit)
+   function xmsgstop(msg,tit)
    if tit != nil
    else
       tit := procname(1) + "(" + alltrim( str( procline(1) )) + ")"
    end         
    return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), cvaltochar(tit), 0x00000030 )
 
-   function msgerror(msg,tit)
+   function xmsgerror(msg,tit)
    if tit != nil
    else
       tit := procname(1) + "(" + alltrim( str( procline(1) )) + ")"
    end         
    return SQLDEBUG( StrTRan( cvaltochar(msg), ';', chr(10)), cvaltochar(tit), 0x00000010 )
    
-   function msginfo(msg,tit)
+   function xmsginfo(msg,tit)
    if tit != nil
       tit := cvaltochar( tit )
    else

@@ -221,12 +221,14 @@ local lUniquN, lUniquO, lUniqu
                              cSql += " TYPE numeric(" + alltrim(str(nSizeN)) + iif( nDecimN > 0, "," + alltrim(str(nDecimN)), "" ) + ;
                                      " ) USING CAST ( " + cFieldN + " AS numeric )"
                       elseif cTipoO = "D"
-                             cSql += " TYPE character(" + alltrim(str(nSizeN)) + ") USING to_char( " + cFieldN + ", 'YYYYMMDD' )"
+*                             cSql += " TYPE character(" + alltrim(str(nSizeN)) + ") USING to_char( " + cFieldN + ", 'YYYYMMDD' )"
+                             cSql += " TYPE varchar(" + alltrim(str(nSizeN)) + ") USING to_char( " + cFieldN + ", 'YYYYMMDD' )"
                       endif
                elseif cTipoN = "N"
                       if cTipoO = "C"
-                         cSql += " TYPE character(" + alltrim(str(nSizeN)) + ;
-                                 " ) USING CAST ( " + cFieldN + " AS character )"
+*                         cSql += " TYPE character(" + alltrim(str(nSizeN)) + ;
+                         cSql += " TYPE varchar(" + alltrim(str(nSizeN)) + ;
+                                 " ) USING CAST ( " + cFieldN + " AS varchar )"
                       endif
                elseif cTipoN = "D"
                       if cTipoO = "C"
@@ -244,7 +246,8 @@ local lUniquN, lUniquO, lUniqu
                   endif
                   cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" ALTER COLUMN ' + cFieldN
                   if     cTipoN = "C"
-                         cSql += " TYPE character(" + alltrim(str(nSizeN)) + ")"
+*                         cSql += " TYPE character(" + alltrim(str(nSizeN)) + ")"
+                         cSql += " TYPE varchar(" + alltrim(str(nSizeN)) + ")"
                   elseif cTipoN = "N"
                          cSql += " TYPE numeric(" + alltrim(str(nSizeN)) + iif( nDecimN > 0, "," + alltrim(str(nDecimN)), "" ) + ")"
                   endif
@@ -298,9 +301,9 @@ local lUniquN, lUniquO, lUniqu
            next
            aadd( aSql, 'ALTER TABLE "' + cSchema + '"."' + cTable  + '" ADD CONSTRAINT ' + cTable + "_" +  SL_CONSTRAINT_PK + " PRIMARY KEY (" + cPks + ")" )
         endif
- 
-**        msgstop( SL_ToString( aSql,.T.,,, "DUMP.TXT", .T. ) )
-       
+
+**        xmsgstop( SL_ToString( aSql,.T.,,, "DUMP.TXT", .T. ) )
+
         lRet := .T.
 
         if len(aSql) > 0
@@ -308,10 +311,10 @@ local lUniquN, lUniquO, lUniqu
                DEBUG "Inicio execução as " + time() + " - Sentença: [" + aSql[n] + "]"
                lRet := SL_EXECQUERYEX( aSql[n], aConn[1] )
                DEBUG "Final execução as " + time() + iif( lRet, " - SENTENÇA EXECUTADA COM SUCESSO", " - ERRO NA EXECUÇÃO DESTA SENTENÇA" )
-**               msgstop( hb_valtostr(lRet) + "-" + SL_ToString( aSql[n],.T.,,, "DUMP.TXT", .T. ) )
+**               xmsgstop( hb_valtostr(lRet) + "-" + SL_ToString( aSql[n],.T.,,, "DUMP.TXT", .T. ) )
                if !lRet
 **                  SL_Error( 1000, "Erro na sentença: " + aSql[n], "Problema na modificação da estrutura da tabela [" + cTable + "]..." )
-                  msgstop( "Erro na sentença: " + aSql[n], "Problema na modificação da estrutura da tabela [" + cTable + "]..." )
+                  xmsgstop( "Erro na sentença: " + aSql[n], "Problema na modificação da estrutura da tabela [" + cTable + "]..." )
                   exit
                endif
            next
@@ -377,7 +380,8 @@ endif
 cSql := 'ALTER TABLE "' + cSchema + '"."' + cTable + '" ADD COLUMN ' + cFieldN
 
 if     cTipo $ [CM]
-       cSql += " character(" + alltrim(str(nSize)) + ")"
+*       cSql += " character(" + alltrim(str(nSize)) + ")"
+       cSql += " varchar(" + alltrim(str(nSize)) + ")"
 elseif cTipo = "N"
        cSql += " numeric(" + alltrim(str(nSize)) + iif( nDecim > 0, "," + alltrim(str(nDecim)), "" ) + ")"
 elseif cTipo = "D"

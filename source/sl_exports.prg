@@ -72,14 +72,14 @@ DEFAULT nEvery  := 1
 DEFAULT cSchema := "public"
 
 if valtype( aFiles ) != "A"
-   msgstop( "Arquivo(s) a ser(em) importado(s) não definido(s) !!!" + CRLF + CRLF + ;
+   xmsgstop( "Arquivo(s) a ser(em) importado(s) não definido(s) !!!" + CRLF + CRLF + ;
             "É necessário que se passe uma <ARRAY> definida com o(s) nome(s) do(s) arquivo(s)" + CRLF + ;
             "a ser(em) importado(s) !!!", "Atenção" )
    return .F.
 endif
 
 if len( aFiles ) = 0
-   msgstop( "Não há arquivos a serem importados !!!", "Atenção" )
+   xmsgstop( "Não há arquivos a serem importados !!!", "Atenção" )
    return .F.
 endif
 
@@ -104,7 +104,7 @@ asort( aFiles,,,{ |x,y| upper(x) < upper(y) } )
 for each cFile in aFiles
     cFileDBF := lower(alltrim( cFile ))
     if !file( cFileDBF )
-       msgstop( "Arquivo não existe [" + cFile + "]. Tecle ENTER...", "Atenção" )
+       xmsgstop( "Arquivo não existe [" + cFile + "]. Tecle ENTER...", "Atenção" )
        lRet := .F.
        exit
     endif
@@ -123,7 +123,7 @@ for each cFile in aFiles
 
 /*
     if !file( cFileDBF )
-       msgstop( "Arquivo não existe [" + cFile + "]. Tecle ENTER...", "Atenção" )
+       xmsgstop( "Arquivo não existe [" + cFile + "]. Tecle ENTER...", "Atenção" )
        lRet := .F.
        exit
     endif
@@ -164,7 +164,7 @@ for each cFile in aFiles
     try
         use ( cFileDBF ) alias "EXPORT_DBF" via (cVia) NEW exclusive
     catch
-        msgstop( "Erro de abertura no arquivo: [" + cFileDBF + "] !!!", "Erro" )
+        xmsgstop( "Erro de abertura no arquivo: [" + cFileDBF + "] !!!", "Erro" )
         loop
     end
 
@@ -272,7 +272,7 @@ for each cFile in aFiles
        try
            use ( cFile ) alias "EXPORT_SQL" via "SQLLIB" NEW exclusive
        catch
-           msgstop( "Erro de abertura no arquivo: [" + cFile + "] !!!", "Erro" )
+           xmsgstop( "Erro de abertura no arquivo: [" + cFile + "] !!!", "Erro" )
            loop
        end
        if lPack

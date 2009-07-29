@@ -84,11 +84,68 @@
     select * from information_schema.triggers;
     select * from information_schema.views;
 
+--SELECT A.* FROM "test_table" A  WHERE A."sr_recno" = 2 ; &&
+--SELECT "sr_recno" FROM "test_table" ORDER BY "sr_recno" DESC LIMIT 1 && Counting Records
+--SELECT currval('TEST_TABLE_SQ')
+--select a.attname, a.atttypid, a.atttypmod, a.attnotnull from pg_attribute a left join pg_class b on a.attrelid = b.oid left join pg_namespace c on b.relnamespace = c.oid where a.attisdropped IS FALSE and a.attnum > 0 and b.relname = 'test_table' and c.nspname = 'public' order by attnum
+--SELECT TABLE_,SIGNATURE_,IDXNAME_,IDXKEY_,IDXFOR_,IDXCOL_,TAG_,TAGNUM_ FROM SR_MGMNTINDEXES WHERE TABLE_ = 'TEST_TABLE' ORDER BY IDXNAME_, TAGNUM_;
+-- select virtualtransaction from pg_locks where pid = pg_backend_pid()
+
+select
+ locktype, database, relation, page, tuple, transactionid, virtualtransaction, mode, granted,
+ relname, relkind,
+ datname, usename,
+ case
+  when length(current_query) > 40
+    then substring(current_query for 20) || '...'
+         || substring(current_query from (length(current_query) - 19) for 20)
+  else current_query
+ end as query,
+ waiting, query_start, client_addr, client_port
+from pg_locks
+ left outer join pg_class on oid = relation
+ left outer join pg_stat_activity on pid = procpid
+order by pid;
+
+SELECT pg_stat_get_backend_pid(s.backendid) AS procpid,
+       pg_stat_get_backend_activity(s.backendid) AS current_query
+    FROM (SELECT pg_stat_get_backend_idset() AS backendid) AS s;
+
+CREATE OR REPLACE FUNCTION getpid() 
+  RETURNS integer AS 
+$BODY$ 
+DECLARE 
+   thepid integer; 
+BEGIN 
+select into thepid pg_backend_pid from pg_backend_pid(); 
+return thepid; 
+END; 
+$BODY$ 
+  LANGUAGE 'plpgsql' VOLATILE; 
+
+--select * from getpid()
+--select "sl_rowid" from customer order by "sl_rowid" DESC;
+--SELECT sl_rowid FROM "public"."customer" order by sl_rowid DESC
+
+commit;
+begin work;
+select * from "public"."customer" where "sl_rowid" = 3 for update nowait;
+UPDATE "public"."customer" SET "last" = 'teste 20' where "sl_rowid" = 3;
+rollback;
+commit;
+select * from "public"."customer" where "sl_rowid" = 3;
+
+COMMIT;BEGIN
+ROLLBACK
+BEGIN
+COMMIT;BEGIN
+COMMIT;BEGIN
+
 */
 
 #include "sqllibrdd.ch"
 
-*REQUEST  SL_PGSQL_SQLARRAY
+REQUEST  SL_PGSQL_SQLARRAY
 
 /*
  * Retorna o ID do driver para uso do PostgreSQL com SQLLIB
@@ -135,10 +192,6 @@ function SQLLIB_PGSQL( cHost, nPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema
 
    LOCAL oSql
    
-   HB_SYMBOL_UNUSED( NFLAGS )
-   HB_SYMBOL_UNUSED( CRDDNAME )
-   HB_SYMBOL_UNUSED( CCHARSET )
-
    DEFAULT cHost         to "localhost"
    DEFAULT nPort         to 0
    DEFAULT cDb           to "template1"
@@ -148,6 +201,11 @@ function SQLLIB_PGSQL( cHost, nPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema
    
    nPort  := IIF( nPort == 0, 5432, nPort )
 
+   HB_SYMBOL_UNUSED( nFlags )
+   HB_SYMBOL_UNUSED( cRddname )
+   HB_SYMBOL_UNUSED( cCharset )
+
+*
 /* Isto não é preciso mais, pois agora passamos a variavel cSchema como parametro. 03/01/09
    // Extract Schema from current cDB string (like "public.demos" 
    IF (( p := At( ".", cDb ) ) != 00 )
@@ -180,8 +238,8 @@ function SL_DISCONN_PGSQL( oSQL )
 
       DEBUG_ARGS
 
-      oSQL:QueryEx( "COMMIT" )
-      oSQL:QueryEx( "COMMIT" )
+      oSQL:QueryEx( "COMMIT" + '   /* SL_DISCONN_PGSQL */' )
+      oSQL:QueryEx( "COMMIT" + '   /* SL_DISCONN_PGSQL */' )
       oSQL:Close()
 
    RETURN .T.
@@ -207,6 +265,8 @@ function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
 
    HB_SYMBOL_UNUSED( nWA )
 
+**   xmsgstop( SL_ToString( aOpenInfo,.T.,,, "DUMP.TXT", .T. ) )
+
    DEBUG_ARGS
 
    IF Empty( cSchema )
@@ -227,6 +287,8 @@ function SL_OPEN_PGSQL( nWa, aWAData, aOpenInfo )
    aWAData[ WA_TABLENAME ] := cTableName
 
    PGSQL_CHECKSYSTEMTABLES( nConn, cSchema )
+
+**xmsgstop( str(SL_GETCONN()) + "-" + aWAData[ WA_TABLENAME ] + "]"  )
 
    /* Check if requested table exists - 20/12/2008 - 22:12:34 */
    aStruct   := oSql:TableStruct( aWAData[ WA_TABLENAME ] )
@@ -309,17 +371,17 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
     */
 
    cSql := "DELETE FROM " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX + " where " + ;
-                                       '"indextable" = ' + "'" + aWAData[ WA_TABLENAME ] + "'"
-**msgstop( csql )
+                                       '"indextable" = ' + "'" + aWAData[ WA_TABLENAME ] + "'" + '   /* SL_CREATE_PGSQL-1 */'
+**xmsgstop( csql )
    PGSQL_QUERY_LOG( nConn, cSQL, nil, .F., .T. )
                                        
    cSequenceField := cTableName + "_" + cFieldRecno
 
-   cSql := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE'
+   cSql := 'DROP SEQUENCE "' + cSchema + '"."' + cSequenceField + '" CASCADE' + '   /* SL_CREATE_PGSQL-2 */'
    PGSQL_QUERY_LOG( nConn, cSql, NIL, .F., .T. )
 
    /* We created the sequence to create the table */
-   cSql := 'CREATE SEQUENCE "' + cSchema + '"."' + cSequenceField + '" INCREMENT 1 MINVALUE 1 CACHE 1'
+   cSql := 'CREATE SEQUENCE "' + cSchema + '"."' + cSequenceField + '" INCREMENT 1 MINVALUE 1 CACHE 1' + '   /* SL_CREATE_PGSQL-3 */'
 
    PGSQL_QUERY_LOG( nConn, cSql, NIL, .T., .T. )
    
@@ -332,7 +394,7 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
     * ser enviados dentro de um bloco de transação e portanto qualquer msg de erro
     * nao irão comprometer dados importantes ainda pendentes ou vão? (o_O)
     */   
-   cSQL := 'DROP TABLE "' + cSchema + '"."' + cTableName + '"'
+   cSQL := 'DROP TABLE "' + cSchema + '"."' + cTableName + '"' + '   /* SL_CREATE_PGSQL-4 */'
    PGSQL_QUERY_LOG( nConn, cSql, NIL, .F., .T. )
 
    /* We created the table now */
@@ -346,16 +408,16 @@ function SL_CREATE_PGSQL( nWa, aWaData, aOpenInfo )
       cSql += ', CONSTRAINT ' + cTableName + "_" +  SL_CONSTRAINT_PK  + ' PRIMARY KEY (' +  aWAData[ WA_TEMP,2 ] + ')'
    End
 
-   cSql += ')'
+   cSql += ')' + '   /* SL_CREATE_PGSQL-5 */'
    aWAData[ WA_TEMP ] := nil
 
-**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
+**xmsgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 
    /* Aqui executamos o comando e deixamos a msg de erro aparecer ao usuario */
    PGSQL_QUERY_LOG( nConn, cSql, @lError, .T., .T. )
 
    IF !lError .AND. !lTemp 
-      PQclear( PQexec( nConn, "COMMIT" ))
+      PQclear( PQexec( nConn, "COMMIT" + '   /* SL_CREATE_PGSQL-6 */' ))
    End
    RETURN SUCCESS
 
@@ -519,7 +581,7 @@ function SL_CREATEFLDS_PGSQL( nWa, aWAData, aStruct )
       next
    endif
 
-**msgstop( SL_ToString( cConstraintPK,.T.,,, "DUMP.TXT", .T. ) )
+**xmsgstop( SL_ToString( cConstraintPK,.T.,,, "DUMP.TXT", .T. ) )
    
    aWAData[ WA_TEMP,1 ] := cSQL
    aWAData[ WA_TEMP,2 ] := cConstraintPK
@@ -541,9 +603,12 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
    LOCAL nStatus
    LOCAL xOldKey, xNewKey
 
-   DEBUG_ARGS
+   DEBUG "cQuery=" + cQuery + "   nDirection=" + sl_tostring( nDirection ) + "   nOptions=" + sl_tostring( nOptions )
 
- * IF aWAData[ WA_RESULT_DIRECTION ] == MS_NONE
+   DEFAULT nDirection   TO MS_NONE
+   DEFAULT nOptions     TO EU_IGNORE_FIRST
+
+**   IF aWAData[ WA_RESULT_DIRECTION ] == MS_NONE
    IF (nDirection == MS_DOWN) .OR. (nDirection == MS_UP)
       * Ok
    ELSE
@@ -551,12 +616,9 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
       RETURN FAILURE
    End
 
-   DEFAULT nDirection   TO MS_NONE
-   DEFAULT nOptions     TO EU_IGNORE_FIRST
-   
    pResult := PQExec( oConn:pDB, cQuery )
    nStatus := PQresultstatus( pResult )
-   
+
    IF nStatus != PGRES_TUPLES_OK
 
       DEBUG_ARGS
@@ -614,7 +676,7 @@ function PGSQL_EXECANDUPDATE( nWa, aWAData, cQuery, nDirection, nOptions )
 //         End
       End
    End
-   
+
    * We want to ignore if an empty result-set has found?   25/05/2009 - 11:36:34
    IF ( nRows < 1 ) .AND. ( SL_HAS( nOptions, EU_BOF_ON_EMPTY ) .OR. ;
                             SL_HAS( nOptions, EU_EOF_ON_EMPTY ) )
@@ -663,11 +725,23 @@ function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
 
   DEBUG_ARGS
 
-  cSQL := SQLPARAMS( aWAData[ WA_SL_GOTOID ], { AllTrim( Str( nRecNo ) ) }, ID_POSTGRESQL )
+  cSQL := SQLPARAMS( aWAData[ WA_SL_GOTOID ], { AllTrim( Str( nRecNo ) ) }, ID_POSTGRESQL ) + '   /* SL_GOTOID_PGSQL */'
+/*
+   if islocked( nRecno ) && tem que ver isto aqui. Nao sei se isto pode. Fiz só para teste em 22/07/09 - By Rossine.
+      SL_QuickQuery( aWAData, cSql )
+      if aWAData[ WA_TABLETYPE ] == TS_COMPLEX_SQL
+         aWAData[ WA_RECNO ] := 1
+      else
+         aWAData[ WA_RECNO ] := SL_GETVALUE_PGSQL( nWa, aWAData, aWAData[ WA_FLD_RECNO ], .T. )
+      endif
+   
+      aWAData[ WA_BOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
+      aWAData[ WA_EOF ] := aWAData[ WA_BUFFER_ROWCOUNT ] < 1
 
-  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_NONE )
-
-*  RETURN SL_UpdateFlags( nWA, aWAData )
+      RETURN SL_UpdateFlags( nWA, aWAData )
+   endif
+*/
+  RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_ERRORS ) && EU_IGNORE_NONE )
 
 /*
  * Perform DbGoTop() on current WA. 
@@ -678,17 +752,25 @@ function SL_GOTOID_PGSQL( nWa, aWAData, nRecno )
 FUNCTION SL_GOTOP_PGSQL( nWa, aWAData )
 ***********************
 
+**   LOCAL cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    LOCAL cSQL 
 
-  DEBUG_ARGS
+   DEBUG_ARGS
 
    cSQL := SQLParams( "\? ORDER BY \? LIMIT \? ",; 
                       { aWAData[ WA_SL_GOTOP ], ;
                         SL_BUILDORDERBY( aWAData, MS_DOWN ), ;
-                        STR( aWAData[ WA_PACKET_SIZE ] ) ;
+                        alltrim(STR( aWAData[ WA_PACKET_SIZE ] )) ;
                       }  ,;
             ID_POSTGRESQL )
             
+  ** Rossine 25/07/09
+  if set( _SET_DELETED )
+     cSql := strtran( cSql, "/* SL_GOTOP */", "/* SL_GOTOP */ where " + SL_DEF_DELETED( nWa, aWAData, .F., .F. ) ) + '   /* SL_GOTOP_PGSQL */'
+  else
+     cSql += '   /* SL_GOTOP_PGSQL */'
+  endif
+
   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_DOWN, EU_IGNORE_NONE )
 
 /*
@@ -699,17 +781,25 @@ FUNCTION SL_GOTOP_PGSQL( nWa, aWAData )
 FUNCTION SL_GOBOTTOM_PGSQL( nWa, aWAData ) && DbGoBottom()
 **************************
 
+**   LOCAL cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    LOCAL cSQL
    
    DEBUG_ARGS
-
+   
    cSQL := SQLParams( "\? ORDER BY \? LIMIT \? ",; 
                       { aWAData[ WA_SL_GOBOTTOM ], ;
                         SL_BUILDORDERBY( aWAData, MS_UP ), ;
-                        STR( aWAData[ WA_PACKET_SIZE ] ) ;
+                        alltrim(STR( aWAData[ WA_PACKET_SIZE ] )) ;
                       }  ,;
             ID_POSTGRESQL )
-            
+
+  ** Rossine 25/07/09
+  if set( _SET_DELETED )
+     cSql := strtran( cSql, "/* SL_GOBOTTOM */", "/* SL_GOBOTTOM */ where " + SL_DEF_DELETED( nWa, aWAData, .F., .F.  ) ) + '   /* SL_GOBOTTOM_PGSQL */'
+  else
+     cSql += '   /* SL_GOBOTTOM_PGSQL */'
+  endif
+
   RETURN PGSQL_ExecAndUpdate( nWa, aWAData, cSQL, MS_UP, EU_IGNORE_NONE )
 
 *************************
@@ -722,9 +812,9 @@ local cSql
   DEBUG_ARGS
 
 cSql := "SELECT " + cRddSep + SL_COL_DELETED + cRddSep + " FROM " + SQLGetFullTableName( aWAData ) + ;
-        ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) )
+        ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ) + '   /* SL_DELETED_PGSQL */'
 
-**   msgstop( cSql, "cSql DELETED SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
+**   xmsgstop( cSql, "cSql DELETED SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
 
 **   SL_ExecQuery( @cSql, , @oQuery )  && Rossine 07/10/08
 **   lDeleted := oQuery:getrow( oQuery:nRecno ):aRow[1]
@@ -741,26 +831,34 @@ local cSql
 
   DEBUG_ARGS
   
-cSql :=iif( set( _SET_DELETED ), "UPDATE " + SQLGetFullTableName( aWAData ) + " SET " + cRddSep + SL_COL_DELETED + cRddSep + " = 'T'" + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ), ;
-                                 "delete from " + SQLGetFullTableName( aWAData ) + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ) )
+**     cSql := iif( set( _SET_DELETED ), "UPDATE " + SQLGetFullTableName( aWAData ) + " SET " + cRddSep + SL_COL_DELETED + cRddSep + " = 'T'" + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ), ;
+**                                       "delete from " + SQLGetFullTableName( aWAData ) + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ) ) + '   /* SL_DELETE_PGSQL */'
+
+  if SL_FULLDELETE()
+     cSql := "delete from " + SQLGetFullTableName( aWAData ) + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ) + '   /* SL_DELETE_PGSQL */'
+  else
+     cSql := "UPDATE " + SQLGetFullTableName( aWAData ) + " SET " + cRddSep + SL_COL_DELETED + cRddSep + " = 'T'" + ' where "' + SL_PKFIELD( nWA ) + '" = ' + AllTrim( Str( nRecNo ) ) + '   /* SL_DELETE_PGSQL */'
+  endif
+
   DEBUG cSql
 
 return SL_ExecQuery( aWAData, cSql )
 
 **************************
 function SL_RECCOUNT_PGSQL( nWa, aWAData )
-**************************   
+**************************
+
    LOCAL cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
    LOCAL cField  := cRddSep + SL_PKFIELD( nWA ) + cRddSep
    LOCAL cTemp   := '0'
    LOCAL cSql
 
-  DEBUG_ARGS
+   DEBUG_ARGS
 
    cSql := 'SELECT ' + cField +;
            ' FROM '  + SQLGetFullTableName( aWAData ) + ;
            ' ORDER BY ' + cField + ' DESC'+;
-           ' LIMIT 1'
+           ' LIMIT 1' + '   /* SL_RECCOUNT_PGSQL */'
 
    SL_QuickQuery_PGSQL( aWAData, cSql, @cTemp )
 
@@ -780,7 +878,9 @@ function SL_GETVALUE_PGSQL( nWa, aWAData, nField, lHidden )
    
    DEFAULT lHidden TO .F.
 
-  DEBUG_ARGS
+*  DEBUG_ARGS
+
+  DEBUG "SL_GETVALUE_PGSQL: " + SL_ToString( aWAData[ WA_REAL_STRUCT, nField ][1] ) + "   nField=" + sl_tostring(nField) + "  lHidden =" + sl_tostring(lHidden)
 
    /* Include hidden fields? */
    IF !lHidden
@@ -804,7 +904,12 @@ local cSql, lRet
 local s_aStruct := aWAData[ WA_STRUCT ]
 local cRddSep   := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 
-  DEBUG_ARGS
+*  DEBUG_ARGS
+  DEBUG "SL_PUTVALUE_PGSQL: " + SL_ToString( aWAData[ WA_REAL_STRUCT, nField ] ) + " Valor = " + SL_ToString( xValue )
+
+if aWAData[ WA_APPEND ] && Rossine 28/07/09
+   RETURN SUCCESS
+endif
 
 cSql := "UPDATE " + SQLGetFullTableName( aWAData ) + " SET "
 cSql += cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep + " = "
@@ -837,23 +942,26 @@ otherwise  && "NUMERIC"
 End
 
 cSql += " where " + cRddSep + SL_PKFIELD( nWA ) + cRddSep + " = " 
-cSql += AllTrim( Str( aWAData[WA_RECNO] ) ) 
+cSql += AllTrim( Str( aWAData[WA_RECNO] ) ) + '   /* SL_PUTVALUE_PGSQL */'
 
-msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
+ DEBUG "SL_PUTVALUE_PGSQL: " + cSql
 
-lRet := SL_EXECQUERYEX( cSql, SL_GETCONN() )
-**lRet := SL_ExecQuery( aWAData, cSql )
+**xmsgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
+
+**lRet := SL_EXECQUERYEX( cSql, SL_GETCONN() )
+lRet := SL_ExecQuery( aWAData, cSql )
+
 **lRet := SL_QuickQuery( aWAData, cSql )
 
-**msgstop( lret )
+**xmsgstop( lret )
 
-**msgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ) )
+**xmsgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ) )
 
 return lRet
-*return SL_ExecQuery( aWAData, cSql )
+**return SL_ExecQuery( aWAData, cSql )
 
 **********************
-function SL_INFO_PGSQL( nWa, aWAData, s_aMyLocks, aList )
+function SL_INFO_PGSQL( nWa, aWAData, s_aMyLocks, aList, nConn )
 **********************
 
    local cSql
@@ -915,16 +1023,18 @@ function SL_INFO_PGSQL( nWa, aWAData, s_aMyLocks, aList )
 **-- * Para Verificar os registros travados *                                                                        
 **-- *--------------------------------------*                                                                        
 **SELECT * FROM "public"."customer" AS a, public.pgrowlocks('"public"."customer"') AS p where p.locked_row = a.ctid ;
+** select * from pg_stat_activity where current_query ~ 'in transaction' and procpid <> pg_backend_pid();
 
-* Lembrete importante: tem que executar o arquivo: c:\pgsql83\share\contrib\pgrowlocks.sql para poder carregar esta
+* Lembrete importante: tem que executar o script dentro do pgadimin c:\pgsql83\share\contrib\pgrowlocks.sql para poder carregar esta
 * função para o postgres e colocar em todos os bancos de dados.
 
 **cSql := "SELECT * FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
-cSql := "SELECT " + SL_COL_RECNO + " FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid"
+cSql := "SELECT " + SL_COL_RECNO + " FROM " + SQLGetFullTableName( aWAData ) + " AS a, public.pgrowlocks('" + SQLGetFullTableName( aWAData ) + "') AS p where p.locked_row = a.ctid" + '   /* SL_INFO_PGSQL */'
 
-*aRet := SL_QuickQuery( aWAData, cSql )
-aRet := SQLArray( cSql )
-*aRet := SL_PGSQL_SQLARRAY( aWAData[ WA_CONNECTION ], cSQL )
+**aRet := SL_ExecQuery( aWAData, cSql, , .F. )
+**aRet := SL_QuickQuery( aWAData, cSql )
+aRet := SQLArray( cSql,, nConn )
+**aRet := SL_PGSQL_SQLARRAY( aWAData[ WA_CONNECTION ], cSQL )
 
 aRet1 := { }
 
@@ -934,22 +1044,23 @@ if valtype( aRet ) = "A"
    next
 endif
 
-**msgstop( SL_ToString( aret,.T.,,, "DUMP.TXT", .T. ), "dbrlocklist" )
+**xmsgstop( nConn )
+**xmsgstop( SL_ToString( aret,.T.,,, "DUMP.TXT", .T. ), "dbrlocklist" )
 
 for n = 1 to len(s_aMyLocks)
-    if s_aMyLocks[n,1] = SL_GETCONN() .and. s_aMyLocks[n,2] = SQLGetFullTableName( aWAData )
+    if s_aMyLocks[n,1] = nConn .and. s_aMyLocks[n,2] = SQLGetFullTableName( aWAData )
        aadd( aRet1, s_aMyLocks[n,3] )
     endif
 next
 
 aList := aRet1
 
-**msgstop( SL_ToString( aList,.T.,,, "DUMP.TXT", .T. ), "dbrlocklist" )
+**xmsgstop( SL_ToString( aList,.T.,,, "DUMP.TXT", .T. ), "dbrlocklist" )
 
 return NIL
 
 **********************
-function SL_LOCK_PGSQL( nWa, aWAData, nRecno, s_aMyLocks )
+function SL_LOCK_PGSQL( nWa, aWAData, nRecno, s_aMyLocks, nConn )
 **********************
 
 local cSql, n, aRet
@@ -962,7 +1073,7 @@ local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 **   lRet := SL_QuickQuery( aWAData, cSql )
 
 **memowrit( "sql.txt", valtoprg(lRet) )
-**msgstop( valtoprg(lret) )
+**xmsgstop( valtoprg(lret) )
 
 **   SL_ExecQuery( aWAData, 'copy (' + cSql + ' ) TO E' + "'\\Temp\\tempor.txt' with delimiter '|'" )
 
@@ -987,26 +1098,30 @@ local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 **cSql := 'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;' + CRLF + ;
 
 **cSql := 'rollback;'      + CRLF + ; && commit;'        + CRLF + ;  && Rossine 01/11/08
+
+**xmsgstop( hb_valtostr( nwa ) + "-" + hb_valtostr( nrecno ) )
+
 cSql := 'commit;'        + CRLF + ;
         'begin work;'    + CRLF + ;
         'select * from ' + SQLGetFullTableName( aWAData ) + ' where ' + cRddSep + SL_PKFIELD( nWA ) + cRddSep + ' = ' + ;
-                           alltrim(str( nRecno )) + ' for update nowait;' + CRLF
+                           alltrim(str( nRecno )) + ' for update nowait;' + '   /* SL_LOCK_PGSQL-1 */' + CRLF
 
 if len(dbrlocklist()) > 0  && Rossine 01/11/08
    for n = 1 to len(s_aMyLocks)
-       if s_aMyLocks[n,1] = SL_GETCONN() .and. s_aMyLocks[n,2] = SQLGetFullTableName( aWAData ) .and. s_aMyLocks[n,3] != nRecno
+       if s_aMyLocks[n,1] = nConn .and. s_aMyLocks[n,2] = SQLGetFullTableName( aWAData ) .and. s_aMyLocks[n,3] != nRecno
           cSql += 'select * from ' + SQLGetFullTableName( aWAData ) + ' where ' + cRddSep + SL_PKFIELD( nWA ) + cRddSep + ' = ' + ;
-                  alltrim(str(s_aMyLocks[n,3])) + ' for update nowait;' + CRLF
+                  alltrim(str(s_aMyLocks[n,3])) + ' for update nowait;' + '   /* SL_LOCK_PGSQL-2 */' + CRLF
        endif
    next
 endif
-**msgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
+
+**xmsgstop( SL_ToString( cSql,.T.,,, "DUMP.TXT", .T. ) )
 **lRet := SL_QuickQuery( aWAData, cSql )
-**msgstop( lret )
-**msgstop( csql )
+**xmsgstop( lret )
+**xmsgstop( csql )
 **lret := SL_EXECQUERYEX( cSql )
-**msgstop( lret )
-**msgstop( valtoprg(lRet) + "-" + cSql, "Proc: " + PROCESSO() )
+**xmsgstop( lret )
+**xmsgstop( valtoprg(lRet) + "-" + cSql, "Proc: " + PROCESSO() )
 
 /*
 cSql := "rollback;" + CRLF + ;
@@ -1017,21 +1132,23 @@ cSql := "rollback;" + CRLF + ;
         "commit;" + CRLF + ;
         'select * from "public"."customer" order by "sl_rowid";'
 
-msgstop( SL_ToString( SQLArray( cSql ),.T.,,, "DUMP.TXT", .T. ) )
+xmsgstop( SL_ToString( SQLArray( cSql ),.T.,,, "DUMP.TXT", .T. ) )
 return iif( len(SQLArray( cSql )) > 0, .T., .F. )
 */
-**msgstop( SL_ToString( ( aRet := SQLArray( cSql ) ) ),.T.,,, "DUMP.TXT", .T. )
-*aRet := SL_ExecQuery( aWAData, cSql, , .F. )
-**msgstop( iif( len(aRet) > 0, .T., .F. ) )
-aRet := SQLArray( cSql )
+**xmsgstop( SL_ToString( ( aRet := SQLArray( cSql ) ) ),.T.,,, "DUMP.TXT", .T. )
+aRet := SL_ExecQuery( aWAData, cSql, , .F. )
+**xmsgstop( iif( len(aRet) > 0, .T., .F. ) )
+*aRet := SQLArray( cSql )
 *aRet := SL_PGSQL_SQLARRAY( aWAData[ WA_CONNECTION ], cSQL )
 *return aRet
 
-**msgstop( csql )
+**xmsgstop( csql )
 
-**msgstop( SL_ToString( aRet ),.T.,,, "DUMP.TXT", .T. )
+**xmsgstop( SL_ToString( cSql ),.T.,,, "DUMP.TXT", hb_valtostr(aret) )
 
-return iif( len(aRet) > 0, .T., .F. )
+return aRet
+
+*return iif( len(aRet) > 0, .T., .F. )
 
 **********************
 function SL_PACK_PGSQL( nWa, aWAData )
@@ -1043,7 +1160,7 @@ function SL_PACK_PGSQL( nWa, aWAData )
   DEBUG_ARGS
 
    HB_SYMBOL_UNUSED( nWA )
-   cSql := "DELETE FROM " + SQLGetFullTableName( aWAData ) + " where " + cRddSep + SL_COL_DELETED + cRddSep + " = 'T'" &&  // __dbPack()"
+   cSql := "DELETE FROM " + SQLGetFullTableName( aWAData ) + " where " + cRddSep + SL_COL_DELETED + cRddSep + " = 'T'" + '   /* SL_PACK_PGSQL */'
 
 return SL_ExecQuery( aWAData, cSql )
 
@@ -1055,23 +1172,23 @@ local cSql, cSequenceField := "sequencia_" + SL_PKFIELD( nWa )
  
   DEBUG_ARGS
 
-**   msgstop( cSql, "cSql ZAP SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
+**   xmsgstop( cSql, "cSql ZAP SQLLIB Line " + LTrim( Str( ProcLine( 0 ) ) ) )
 
-cSql := "DELETE FROM " + SQLGetFullTableName( aWAData ) && + " // __dbZap()"
+cSql := "DELETE FROM " + SQLGetFullTableName( aWAData ) + "   /* SL_ZAP_PGSQL-1 */"
 
 SL_ExecQuery( aWAData, cSql )
 
-cSql := "ALTER SEQUENCE " + aWAData[ WA_SCHEMA ] + '.' + cSequenceField + ' START 1'
+cSql := "ALTER SEQUENCE " + aWAData[ WA_SCHEMA ] + '.' + cSequenceField + ' START 1' + '   /* SL_ZAP_PGSQL-2 */'
 
 SL_ExecQuery( aWAData, cSql )
 
 cSequenceField := aWAData[ WA_TABLENAME ] + "_" + SL_PKFIELD( nWa )
 
-cSql := "ALTER SEQUENCE " + aWAData[ WA_SCHEMA ] + '.' + cSequenceField + ' START 1'
+cSql := "ALTER SEQUENCE " + aWAData[ WA_SCHEMA ] + '.' + cSequenceField + ' START 1' + '   /* SL_ZAP_PGSQL-3 */'
 
 SL_ExecQuery( aWAData, cSql )
 
-cSql := 'VACUUM FULL ANALYZE ' + SQLGetFullTableName( aWAData )
+cSql := 'VACUUM FULL ANALYZE ' + SQLGetFullTableName( aWAData ) + '   /* SL_ZAP_PGSQL-4 */'
 
 return SL_ExecQuery( aWAData, cSql )
 
@@ -1090,7 +1207,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    LOCAL nVersion := aWAData[ WA_VERSION  ]
    LOCAL oError
    LOCAL aOrderInfo
-   local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
+*   local cRddSep := SQLSYS_SEP( aWAData[ WA_SYSTEMID ] )
 
   DEBUG_ARGS
 
@@ -1098,7 +1215,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    cIdx := ID_PREFIX + lower(aOrderCreateInfo [UR_ORCR_BAGNAME]) // + iif( empty( aOrderCreateInfo [UR_ORCR_TAGNAME] ), "", "_" ) + lower(aOrderCreateInfo [UR_ORCR_TAGNAME])
    cBag := cIdx + iif( empty( aOrderCreateInfo [UR_ORCR_TAGNAME] ), "", "_" ) + lower(aOrderCreateInfo [UR_ORCR_TAGNAME])
    cTag := strtran( lower(aOrderCreateInfo [UR_ORCR_TAGNAME]), "'", "" )      
-   cSql := 'DROP INDEX "' + aWAData[ WA_SCHEMA ] + '"."' + cBag + '"'   
+   cSql := 'DROP INDEX "' + aWAData[ WA_SCHEMA ] + '"."' + cBag + '"' + '   /* SL_ORDCREATE_PGSQL-1 */' 
 
    if aOrderCreateInfo [UR_ORCR_UNIQUE]
       oError := ErrorNew()
@@ -1125,6 +1242,8 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    IF !Empty( cTag )
       cSQL += " and indextag = '" + cTag + "'"
    End
+   
+   cSql += '   /* SL_ORDCREATE_PGSQL-2 */'
    
    PGSQL_QUERY_LOG( pSQL, cSql,,, True )
       
@@ -1168,9 +1287,9 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    // TODO: Revisar a necessidade deste IF
    //
 
-   if set( _SET_DELETED ) && Rossine 27/06/09
-      cSql += " WHERE " + cRddSep + SL_COL_DELETED + cRddSep + " = ' '"
-   endif
+*   if set( _SET_DELETED ) && Rossine 27/06/09
+*      cSql += " WHERE " + cRddSep + SL_COL_DELETED + cRddSep + " <> 'T'"
+*   endif
 
    if valtype( aOrderCreateInfo [UR_ORCR_CONDINFO] ) == "A" .and. !empty( aOrderCreateInfo [UR_ORCR_CONDINFO,DBOI_CONDITION] )
       if !set( _SET_DELETED ) && Rossine 27/06/09
@@ -1180,14 +1299,16 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
       endif
       cSql += lower( SQLTranslate( aOrderCreateInfo [UR_ORCR_CONDINFO,DBOI_EXPRESSION] ) )
    endif   
-   
+
+   cSql += '   /* SL_ORDCREATE_PGSQL-3 */'
+
    DEBUG cSql   
    
    PGSQL_QUERY_LOG( pSQL, cSql,, True, True )
    
    cSql := 'INSERT INTO "\?"."\?" '+;
             '( IndexStamp,IndexTable,IndexFile,IndexTag,IndexFields,IndexKey,IndexKeySizes,IndexKeyTypes,IndexFor, IndexUnique,IndexDescending ) ' +;
-            ' VALUES ( \?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )'
+            ' VALUES ( \?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )' + '   /* SL_ORDCREATE_PGSQL-4 */'
 
    aValues := {}
    AADD( aValues, aWAData[ WA_SCHEMA ])                                         // Schema
@@ -1204,10 +1325,10 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
    AADD( aValues, iif( aOrderCreateInfo[UR_ORCR_UNIQUE], 'T', 'F' ) )           // IndexUnique
    AADD( aValues, iif( lDesc,'T','F'))                                          // IndexDescending
 
-   cSql := SQLParams( cSQL, aValues, ID_POSTGRESQL )
+   cSql := SQLParams( cSQL, aValues, ID_POSTGRESQL ) + '   /* SL_ORDCREATE_PGSQL-5 */'
 
    PGSQL_QUERY_LOG( pSQL, cSql,, True, True )
-   PGSQL_QUERY_LOG( pSQL, "COMMIT",,, True )
+   PGSQL_QUERY_LOG( pSQL, "COMMIT" + '   /* SL_ORDCREATE_PGSQL-6 */',,, True )
    
    /*
     * Order ADD apos a criacao do novo INDEX em conformidade com a doc. do Clipper
@@ -1228,7 +1349,7 @@ function SL_ORDCREATE_PGSQL( nWa, aWAData, aOrderCreateInfo, aFields, aKeys, aSi
 FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
 ***************************
 
-   LOCAL cFile := aOrderInfo[ UR_ORI_BAG ] 
+   LOCAL cFile := aOrderInfo[ UR_ORI_BAG ]
    LOCAL cTag  := aOrderInfo[ UR_ORI_TAG ]
    LOCAL aIndexes
    LOCAL aInfo
@@ -1244,21 +1365,24 @@ FUNCTION SL_ORDLSTADD_PGSQL( nWa, aWAData, aOrderInfo )
       aWAData[ WA_SCHEMA ] := iif( empty( SL_GetSchema() ), "public", SL_GetSchema() )
    endif
 
-   cSQL := 'SELECT * FROM "' + aWAData[ WA_SCHEMA ] + '"."' + SL_INDEX
-   cSQL += '" WHERE IndexTable = '+ "'" + aWAData[ WA_TABLENAME ] + "'" && Incluido o nome da tabela: Rossine 03/07/09
-   cSQL += " and IndexFile = '" + ID_PREFIX + cFile + "' "
+   cFile := iif( valtype( cFile ) = "C", SQLAdjustFn( cFile ), "" )
+   cTag  := iif( valtype( cTag ) = "C",  SQLAdjustFn( cTag ), "" )
 
-   IF cTag != NIL
+   cSQL  := 'SELECT * FROM "' + aWAData[ WA_SCHEMA ] + '"."' + SL_INDEX
+   cSQL  += '" WHERE IndexTable = '+ "'" + aWAData[ WA_TABLENAME ] + "'" && Incluido o nome da tabela: Rossine 03/07/09
+   cSQL  += " and IndexFile = '" + ID_PREFIX + cFile + "' "
+
+   IF valtype( cTag ) = "C" .and. !empty(cTag)
       cSQL += " AND IndexTag = '" + cTag + "' "
    End
    
-   cSQL += ' ORDER BY "' + SL_COL_RECNO + '"' 
+   cSQL += ' ORDER BY "' + SL_COL_RECNO + '"' + '   /* SL_ORDLSTADD_PGSQL */'
 
-**msgstop( cSQL )
+**xmsgstop( cSQL )
 
    SL_QuickQuery_PGSQL( aWAData, cSQL, @aIndexes )
    
-**msgstop( SL_ToString( aIndexes ), "aIndexes" )
+**xmsgstop( SL_ToString( aIndexes ), "aIndexes" )
 
    // Not found? Raise an exception?
    IF Empty( aIndexes )
@@ -1337,21 +1461,21 @@ function SL_ORDDESTROY_PGSQL( nWa, aWAData, aOrderInfo )
 
    if nOrder = 0 .or. empty( aWAData[ WA_INDEX ] )
       cSql := "select indexfile, indextag from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX
-      cSql += " where indextable = '" + aWAData[ WA_TABLENAME ] + "'"
+      cSql += " where indextable = '" + aWAData[ WA_TABLENAME ] + "'" + '   /* SL_ORDDESTROY_PGSQL-1 */'
       aIndex := SL_QuickQuery( aWAData, cSql )
       if !empty( aInDex )
-         cSql := 'drop index "' + aIndex[1,1] + "_" + aIndex[1,2] + '"'
+         cSql := 'drop index "' + aIndex[1,1] + "_" + aIndex[1,2] + '"' + '   /* SL_ORDDESTROY_PGSQL-2 */'
          cTag := aIndex[1,2]
       endif
    else
-      cSql := 'drop index "' + aWAData[ WA_INDEX ][nOrder,IDX_BAG] + "_" + aWAData[ WA_INDEX ][nOrder,IDX_TAG] + '"'
+      cSql := 'drop index "' + aWAData[ WA_INDEX ][nOrder,IDX_BAG] + "_" + aWAData[ WA_INDEX ][nOrder,IDX_TAG] + '"' + '   /* SL_ORDDESTROY_PGSQL-3 */'
       cTag := aWAData[ WA_INDEX ][nOrder,IDX_TAG]
    endif
    
    if !empty( cSql ) .and. SL_ExecQuery( aWAData, cSql )
       cSql := "delete from " + aWAData[ WA_SCHEMA ] + "." + SL_INDEX + " where " + ;
               '"indextable" = ' + "'" + aWAData[ WA_TABLENAME ] + "'" + ;
-              ' and "indextag" = ' + "'" + lower(alltrim(cTag)) + "'"
+              ' and "indextag" = ' + "'" + lower(alltrim(cTag)) + "'" + '   /* SL_ORDDESTROY_PGSQL-4 */'
       if SL_ExecQuery( aWAData, cSql )
          lRet := .T.
       endif
@@ -1367,7 +1491,7 @@ function SL_WRITERECORD_PGSQL( nWa, aWAData )
    local lApp      := aWAData[ WA_APPEND ]
    local cVal      := "" && Rossine 07/10/08
    local s_aStruct := aWAData[ WA_STRUCT ]
-   local cSql, lRet
+   local cSql
    local nCount
    local nField
    local aBuffer
@@ -1382,131 +1506,88 @@ function SL_WRITERECORD_PGSQL( nWa, aWAData )
    else
       cSql := "UPDATE " + SQLGetFullTableName( aWAData ) + " SET "
    end
-
+   
    nCount  := 0
    aBuffer := aWAData[ WA_BUFFER_ARR ]
    nRow    := aWAData[ WA_BUFFER_POS ]
-
-   if lApp  && Rossine 07/10/08
-
-      for nField = 1 to Len( s_aStruct )
-          nCount ++
-      
-          /* Get the current fieldname */
-          cSql += iif( nCount > 1, ", ", "" ) + cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep
-          do case
-          case s_aStruct[ nField ][ DBS_TYPE ] == "C" && "CHAR"
-               cVal += iif( nCount > 1, ", ", "" ) + "'" + space(s_aStruct[ nField ][ DBS_LEN ]) + "'"
-      
-          case s_aStruct[ nField ][ DBS_TYPE ] == "M" && "MEMO"
-      
-               cVal += iif( nCount > 1, ", ", "" ) + "'" + space(10) + "'"
-      
-          case s_aStruct[ nField ][ DBS_TYPE ] == "L" && "LOGICAL"
-      
-               cVal += iif( nCount > 1, ", ", "" ) + "TRUE"
-      
-          case s_aStruct[ nField ][ DBS_TYPE ] == "D" && "DATE"
-      
-               cVal += iif( nCount > 1, ", ", "" ) + "'" + "00000000" + "'"  && Rossine 07/10/08
-      
-          otherwise  // Numeric field..
-      
-               cVal += iif( nCount > 1, ", ", "" ) + "0"
-      
-          endcase
-      next
-   else
-      for nField = 1 to Len( s_aStruct )
-          lRet := .F.
-      
-          if !lApp  && Rossine 07/10/08
-             try
-                if aBuffer[ nRow, nField ] = NIL
-                   lRet := .T.
-                endif
-             catch
-                 lRet := .T.
-             end
-             if lRet
-                loop
-             endif
-          endif
-          nCount ++
-      
-          /* Get the current fieldname */
-          cSql += iif( nCount > 1, ", ", "" ) + cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep
-          /* Get formated value */
-          do case
-          case s_aStruct[ nField ][ DBS_TYPE ] == "C" && "CHAR"
-      
-               /* Test correct field length to avoid some errors */
-               if Len(aBuffer[ nRow, nField ]) <= s_aStruct[ nField ][ DBS_LEN ]
-                  if lApp  && Rossine 07/10/08
-                     cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape  && Rossine 07/10/08
-                  else
-                     cSql += "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape
-                  endif
-               else
-                  if lApp  && Rossine 07/10/08
-                     cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"  && Rossine 07/10/08
-                  else
-                     cSql += "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"
-                  endif
-               endif
-      
-          case s_aStruct[ nField ][ DBS_TYPE ] == "M" && "MEMO"
-      
+   
+   for nField = 1 to Len( s_aStruct )
+   
+       if aBuffer[ nRow, nField ] == NIL
+          loop
+       end
+       nCount ++
+   
+       /* Get the current fieldname */
+       cSql += iif( nCount > 1, ", ", "" ) + cRddSep + s_aStruct[ nField ][ DBS_NAME ] + cRddSep
+   
+       /* Get formated value */
+       do case
+       case s_aStruct[ nField ][ DBS_TYPE ] == "C" && "CHAR"
+   
+            /* Test correct field length to avoid some errors */
+            if Len(aBuffer[ nRow, nField ]) <= s_aStruct[ nField ][ DBS_LEN ]
                if lApp  && Rossine 07/10/08
                   cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape  && Rossine 07/10/08
                else
                   cSql += "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape
                endif
-               
-          case s_aStruct[ nField ][ DBS_TYPE ] == "L" && "LOGICAL"
-      
+            else
                if lApp  && Rossine 07/10/08
-                  cVal += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html  && Rossine 07/10/08
+                  cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"  && Rossine 07/10/08
                else
-                  cSql += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html
+                  cSql += "'" + StrTran( LEFT( aBuffer[ nRow, nField ], s_aStruct[ nField ][ DBS_LEN ]), "'", "\'" ) + "'"
                endif
-      
-          case s_aStruct[ nField ][ DBS_TYPE ] == "D" && "DATE"
-      
-               IF Empty( aBuffer[ nRow, nField ] )
-                  if lApp
-                     cVal += iif( nCount > 1, ", ", "" ) + "NULL"
-                  else
-                     cSql += "NULL"
-                  endif
-               ELSE
-                  if lApp  && Rossine 07/10/08
-                     cVal += iif( nCount > 1, ", ", "" ) + "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"  && Rossine 07/10/08
-                  else
-                     cSql += "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"
-                  endif
-               End
-      
-          otherwise  // Numeric field..
-      
+            endif
+   
+       case s_aStruct[ nField ][ DBS_TYPE ] == "M" && "MEMO"
+   
+            if lApp  && Rossine 07/10/08
+               cVal += iif( nCount > 1, ", ", "" ) + "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape  && Rossine 07/10/08
+            else
+               cSql += "'" + StrTran( aBuffer[ nRow, nField ], "'", "\'" ) + "'"    // StrTran() to emulate escape
+            endif
+            
+       case s_aStruct[ nField ][ DBS_TYPE ] == "L" && "LOGICAL"
+   
+            if lApp  && Rossine 07/10/08
+               cVal += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html  && Rossine 07/10/08
+            else
+               cSql += iif( nCount > 1, ", ", "" ) + IIF( aBuffer[ nRow, nField ], "TRUE", "FALSE" )         // http://www.postgresql.org/docs/8.1/interactive/datatype-boolean.html
+            endif
+   
+       case s_aStruct[ nField ][ DBS_TYPE ] == "D" && "DATE"
+   
+            IF Empty( aBuffer[ nRow, nField ] )
+               if lApp
+                  cVal += iif( nCount > 1, ", ", "" ) + "NULL"
+               else
+                  cSql += "NULL"
+               endif
+            ELSE
                if lApp  && Rossine 07/10/08
-                  cVal += iif( nCount > 1, ", ", "" ) + AllTrim( Str( aBuffer[ nRow, nField ] ) )  && Rossine 07/10/08
+                  cVal += iif( nCount > 1, ", ", "" ) + "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"  && Rossine 07/10/08
                else
-                  cSql += AllTrim( Str( aBuffer[ nRow, nField ] ) )
+                  cSql += "'" + DTOS( aBuffer[ nRow, nField ] ) + "'"
                endif
-      
-          endcase
-      next
-   endif
-
+            End
+   
+       otherwise  // Numeric field..
+            if lApp  && Rossine 07/10/08
+               cVal += iif( nCount > 1, ", ", "" ) + AllTrim( Str( aBuffer[ nRow, nField ] ) )  && Rossine 07/10/08
+            else
+               cSql += AllTrim( Str( aBuffer[ nRow, nField ] ) )
+            endif
+   
+       End
+   next
+   
    if lApp
       cSql += " ) values ( " + cVal + " )"
    else
       cSql += ' where "' + SL_PKFIELD( aWAData ) + '" = ' + AllTrim( Str( aWAData[ WA_RECNO ] ) )
    endif
-
-**msgstop( SL_ToString( csql,.T.,,, "DUMP.TXT", .T. ) )
-
+   
 return SL_ExecQuery( aWAData, cSql )
 
 ****************************
@@ -1543,7 +1624,7 @@ endif
 
 DEBUG "Sentença [" + cQuery + "]", "Valor de xResult: " + sl_tostring( xResult ), "PQresultErrormessage: [" + PQresultErrormessage( pQuery ) + "]", "PQresultstatus(): " + sl_tostring( PQresultstatus( pQuery ) )
 
-**msgstop( cQuery + CRLF + CRLF + "[" + PQresultErrormessage( pQuery ) + "]" + CRLF + valtoprg(PQresultstatus( pQuery )), "Exec sentença" )
+**xmsgstop( cQuery + CRLF + CRLF + "[" + PQresultErrormessage( pQuery ) + "]" + CRLF + valtoprg(PQresultstatus( pQuery )), "Exec sentença" )
 
 PQclear( pQuery ) 
            
@@ -1558,11 +1639,11 @@ local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
 
   DEBUG_ARGS
 
-return Val( SL_QuickQuery( aWAData, "SELECT nextval(" + SL_DataToSql( sequence_name ) + ")" ) )
+return Val( SL_QuickQuery( aWAData, "SELECT nextval(" + SL_DataToSql( sequence_name ) + ")" + '   /* SL_Sequence */' ) )
 
-#ifndef PQTRANS_INTRANS
-   #define PQTRANS_INTRANS  2
-#endif
+**#ifndef PQTRANS_INTRANS
+**   #define PQTRANS_INTRANS  2
+**#endif
 
 ****************************
 function SL_STARTTRANS_PGSQL( aWAData )  && Rossine 07/10/08
@@ -1570,25 +1651,76 @@ function SL_STARTTRANS_PGSQL( aWAData )  && Rossine 07/10/08
 
 local oSql := aWAData[ WA_POINTER ]
 
-  DEBUG_ARGS
-
-if PQtransactionstatus( oSql:pDB ) != PQTRANS_INTRANS
+**if PQtransactionstatus( oSql:pDB ) != PQTRANS_INTRANS
    oSql:StartTransaction()
-endif        
 
-return NIL
+   DEBUG "Iniciando Transação do registro: " + iif( oSql:lError, "ERRO: " + oSql:cError, "OK" )
+
+   if oSql:lError
+      xmsgstop( oSql:cError, "Erro Start Transaction" )
+   endif
+**endif        
+
+**xmsgSTOP( HB_VALTOSTR( PQtransactionstatus( oSql:pDB ) == PQTRANS_INTRANS ) + CRLF + ;
+**         HB_VALTOSTR( PQtransactionstatus( oSql:pDB ) == PQTRANS_ACTIVE ) + CRLF + ;
+**         HB_VALTOSTR( PQtransactionstatus( oSql:pDB ) ==  PQTRANS_IDLE ) )
+
+return iif( oSql:lError, .F., .T. )
+**return ( PQtransactionstatus( oSql:pDB ) == PQTRANS_INTRANS )
 
 **************************
 function SL_ENDTRANS_PGSQL( aWAData )  && Rossine 07/10/08
 **************************
 
-local oSql := aWAData[ WA_POINTER ]
+**local oSql := aWAData[ WA_POINTER ]
 
   DEBUG_ARGS
 
-SL_COMMIT_PGSQL( aWAData )
+return SL_COMMIT_PGSQL( aWAData )
+**return ( PQtransactionstatus( oSql:pDB ) == PQTRANS_INTRANS )
 
-return ( PQtransactionstatus( oSql:pDB ) == PQTRANS_INTRANS )          
+************************
+function SL_COMMIT_PGSQL( aWAData )
+************************
+
+local oSql := aWAData[ WA_POINTER ]
+
+**xmsgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ), "-1-" )
+
+  oSql:Commit()
+
+  DEBUG "Comitando o registro: " + iif( oSql:lError, "ERRO: " + oSql:cError, "OK" )
+
+**xmsgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ), "-2-" )
+
+   if oSql:lError
+      xmsgstop( oSql:cError, "Erro Commit" )
+   endif
+
+return iif( oSql:lError, .F., .T. )
+
+**************************
+function SL_ROLLBACK_PGSQL( aWAData, nWA )
+**************************
+
+local oSql := aWAData[ WA_POINTER ], lRet, cErr, cAlias := alias(nWA)
+
+   oSql:rollback()
+   
+   lRet := oSql:lError
+   cErr := oSql:cError
+
+   if (cAlias)->( islocked() )
+      (cAlias)->( dbunlock() )
+   endif
+
+   DEBUG "RollBack na Transação do registro: " + iif( oSql:lError, "ERRO: " + oSql:cError, "OK" )
+   
+   if lRet
+      xmsgstop( cErr, "Erro Rollback" )
+   endif
+
+return iif( lRet, .F., .T. )
 
 ****************************
 function SL_CLEARINDEX_PGSQL( aWAData, lAll )
@@ -1608,6 +1740,8 @@ function SL_CLEARINDEX_PGSQL( aWAData, lAll )
       cSql += " where indextable = '" + aWAData[ WA_TABLENAME ] + "'"
    endif
    
+   cSql += '   /* SL_CLEARINDEX_PGSQL */'
+   
    //SL_QuickQuery_PGSQL( aWAData, cSql, @aIndex ) - BUG QDO Sà TEM 1 INDICE
    aIndex := SL_PGSQL_SQLARRAY( aWAData[ WA_CONNECTION ], cSQL )
    
@@ -1619,16 +1753,6 @@ function SL_CLEARINDEX_PGSQL( aWAData, lAll )
    
 return NIL
 
-**************************
-function SL_ROLLBACK_PGSQL( aWAData )
-**************************
-
-local oSql := aWAData[ WA_POINTER ]
-
-  DEBUG_ARGS
-
-return oSql:rollback()
-   
 ***************************
 function SL_EXECQUERY_PGSQL( aWAData, cQuery, oQuery, lRet )
 ***************************
@@ -1643,9 +1767,9 @@ lRet   := oQuery:neterr()
 DEBUG "Conseguiu executar a sentença [" + cQuery + "] ? ", lRet
 
 **aWAData[ WA_POINTER ] := oSql       // TODO: Faz setindo isto aqui???  (( o_O ))
-**msgstop( sl_tostring(PQresultstatus( oQuery )))
+**xmsgstop( sl_tostring(PQresultstatus( oQuery )))
 **if PQresultstatus( oQuery ) != PGRES_COMMAND_OK
-**   msgstop( cQuery + CRLF + CRLF + PQresultErrormessage( oQuery ), "Erro na sentença-1" )
+**   xmsgstop( cQuery + CRLF + CRLF + PQresultErrormessage( oQuery ), "Erro na sentença-1" )
 **endif
 
 return NIL
@@ -1661,7 +1785,7 @@ function SL_ExecQuery_MSG_PGSQL( oQuery, cMsg, cQuery )
   DEBUG_ARGS
 
 
-*msgstop( cMsg + CRLF + cQuery + CRLF + CRLF + ;
+*xmsgstop( cMsg + CRLF + cQuery + CRLF + CRLF + ;
 *         "        <<< MENSAGEM DE ERRO >>>" + CRLF + oQuery:ErrorMsg(), "Atenção - Proc: " /* + PROCESSO() */ )
 
 return NIL
@@ -1675,22 +1799,6 @@ function SL_ExecQuery_DES_PGSQL( oQuery )
 oQuery:destroy()
 
 return NIL
-
-************************
-function SL_COMMIT_PGSQL( aWAData )
-************************
-
-local oSql := aWAData[ WA_POINTER ], lRet
-
-**msgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ), "-1-" )
-
-  lRet := oSql:Commit()
-
-  DEBUG "Comitando o registro: " + sl_tostring( lRet )
-
-**msgstop( SL_ToString( SQLArray( 'select * from "public"."customer" order by "sl_rowid"' ),.T.,,, "DUMP.TXT", .T. ), "-2-" )
-
-return lRet
 
 **********************
 function SL_SEEK_PGSQL( nWa, aWAData, lSoftSeek, cKey, lFindLast )
@@ -1732,8 +1840,8 @@ function SL_SEEK_PGSQL( nWa, aWAData, lSoftSeek, cKey, lFindLast )
       cFields += "'" + (aWAData[ WA_ALIAS ])->(indexKey()) + "' = " + cKeyTmp
    endif
    
-   cSql := "select * from " + SQLGetFullTableName( aWAData ) + " where " + cFields + " and " + ;
-                              cRddSep + SL_COL_DELETED + cRddSep + " = ' '" && order by " + iif( lFindLast, "DESC", "ASC" ) + " NULLS FIRST"
+   cSql := "select * from " + SQLGetFullTableName( aWAData ) + " where " + cFields + ;
+                              SL_DEF_DELETED( nWa, aWAData, .T., .F. ) + '   /* SL_SEEK_PGSQL */' && order by " + iif( lFindLast, "DESC", "ASC" ) + " NULLS FIRST"
    
    aRet := SL_QuickQuery( aWAData, cSql )
 

@@ -108,7 +108,7 @@ FUNCTION SL_CONN( cHost, cPort, cDb, cUser, cPwd, nFlags, cRddName, cSchema, cCh
 
    SQLERR_CLEAR()
 /*
-msgstop( cPort    + CRLF + ;
+xmsgstop( cPort    + CRLF + ;
          cSchema  + CRLF + ;
          cCharSet + CRLF + ;
          cHost    + CRLF + ;
@@ -159,7 +159,7 @@ msgstop( cPort    + CRLF + ;
 
    /* TODO: Turn this BLOCK Thread Safe! */
    nConnCount += 1
-**msgstop( "nConnCount: " + str(nConnCount) )
+**xmsgstop( "nConnCount: " + str(nConnCount) )
    IF nConnCount == MAX_CONN_COUNT
       nConnCount := 1         
    End
@@ -200,9 +200,9 @@ RETURN nResult
  * Valida se para o RDD solicitado é um ALIAS e  
  * existe um nome correto a ser enviado.
  */
-*********************************
+*****************************
 static function SL_CheckAlias( cRddName )
-*********************************
+*****************************
 
    LOCAL a := ';' + cRddName + ';'
    
@@ -220,9 +220,9 @@ static function SL_CheckAlias( cRddName )
  * assim de que a conexão tente ser estabelecida. 
  * 13/12/2008 - 00:35:15
  */
-*************************
+*********************
 function SL_CONNPARSE( cConnStr, aResult )
-*************************
+*********************
 
    LOCAL cHost    := 'localhost'
    LOCAL cPort    := ''
@@ -350,9 +350,9 @@ function SL_CONNPARSE( cConnStr, aResult )
  * Detecta o driver ID necessário para a connectionstring fornecida.
  * 15/12/2008 - 13:33:12
  */
-**********************
+******************
 function SL_DSN2ID( cConnStr )
-**********************
+******************
 
    LOCAL aInfo  := {}
    LOCAL nSysID := ID_UNKNOW
@@ -385,9 +385,9 @@ function SL_ISVALID( nSysID )
  * Derruba uma conexão específica ou todas as conexões ou ainda a conexão atual,  
  * com o banco de dados que estiver conectado. Retorna .T. indicando sucesso.
  */
-***********************
+*******************
 function SL_DISCONN( nHandle )
-***********************
+*******************
 
    LOCAL Type  := valtype( nHandle )
    LOCAL aConn := NIL
@@ -476,9 +476,9 @@ return iif( valtype( saConnections ) != "A", { }, saConnections )
  * 12/12/2008 - 23:21:16
  */   
 
-***************************
+**************************
 function SL_GETCONNBYALIAS( nAlias )
-***************************
+**************************
    LOCAL aWAData
 
    IF VALTYPE( nAlias ) == 'U'
@@ -541,9 +541,9 @@ function SL_GETCONNINFO( nHandle )
  * NOTE que ele pega as conexões mais recentes primeiro.
  * 15/12/2008 - 10:07:51
  */   
-*******************************
+***************************
 function SL_GETCONNINFOBYID( nDriverID )
-*******************************
+***************************
    LOCAL c := VALTYPE( nDriverID )
    
    IF (c == "U") .OR. ( c == "N" .and. nDriverID == 00 )
@@ -562,50 +562,69 @@ function SL_GETCONNINFOBYID( nDriverID )
  * Altera o SCHEMA atual onde as TABELAS DE SISTEMA se encontram.
  * 18/03/2009 - 17:51:46
  */
+***************************
 FUNCTION SL_SetSystemSchema( cSChema )  && Rossine 07/10/08
+***************************
+
    LOCAL cOld := s_cSysSchema
     
    IF VALTYPE( cSChema ) == 'C'
       s_cSysSchema := cSChema
    End   
+
    RETURN cOld
    
 *************************
 * TODO: Isto tem que ser válido para cada CONEXÃO e sendo assim deve estar
 *       guardado dentro de saConnections[] - 23/05/2009 - 23:17:44
 
-FUNCTION SL_SetSchema( cSChema )  && Rossine 07/10/08
-*************************
-   LOCAL cOld := s_cSchema    
-   IF VALTYPE( cSChema ) == 'C'
+*********************
+FUNCTION SL_SetSchema( cSChema, nConn )  && Rossine 07/10/08
+*********************
+
+   LOCAL cOld := s_cSchema, n
+
+   if VALTYPE( cSChema ) == "C"
       s_cSchema := cSChema
-   End   
-   
-**   msgstop( SL_ToString( saConnInfo,.T.,,, "DUMP.TXT", .T. ), cSchema )
+   endif
 
-   saConnInfo[SL_CONN_SCHEMA] := cSchema && Rossine 11/07/09
+   if VALTYPE( nConn ) == "N"
+      n := ascan( saConnections, { |aParams| aParams[SL_CONN_HANDLE] == nConn } )
+      if n > 0
+         saConnections[n,SL_CONN_SCHEMA] := s_cSchema
+      endif
+   endif
 
-**   msgstop( SL_ToString( saConnInfo,.T.,,, "DUMP.TXT", .T. ), cSchema )
+   saConnInfo[SL_CONN_SCHEMA] := s_cSchema && Rossine 11/07/09
 
    RETURN cOld
 
-************************
+********************
 FUNCTION SL_SetQuery( cQuery )  && Rossine 07/10/08
-************************
+********************
+
    LOCAL cOld := s_cQuery    
    IF VALTYPE( cQuery ) == 'C'
       s_cQuery := cQuery
    End  
    RETURN cOld
 
-*****************************
-FUNCTION SL_SetConnection( nConn )
-*****************************
+*************************
+FUNCTION SL_SetConnection( xConn )
+*************************
+
    LOCAL nOld := s_nConn
    
-   IF VALTYPE( nConn ) == 'N'
-      s_nConn := nConn
-   End   
+   if     VALTYPE( xConn ) == "N"
+          s_nConn      := xConn
+          snConnHandle := xConn  && Rossine 22/07/09
+          saConnInfo   := aClone( SL_GETCONNBD( xConn, 0 ) ) && Aqui voce passa o parametro = "0"(zero) para retorna toda a informação do BD.
+   elseif VALTYPE( xConn ) == "C"  && Rossine 22/07/09
+          s_nConn      := SL_GETCONNBD( xConn, SL_CONN_HANDLE )
+          snConnHandle := s_nConn
+          saConnInfo   := aClone( SL_GETCONNBD( s_nConn, 0 ) ) && Aqui voce passa o parametro = "0" para retorna toda a informação do BD.
+   endif   
+
    RETURN nOld
 
 FUNCTION SL_PacketSize( nSize )
@@ -637,7 +656,9 @@ return { s_cHost, s_cUser, s_cPwd, s_cDriverName }
  * Retorna a versão da SQL LIB em uso
  * 23/05/2009 - 22:18:31
  */
-FUNCTION SL_Version()
+*******************
+FUNCTION SL_Version
+*******************
 
    RETURN SQL_VTEXT + SQL_VERSION
 
@@ -646,13 +667,15 @@ FUNCTION SL_Version()
  * 11/07/09 - 10:50:00
  */
 *********************
-function SL_GETCONNBD( cDb )
+function SL_GETCONNBD( xDb, nRet )
 *********************
 
-   local n, xRet
-   	
-   if ( n := ascan( saConnections, { |aParams| aParams[SL_CONN_DB] == cDb } ) ) > 0
-      xRet := saConnections[n,SL_CONN_POINTER]
+   local n, xRet, nPar := iif( valtype( xDb ) = "N", SL_CONN_HANDLE, SL_CONN_DB )
+   
+   DEFAULT nRet := SL_CONN_POINTER
+  
+   if ( n := ascan( saConnections, { |aParams| aParams[nPar] == xDb } ) ) > 0
+      xRet := iif( nRet = 0, saConnections[n], saConnections[n,nRet] )
    endif      
 
 return xRet
@@ -683,5 +706,15 @@ FUNCTION SL_GetSchema
 *********************
 
 return saConnInfo[SL_CONN_SCHEMA]
+
+*****************
+function SL_GetBd  && Rossine 23/07/09
+*****************
+
+local nWA := select(), aWAData := USRRDD_AREADATA( nWA )
+
+   DEBUG_ARGS
+
+return iif( nWA <= 0 .or. valtype( aWAData ) != "A" .or. len(aWAData) = 0, "", aWAData[ WA_TABLENAME ] )
 
 //--EOF--//
