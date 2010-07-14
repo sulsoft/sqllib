@@ -1,19 +1,23 @@
 @echo off
-
-if not exist libpq.dll goto ERRO_1
-if "%HB_INC_PGSQL%" == "" goto ERRO_2
-
-if "%HB_DIR%" == "" SET HRB_DIR=%HB_PATH%
-
 if "%1" == "clean" goto CLEAN
 if "%1" == "CLEAN" goto CLEAN
-if not exist lib md lib
 
-if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
+:INICIO
+if "%HB_INC_PGSQL%" == ""  goto ERRO_2
+if not exist libpq.dll     goto ERRO_1
+
+if "%HRB_DIR%" == "" if not "%HB_INSTALL_PREFIX%" == ""   SET HRB_DIR=%HB_INSTALL_PREFIX%
+if "%HRB_DIR%" == "" if not "%HB_PATH%"  == ""            SET HRB_DIR=%HB_PATH%
+
+if not exist lib md lib
+if     exist %HRB_DIR%\bin\hbmk2.exe         goto BUILD_HB
+if     exist %HRB_DIR%\lib\win\bcc\hbvm.lib  goto BUILD_HB
+goto BUILD_XHB
 
 :BUILD_HB
    cd source
-   hbmk2 -trace -inc -info -i%HB_INC_PGSQL% -n -hblib -osqllib *.prg *.c > make_b32.log
+   hbmk2 -trace -info -i%HB_INC_PGSQL% -i..\include -n -w -es2 -hblib -tshead=sql_tshead.ch -osqllib *.prg *.c > make_b32.log
+
    if errorlevel 1 goto BUILD_ERR
    goto BUILD_OK
    
@@ -24,11 +28,15 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto BUILD_OK
    
 :BUILD_OK
+   if not exist sqllib.lib goto BUILD_ERR
    copy sqllib.lib .\..\lib\sqllib.lib
    del sqllib.lib
    cd..
-   d:\devel\bcc55\bin\impdef.exe libpq.def libpq.dll
-   del libpq.lib
+   if not exist libpq.def goto BUILD_DEF
+   goto CLEAN
+
+:BUILD_DEF
+   .\utils\impdef.exe libpq.def libpq.dll
    lib /def:libpq.def
    copy libpq.lib lib\libpq.lib
    goto CLEAN
@@ -59,13 +67,15 @@ if not exist %HRB_DIR%\lib\hbvm.lib goto BUILD_XHB
    goto EXIT
 
 :CLEAN
+   del /s .\source\win\*.c
+   del /s .\source\win\*.obj
    del /s source\*.ppo
    del /s source\*.log
-   del /s *.map
-   del /s *.log
-   del /s *.def
-   del /s *.exp
-   del libpq.lib
+   if exist *.map del /s *.map
+   if exist *.tds del /s *.tds
+   if exist *.log del /s *.log
+   if exist *.exe del /s *.exe
+   if exist *.ppo del /s *.ppo
    goto EXIT
    
 :EXIT
