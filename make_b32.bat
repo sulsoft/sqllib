@@ -4,27 +4,29 @@ if "%1" == "CLEAN" goto CLEAN
 
 :INICIO
 if "%HB_INC_PGSQL%" == ""  goto ERRO_2
-if not exist libpq.dll 		goto ERRO_1
-                         
-if "%HRB_DIR%" == "" if not "%HB_INSTALL_PREFIX%" == "" 	SET HRB_DIR=%HB_INSTALL_PREFIX%
-if "%HRB_DIR%" == "" if not "%HB_PATH%"  == "" 				SET HRB_DIR=%HB_PATH%
+if not exist libpq.dll     goto ERRO_1
+
+if "%HRB_DIR%" == "" if not "%HB_INSTALL_PREFIX%" == ""   SET HRB_DIR=%HB_INSTALL_PREFIX%
+if "%HRB_DIR%" == "" if not "%HB_PATH%"  == ""            SET HRB_DIR=%HB_PATH%
 
 if not exist lib md lib
-if not exist %HRB_DIR%\lib\hbvm.lib if not exist %HRB_DIR%\lib\win\bcc\hbvm.lib goto BUILD_XHB
+if     exist %HRB_DIR%\bin\hbmk2.exe         goto BUILD_HB
+if     exist %HRB_DIR%\lib\win\bcc\hbvm.lib  goto BUILD_HB
+goto BUILD_XHB
 
 :BUILD_HB
    cd source
-   rem hbmk2    -trace -inc -info -i%HB_INC_PGSQL% -n -w -es2 -hblib -osqllib *.prg *.c > make_b32.log
-       hbmk2 -b -trace -tshead=sql_tshead.ch -info -i%HB_INC_PGSQL% -n -w -es2 -hblib -osqllib *.prg *.c > make_b32.log
+   hbmk2 -trace -info -i%HB_INC_PGSQL% -i..\include -n -w -es2 -hblib -tshead=sql_tshead.ch -osqllib *.prg *.c > make_b32.log
+       
    if errorlevel 1 goto BUILD_ERR
    goto BUILD_OK
-   
+
 :BUILD_XHB
    cd source
    hbmake sqllib.bc
    if errorlevel 1 goto BUILD_ERR
    goto BUILD_OK
-   
+
 :BUILD_OK
    copy /y sqllib.lib .\..\lib\sqllib.lib
    del sqllib.lib
@@ -49,7 +51,7 @@ if not exist %HRB_DIR%\lib\hbvm.lib if not exist %HRB_DIR%\lib\win\bcc\hbvm.lib 
    @echo.
    Pause
 
-	if exist %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL goto COPIA_DLL
+   if exist %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL goto COPIA_DLL
    goto EXIT
 
 :ERRO_2
@@ -61,16 +63,16 @@ if not exist %HRB_DIR%\lib\hbvm.lib if not exist %HRB_DIR%\lib\win\bcc\hbvm.lib 
    @echo.
    Pause
    goto EXIT
-   
+
 :COPIA_DLL
 
-	@echo.
-	@echo Encontramos a DLL necessaria localizada na seguinte pasta:
-	@echo %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL
-	@echo deseja copia-la para esta pasta?
-	choice
-	if errorlevel 2 goto EXIT	
-	copy %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL 
+   @echo.
+   @echo Encontramos a DLL necessaria localizada na seguinte pasta:
+   @echo %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL
+   @echo deseja copia-la para esta pasta?
+   choice
+   if errorlevel 2 goto EXIT
+   copy %HB_INC_PGSQL%\..\LIB\LIBPQ.DLL
    goto INICIO
 
 :CLEAN
@@ -78,12 +80,11 @@ if not exist %HRB_DIR%\lib\hbvm.lib if not exist %HRB_DIR%\lib\win\bcc\hbvm.lib 
    del /s .\source\win\*.obj
    del /s source\*.ppo
    del /s source\*.log
-   del /s *.map
-   del /s *.tds
-   del /s *.log
-   del /s *.exe
-   del /s *.ppo
+   if exist *.map del /s *.map
+   if exist *.tds del /s *.tds
+   if exist *.log del /s *.log
+   if exist *.exe del /s *.exe
+   if exist *.ppo del /s *.ppo
    goto EXIT
-   
+
 :EXIT
-
