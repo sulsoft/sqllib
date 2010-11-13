@@ -152,14 +152,14 @@ HB_FUNC( SQLPARAMS )
                   
             /* TODO: Move this code to a separate func */
             hb_dateDecode( hb_itemGetDL( pItem ), &iYear, &iMonth, &iDay );
-            
             switch( pSysInfo->DateFormat )
-            {  
-               case ESCAPE_FORMAT_DATE_ISO:               
-                  szText = SQLSYS_DATETOISO( (char *) hb_xgrab(13), iYear, iMonth, iDay, TRUE );
-                  lSize  = 12L;
-                  break;
-            }
+	            {  
+	               case ESCAPE_FORMAT_DATE_ISO:               
+	                  szText = SQLSYS_DATETOISO( (char *) hb_xgrab(13), iYear, iMonth, iDay, TRUE );
+	                  lSize  = 12L;
+	                  break;
+	            }
+
             break;
             
          case HB_IT_INTEGER:
@@ -195,7 +195,7 @@ HB_FUNC( SQLPARAMS )
       if ( szText )
       {
          lLength += lSize;
-         hb_arraySetCPtr( pArgs, lPos, szText, lSize );
+         hb_arraySetCLPtr( pArgs, lPos, szText, lSize );
       }
    }
    
