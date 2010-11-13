@@ -136,6 +136,8 @@ REQUEST SQLLIB
      Importar DBF para SQL  && Rossine 23/01/09
    */
    #command SQL IMPORT DBF <aFiles>                                            ;
+                       [ PRIMARY <aPrimary> ]                                  ;
+                       [ UNIQUE <aUnique> ]                                    ;
                        [ VIA <cVia> ]                                          ;
                        [ CONNECTION <pConn> ]                                  ;
                        [ SCHEMA <cSChema> ]                                    ;
@@ -147,7 +149,7 @@ REQUEST SQLLIB
                        [ INTO <lRet> ]                                         ;
                                                                             => ;
          [ <lRet> := ] SL_IMPORT_FILES( <aFiles>, <cVia>, <pConn>, <cSChema>,  ;
-                       <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockApp> )
+                       <.lPack.>, <.lDelete.>, <bBlock>, <nEvery>, <bBlockApp>, <aPrimary>, <aUnique> )
 
    /*
      Exportar SQL para DBF  && Rossine 23/01/09
@@ -169,7 +171,7 @@ REQUEST SQLLIB
    /*
      Deleta uma Tabela
    */
-   #command SQL DELETE TABLE <cTable> => SL_DELETETABLE( cTable )  && Rossine 23/01/09
+   #command SQL DELETE TABLE <cTable> => SL_DELETETABLE( <cTable> )  && Rossine 23/01/09
 
    /*
      Conecta no Banco de Dados apartir de uma string * * * S.R. LIKE STYLE * * *
@@ -216,28 +218,32 @@ REQUEST SQLLIB
    */
 
    #command SQL STARTTRANS                          ;
+                  [ CONNECTION <nCnn> ]             ;
                   [ <y:SELECT,ALIAS> <xSelect> ]    ;
                   [ INTO <lRet> ]                   ;
                                                  => ;
-                  [ <lRet> ] := SL_StartTrans( <xSelect> )
+                  [ <lRet> ] := SL_StartTrans( <xSelect>, <nCnn> )
 
    #command SQL ENDTRANS                            ;
+                  [ CONNECTION <nCnn> ]             ;
                   [ <y:SELECT,ALIAS> <xSelect> ]    ;
                   [ INTO <lRet> ]                   ;
                                                  => ;
-                  [ <lRet> ] := SL_EndTrans( <xSelect> )
+                  [ <lRet> ] := SL_EndTrans( <xSelect>, <nCnn> )
 
    #command SQL COMMIT                              ;
+                  [ CONNECTION <nCnn> ]             ;
                   [ <y:SELECT,ALIAS> <xSelect> ]    ;
                   [ INTO <lRet> ]                   ;
                                                  => ;
-                  [ <lRet> ] := SL_Commit( <xSelect> )
+                  [ <lRet> ] := SL_Commit( <xSelect>, <nCnn> )
 
    #command SQL ROLLBACK                            ;
+                  [ CONNECTION <nCnn> ]             ;
                   [ <y:SELECT,ALIAS> <xSelect> ]    ;
                   [ INTO <lRet> ]                   ;
                                                  => ;
-                  [ <lRet> ] := SL_Rollback( <xSelect> )
+                  [ <lRet> ] := SL_Rollback( <xSelect>, <nCnn> )
 
    /*
      Especifica QTOS registros devem ser trazidos do servidor por vez
