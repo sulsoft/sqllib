@@ -100,9 +100,6 @@ local lUniquN, lUniquO, lUniqu
       set century ON
    endif
 
-**msgstop( SL_ToString( aOldStruct ), "Old" )
-**msgstop( SL_ToString( aNewStruct ), "New" )
-
    /*
     * Ajustamos os blocos de codigo agora para testar a existencia dos campos
     */
@@ -311,7 +308,6 @@ local lUniquN, lUniquO, lUniqu
                DEBUG "Inicio execução as " + time() + " - Sentença: [" + aSql[n] + "]"
                lRet := SL_EXECQUERYEX( aSql[n], aConn[1] )
                DEBUG "Final execução as " + time() + iif( lRet, " - SENTENÇA EXECUTADA COM SUCESSO", " - ERRO NA EXECUÇÃO DESTA SENTENÇA" )
-**               xmsgstop( hb_valtostr(lRet) + "-" + SL_ToString( aSql[n],.T.,,, "DUMP.TXT", .T. ) )
                if !lRet
 **                  SL_Error( 1000, "Erro na sentença: " + aSql[n], "Problema na modificação da estrutura da tabela [" + cTable + "]..." )
                   xmsgstop( "Erro na sentença: " + aSql[n], "Problema na modificação da estrutura da tabela [" + cTable + "]..." )

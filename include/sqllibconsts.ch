@@ -47,7 +47,7 @@
  */
 
 //#ifndef SQL_DEBUG
-//   #define SQL_DEBUG
+//  #define SQL_DEBUG
 //#endif
 
 #ifndef _SQLLIB_CONSTS_CH
@@ -75,24 +75,24 @@
    /* Important RDD data */
    #define WA_SYSTEMID             1    // Current SYSTEM ID number  (ID_MYSQL, ID_POSTGRESQL)
    #define WA_ENGINE               2    // System ID for this alias as string for quick access, eg ( "MYSQL", "PGSQL", etc...)
-   #define WA_CONNECTION           3    // Current Connection object
-   #define WA_POINTER              3    // Single Alias for RDDs what works with pointers
-   #define WA_VERSION              4    // Current server version as numeric value (ex: 080205 for PostgreSQL 8.2.5)
-   #define WA_RESULT               5    // Last fetched result-set
-   #define WA_RESULT_DIRECTION     6    // Last direction for result-set
+   #define WA_CONNECTION           3    // Current Connection object TSL_CONNECTION class
+   #define WA_POINTER              4    // Current TPostgreSQL / TMySQL object inside current TSL_CONNECTION object
+   #define WA_VERSION              5    // Current server version as numeric value (ex: 080205 for PostgreSQL 8.2.5)
+   #define WA_RESULT               6    // Last fetched result-set
+   #define WA_RESULT_DIRECTION     7    // Last direction for result-set
                                  
-   #define WA_TABLETYPE            7    // TS_SINGLE_SQL / TS_COMPLEX_SQL
-   #define WA_PACKET_SIZE          8    // Number os records to fetch 
-   #define WA_TRANSCOUNTER         9    // Transaction counter
-   #define WA_TEMP                10    // Temporary item to use with DBCreate() and others
+   #define WA_TABLETYPE            8    // TS_SINGLE_SQL / TS_COMPLEX_SQL
+   #define WA_PACKET_SIZE          9    // Number os records to fetch
+   #define WA_TRANSCOUNTER        10    // Transaction counter
+   #define WA_TEMP                11    // Temporary item to use with DBCreate() and others
                                                                                   
-   #define WA_FLD_RECNO           11    // sl_rowid   position into WA_REAL_STRUCT
-   #define WA_FLD_DELETED         12    // sl_deleted position into WA_REAL_STRUCT
+   #define WA_FLD_RECNO           12    // sl_rowid   position into WA_REAL_STRUCT
+   #define WA_FLD_DELETED         13    // sl_deleted position into WA_REAL_STRUCT
 
    /* Quick access only */
-   #define WA_SCHEMA              13    // For quick access only to prefer other data access: WA_CONNECTION
-   #define WA_DATABASE            14    // For quick access only to prefer other data access: WA_CONNECTION
-   #define WA_TABLENAME           15    // For quick access only to prefer other data access: WA_CONNECTION
+   #define WA_SCHEMA              14    // For quick access only to prefer other data access: WA_CONNECTION
+   #define WA_DATABASE            15    // For quick access only to prefer other data access: WA_CONNECTION
+   #define WA_TABLENAME           16    // For quick access only to prefer other data access: WA_CONNECTION
 
    /* Another operations and misc values */
    #define WA_BUFFER_INFO_BASE    WA_TABLENAME          +  1    /* Anterior + 1 */
@@ -107,30 +107,32 @@
    #define WA_EOF                 WA_WORKAREA_INFO_BASE +  2    // 
    #define WA_LOCATEFOR           WA_WORKAREA_INFO_BASE +  4    // 
    #define WA_SCOPEINFO           WA_WORKAREA_INFO_BASE +  5    // 
-   #define WA_FCOUNT              WA_WORKAREA_INFO_BASE +  7    // 
-   #define WA_RECNO               WA_WORKAREA_INFO_BASE +  8    // 
-   #define WA_RECCOUNT            WA_WORKAREA_INFO_BASE +  9    // 
-   #define WA_RECCOUNT_EXPIRES    WA_WORKAREA_INFO_BASE + 10    // Time life for LASTREC() in SL_TIMER_RECCOUNT second(s)
+   #define WA_FCOUNT              WA_WORKAREA_INFO_BASE +  7    //
+   #define WA_REAL_FCOUNT         WA_WORKAREA_INFO_BASE +  8    //
+   #define WA_RECNO               WA_WORKAREA_INFO_BASE +  9    //
+   #define WA_RECCOUNT            WA_WORKAREA_INFO_BASE + 10    //
+   #define WA_RECCOUNT_EXPIRES    WA_WORKAREA_INFO_BASE + 11    // Time life for LASTREC() in SL_TIMER_RECCOUNT second(s)
                                   
-   #define WA_APPEND              WA_WORKAREA_INFO_BASE + 11    // dbAppend() flag
-   #define WA_RECORDCHANGED       WA_WORKAREA_INFO_BASE + 12    // pArea->fRecordChanged flag
-   #define WA_FOUND               WA_WORKAREA_INFO_BASE + 13    // Rossine 07/10/08
-   #define WA_LOCK                WA_WORKAREA_INFO_BASE + 14    // Rossine 18/10/08
-   #define WA_RECSIZE             WA_WORKAREA_INFO_BASE + 15    // Rossine 22/10/08
-   #define WA_STRUCT              WA_WORKAREA_INFO_BASE + 16    // emulate dbf struct with hidden fields - 22/12/2008 - 13:40:59 Vailton Renato
-   #define WA_REAL_STRUCT         WA_WORKAREA_INFO_BASE + 17    // Real table struct - 22/12/2008 - 13:41:12 Vailton Renato  
-   #define WA_SL_GOTOID           WA_WORKAREA_INFO_BASE + 18
-   #define WA_SL_GOTOP            WA_WORKAREA_INFO_BASE + 19
-   #define WA_SL_GOBOTTOM         WA_WORKAREA_INFO_BASE + 20                          
+   #define WA_APPEND              WA_WORKAREA_INFO_BASE + 12    // dbAppend() flag
+   #define WA_RECORDCHANGED       WA_WORKAREA_INFO_BASE + 13    // pArea->fRecordChanged flag
+   #define WA_FOUND               WA_WORKAREA_INFO_BASE + 14    // Rossine 07/10/08
+   #define WA_LOCK                WA_WORKAREA_INFO_BASE + 15    // Rossine 18/10/08
+   #define WA_RECSIZE             WA_WORKAREA_INFO_BASE + 16    // Rossine 22/10/08
+   #define WA_STRUCT              WA_WORKAREA_INFO_BASE + 17    // emulate dbf struct with hidden fields - 22/12/2008 - 13:40:59 Vailton Renato
+   #define WA_REAL_STRUCT         WA_WORKAREA_INFO_BASE + 18    // Real table struct - 22/12/2008 - 13:41:12 Vailton Renato
+   #define WA_SL_GOTOID           WA_WORKAREA_INFO_BASE + 19
+   #define WA_SL_GOTOP            WA_WORKAREA_INFO_BASE + 20
+   #define WA_SL_GOBOTTOM         WA_WORKAREA_INFO_BASE + 21
                                   
-   #define WA_INDEX               WA_WORKAREA_INFO_BASE + 21    // Current INDEX info
-   #define WA_INDEX_CURR          WA_WORKAREA_INFO_BASE + 22    // Current SET ORDER number
+   #define WA_INDEX               WA_WORKAREA_INFO_BASE + 22    // Current INDEX info
+   #define WA_INDEX_CURR          WA_WORKAREA_INFO_BASE + 23    // Current SET ORDER number
                                   
-   #define WA_LAST_PACKSIZE       WA_WORKAREA_INFO_BASE + 23                           
+   #define WA_LAST_PACKSIZE       WA_WORKAREA_INFO_BASE + 24
                                   
-   #define WA_ALIAS               WA_WORKAREA_INFO_BASE + 24
+   #define WA_ALIAS               WA_WORKAREA_INFO_BASE + 25
+   #define WA_BLANK               WA_WORKAREA_INFO_BASE + 26
 
-   #define WA_SIZE                WA_ALIAS    /* Put here the last key value for this array */
+   #define WA_SIZE                WA_BLANK    /* Put here the last key value for this array */
 
    /*
     * SL_GETCONNINFO() constants
@@ -147,8 +149,10 @@
    #define SL_CONN_POINTER      10
    #define SL_CONN_SCHEMA       11 
    #define SL_CONN_CHARSET      12
-   #define SL_CONN_VERSION		  13
-   #define SL_CONN_COUNT        13
+   #define SL_CONN_VERSION		13
+   #define SL_CONN_TRANSCOUNTER 14     // Number of transactions in use
+   #define SL_CONN_CONNECTION   15     // conection for class TSL_CONNECTION() - Rossine 24/11/09
+   #define SL_CONN_COUNT        15
       
    /*
     * SQLGetDBInfo constants
@@ -215,6 +219,7 @@
    #define IDX_UNIQUE            11
    #define IDX_CUSTOM_COL        12
    #define IDX_ROWID             13
+   #define IDX_SCHEMA            14  && 09/11/09
    #define IDX_MAX_CONSTS        IDX_ROWID
 
    /* SL_ORDLSTCheckintegrity() constants */
@@ -259,14 +264,14 @@
    #define DSL_EXECQUERY_MSG    23                
    #define DSL_EXECQUERY_DES    24                
    #define DSL_QUICKQUERY       25             
-   #define DSL_COMMIT           26         
-   #define DSL_ROLLBACK         27           
-   #define DSL_CLEARINDEX       28             
-   #define DSL_STARTTRANS       29             
-   #define DSL_ENDTRANS         30
-   #define DSL_GETFIELDTYPE     31   && Rossine 23/12/08
-   #define DSL_GETFULLTABLE     32
-                                 
+   #define DSL_CLEARINDEX       26             
+   #define DSL_GETFIELDTYPE     27   && Rossine 23/12/08
+   #define DSL_GETFULLTABLE     28   && Rossine 06/08/09
+   #define DSL_TRANS            29   && Rossine 06/08/09
+   #define DSL_TRANSREC         30   && Rossine 06/08/09
+   #define DSL_GETREC           31   && Rossine 06/08/09
+   #define DSL_PUTREC           32   && Rossine 06/08/09
+
    #define ID_MAX_FUNCTIONS     32
                                  
    #define FSL_CREATE( id )            ( aSystemDrivers[ id, DSL_CREATE           ] )
@@ -294,13 +299,13 @@
    #define FSL_EXECQUERY_MSG( id )     ( aSystemDrivers[ id, DSL_EXECQUERY_MSG    ] )
    #define FSL_EXECQUERY_DES( id )     ( aSystemDrivers[ id, DSL_EXECQUERY_DES    ] )
    #define FSL_QUICKQUERY( id )        ( aSystemDrivers[ id, DSL_QUICKQUERY       ] )
-   #define FSL_COMMIT( id )            ( aSystemDrivers[ id, DSL_COMMIT           ] )
-   #define FSL_ROLLBACK( id )          ( aSystemDrivers[ id, DSL_ROLLBACK         ] )
    #define FSL_CLEARINDEX( id )        ( aSystemDrivers[ id, DSL_CLEARINDEX       ] )
-   #define FSL_STARTTRANS( id )        ( aSystemDrivers[ id, DSL_STARTTRANS       ] )
-   #define FSL_ENDTRANS( id )          ( aSystemDrivers[ id, DSL_ENDTRANS         ] )
    #define FSL_GETFIELDTYPE( id )      ( aSystemDrivers[ id, DSL_GETFIELDTYPE     ] )   && Rossine 23/12/08
    #define FSL_GETFULLTABLE( id )      ( aSystemDrivers[ id, DSL_GETFULLTABLE     ] )   && Rossine 03/01/09
+   #define FSL_TRANS( id )             ( aSystemDrivers[ id, DSL_TRANS            ] )   && Rossine 06/08/09
+   #define FSL_TRANSREC( id )          ( aSystemDrivers[ id, DSL_TRANSREC         ] )   && Rossine 06/08/09
+   #define FSL_GETREC( id )            ( aSystemDrivers[ id, DSL_GETREC           ] )   && Rossine 06/08/09
+   #define FSL_PUTREC( id )            ( aSystemDrivers[ id, DSL_PUTREC           ] )   && Rossine 06/08/09
 #endif
 
 //--EOF--//

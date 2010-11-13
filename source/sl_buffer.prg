@@ -55,7 +55,9 @@
 FUNCTION SQLBUFFER_CREATE( aWAData )
 *************************
 
-  if valtype( aWAData[ WA_BUFFER_ARR ] ) == "A"
+   DEBUG_ARGS
+   
+   if valtype( aWAData[ WA_BUFFER_ARR ] ) == "A"
       return SUCCESS
    endif
  
@@ -64,15 +66,32 @@ FUNCTION SQLBUFFER_CREATE( aWAData )
 RETURN SUCCESS
  
 /*
- * Create destroy a buffer (if exists) into current workarea. (Vailton)
+ * Destroy a buffer (if exists) into current workarea. (Vailton)
  * 16/09/2008 - 08:04:50
  */
 *************************
 FUNCTION SQLBUFFER_DELETE( aWAData )
 *************************
 
+   DEBUG_ARGS
+
    aWAData[ WA_BUFFER_ARR ]  := NIL
  
 RETURN SUCCESS
  
+/*
+ * Create a new cache for all SQL columns inside current recordset...
+ * 19/11/2009 - 11:29:20
+ */
+FUNCTION SQLBUFFER_PREPARECACHECOLS( aWAData, nRow )
+
+   DEBUG_ARGS
+
+   if valtype( aWAData[ WA_BUFFER_ARR, nRow ] ) == "A"
+      return SUCCESS
+   endif
+
+   aWAData[ WA_BUFFER_ARR, nRow ] := ARRAY( aWAData[ WA_REAL_FCOUNT ] )
+RETURN SUCCESS
+   
 //--EOF--//
