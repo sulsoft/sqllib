@@ -78,8 +78,9 @@ FUNCTION SQLERR_MSG( cNewMSG )
 FUNCTION SQLERR_NUM( nCode )
    LOCAL i := snLastErrorCode
 
-      IF VALTYPE( nCode ) THEN;
+      IF VALTYPE( nCode ) == 'N' 
          snLastErrorCode := nCode
+      ENDIF
 
    RETURN i
 
