@@ -68,9 +68,15 @@ CLASS TSL_CONNECTION
       ACCESS Flags                  INLINE ::aInfo[ SL_CONN_FLAGS ]
       ACCESS Schema                 INLINE ::aInfo[ SL_CONN_SCHEMA ]
       ACCESS CharSet                INLINE ::aInfo[ SL_CONN_CHARSET ]
+      ACCESS TransCounter           INLINE ::aInfo[ SL_CONN_TRANSCOUNTER ]
 
       CONSTRUCTOR New( nConnection ) 
       METHOD GetConnInfo()          INLINE ::aInfo
+      
+      METHOD StartTrans()
+      METHOD Commit()
+      METHOD Rollback()
+      METHOD HasTrans()             INLINE ::aInfo[ SL_CONN_TRANSCOUNTER ] > 0
       
 End Class
 
@@ -90,7 +96,69 @@ METHOD New( nHandle ) ;
    ELSE
       ::aInfo := SL_GETCONNINFO( nHandle )
    End
-      
    RETURN Self
+
+// 20/11/2009 - 18:53:18
+METHOD StartTrans() ;
+   CLASS TSL_CONNECTION
+
+   LOCAL lOk := .T.
+
+   DEBUG_ARGS
+   
+   IF ( ::TransCounter == 00 )
+      DEBUG "Iniciando Transação do registro"
+      lOk := !::Pointer:StartTransaction()
+   ELSE
+      DEBUG "Já existe", ::TransCounter, "transações em aberto!"
+   End
+
+   IF lOk
+      ::aInfo[ SL_CONN_TRANSCOUNTER ] ++
+   End
+
+   RETURN lOk
+
+// 20/11/2009 - 18:47:44
+METHOD Commit() ;
+   CLASS TSL_CONNECTION
+
+   LOCAL lOk := .T.
+
+   DEBUG_ARGS
+   DEBUG "Já existe", ::TransCounter, "transações em aberto!"
+
+   IF ( ::TransCounter > 00 )
+      ::aInfo[ SL_CONN_TRANSCOUNTER ] --
+   End
+
+   IF ( ::TransCounter == 00 )
+      lOk := ::Pointer:Commit()
+      DEBUG "Enviando COMMIT dos dados: "
+   ELSE
+      DEBUG "Nenhuma transação pendente para ser gravada!"
+   End
+   RETURN lOk
+
+
+// 20/11/2009 - 18:47:44
+METHOD Rollback() ;
+   CLASS TSL_CONNECTION
+
+   LOCAL lOk := .T.
+
+   DEBUG "Já existe", ::TransCounter, "transações em aberto!"
+
+   IF ( ::TransCounter > 00 )
+      ::aInfo[ SL_CONN_TRANSCOUNTER ] --
+   End
+
+   IF ( ::TransCounter == 00 )
+      lOk := ::Pointer:rollback()
+      DEBUG "Terminando Transação do registro: "
+   ELSE
+      DEBUG "Nenhuma transação pendente para ser gravada!"
+   End
+   RETURN lOk
 
 //--EOF--//
